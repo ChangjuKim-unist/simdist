@@ -15,6 +15,8 @@
   <span><sup>*</sup> Equal Contribution</span>
 </p>
 
+<i>RSS 2026 (Accepted)</i>
+
 [![Website](docs/assets/badge-website.svg)](https://sim-dist.github.io/)
 [![Paper](docs/assets/badge-pdf.svg)](https://arxiv.org/abs/2603.15759)
 </div>
@@ -28,6 +30,11 @@ This project implements **Simulation Distillation (SimDist)**, a scalable framew
     src="docs/assets/readme-gif.gif">
   </img>
 </div>
+
+## 📝 TODO
+
+- [x] ~~Quadruped code release~~
+- [ ] Manipulation code release (coming soon)
 
 ## 📚 Usage
 
@@ -49,7 +56,7 @@ This project implements **Simulation Distillation (SimDist)**, a scalable framew
 
 ## Acknowledgements
 
-For SLAM, We use the version of ["point_lio_unilidar"](https://github.com/unitreerobotics/point_lio_unilidar) from [`autonomy_stack_go2`](https://github.com/jizhang-cmu/autonomy_stack_go2) from @jizhang-cmu.
+For SLAM, we use the version of ["point_lio_unilidar"](https://github.com/unitreerobotics/point_lio_unilidar) from [`autonomy_stack_go2`](https://github.com/jizhang-cmu/autonomy_stack_go2).
 
 ## Citation
 
