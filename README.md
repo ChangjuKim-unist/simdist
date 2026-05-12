@@ -6,13 +6,14 @@
   <a href="https://jake-levy.github.io/">Jacob Levy</a><sup>*1</sup>, <a href="https://tyler-westenbroek.github.io/">Tyler Westenbroek</a><sup>*2</sup>,
   <a href="https://kevinhuang8.github.io/">Kevin Huang</a><sup>2</sup>, <a href="https://palafox.info/">Fernando Palafox</a><sup>1</sup>,
   <a href="https://patrickyin.me/">Patrick Yin</a><sup>2</sup>, <a href="https://www.linkedin.com/in/shayegan/">Shayegan Omidshafiei</a><sup>3</sup>,
-  <a href="https://dkkim93.github.io/">Dong-Ki Kim</a><sup>3</sup>, <a href="https://homes.cs.washington.edu/~abhgupta/">Abhishek Gupta</a><sup>2</sup>,
-  <a href="https://dfridovi.github.io/">David Fridovich-Keil</a><sup>1</sup>
+  <a href="https://dkkim93.github.io/">Dong-Ki Kim</a><sup>3</sup>, <a href="https://homes.cs.washington.edu/~abhgupta/">Abhishek Gupta</a><sup>†2</sup>,
+  <a href="https://dfridovi.github.io/">David Fridovich-Keil</a><sup>†1</sup>
   <br>
   <span><sup>1</sup> UT Austin</span>&emsp;
   <span><sup>2</sup> UW</span>&emsp;
   <span><sup>3</sup> FieldAI</span>&emsp;
-  <span><sup>*</sup> Equal Contribution</span>
+  <span><sup>*</sup> Equal Contribution</span>&emsp;
+  <span><sup>†</sup> Equal Advising</span>
 </p>
 
 <i>RSS 2026 (Accepted)</i>
