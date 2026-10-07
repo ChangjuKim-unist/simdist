@@ -5,7 +5,8 @@ import yaml
 import torch
 from tqdm import trange
 
-from simdist.rl.go2 import Go2RecordEnvCfg, ManagerBasedRLEnvRecord
+from simdist.rl.go2 import ManagerBasedRLEnvRecord
+from simdist.rl.envs import get_record_env_cfg
 from simdist.utils.torch import get_actor_critic_from_iteration
 from simdist.utils import paths
 
@@ -47,7 +48,7 @@ class DataRecorder:
         self.expert_prob = cfg["expert_prob"]
 
         # create environment
-        env_cfg = Go2RecordEnvCfg()
+        env_cfg = get_record_env_cfg(cfg["system"]["name"])
         env_cfg.seed = seed
         env_cfg.recorders.dataset_export_dir_path = dataset_path
         env_cfg.recorders.dataset_filename = paths.get_raw_data_filename()

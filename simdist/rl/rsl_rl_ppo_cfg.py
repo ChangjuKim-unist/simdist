@@ -37,3 +37,9 @@ class UnitreeGo2RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     )
     logger = "wandb"
     wandb_project = "simdist_go2_rl"
+
+
+@configclass
+class UnitreeGo1RoughPPORunnerCfg(UnitreeGo2RoughPPORunnerCfg):
+    experiment_name = "unitree_go1_rough"
+    wandb_project = "simdist_go1_rl"

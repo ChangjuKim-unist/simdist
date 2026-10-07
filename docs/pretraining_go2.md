@@ -54,3 +54,18 @@ Deploy, in simulation, the pretrained world model using sampling-based planning 
 ```bash
 python scripts/simulate_go2.py model.checkpoint=<checkpoint_name>
 ```
+### Unitree Go1
+
+The pipeline above can also be run for the Unitree Go1. The Go1 shares the Go2's joint layout, so only the robot asset, base body name, and motor limits differ (see [`simdist/rl/go1.py`](../simdist/rl/go1.py)). Use the `Go1`/`Go1Play` tasks for the RL scripts and `system=go1` for the data and model scripts:
+
+```bash
+python scripts/train_rl.py --task Go1 --headless
+python scripts/play_rl.py --task Go1Play --num_envs 32 -r <run_folder_name> --real-time
+python scripts/export_policies.py --task Go1Play -r <run_folder_name>
+python scripts/generate_data.py rl_run=<run_folder_name> system=go1
+python scripts/process_data.py dataset_name=<dataset_name> system=go1
+python scripts/train_model.py data.dataset_name=<dataset_name> system=go1 run_name=<run_name>
+python scripts/simulate_go2.py model.checkpoint=<checkpoint_name>
+```
+
+`simulate_go2.py` picks the Go1 or Go2 simulation environment from the system recorded in the model checkpoint, so it needs no extra flag.

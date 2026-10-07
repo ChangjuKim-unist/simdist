@@ -21,3 +21,23 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{rl.__name__}.rsl_rl_ppo_cfg:UnitreeGo2RoughPPORunnerCfg",
     },
 )
+
+gym.register(
+    id="Go1",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.go1:Go1EnvCfg",
+        "rsl_rl_cfg_entry_point": f"{rl.__name__}.rsl_rl_ppo_cfg:UnitreeGo1RoughPPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="Go1Play",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.go1:Go1PlayEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{rl.__name__}.rsl_rl_ppo_cfg:UnitreeGo1RoughPPORunnerCfg",
+    },
+)

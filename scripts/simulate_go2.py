@@ -36,7 +36,7 @@ from isaaclab.envs import ManagerBasedRLEnv
 from simdist.utils import paths, model as model_utils, config
 from simdist.control.controller_base import ControllerInput
 from simdist.control.mppi import MppiController
-from simdist.rl.go2 import Go2SimEnvCfg
+from simdist.rl.envs import get_sim_env_cfg
 
 
 class Go2Sim:
@@ -60,7 +60,7 @@ class Go2Sim:
         )
 
         # create env cfg
-        env_cfg = Go2SimEnvCfg()
+        env_cfg = get_sim_env_cfg(model_cfg["system"]["name"])
 
         # set command in env
         env_cfg.commands.base_velocity.forward_vel = cfg["task"]["forward_vel"]
