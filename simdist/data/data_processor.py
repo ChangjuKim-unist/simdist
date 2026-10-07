@@ -232,9 +232,11 @@ class _H5Appender:
         key: str,
         feat_dim: int,
         dtype: np.dtype = np.float32,
+        chunk_rows: int = 32,
     ):
         self.f = h5py.File(path, "w")
         self.feat_dim = feat_dim
+        self.chunk_rows = chunk_rows
         self.dtype = np.dtype(dtype)
 
         if self.feat_dim == 0:
@@ -244,10 +246,16 @@ class _H5Appender:
             shape = (0, feat_dim)
             maxshape = (None, feat_dim)
 
+        # Chunk along time only. HDF5 reads whole chunks, and the auto-chosen
+        # chunks for a resizable dataset split the feature dimension, which
+        # makes the random window reads in the dataset many times larger than
+        # the data actually needed once the dataset no longer fits in RAM.
+        chunks = (self.chunk_rows,) if self.feat_dim == 0 else (self.chunk_rows, feat_dim)
         self.dset = self.f.create_dataset(
             key,
             shape=shape,
             maxshape=maxshape,
+            chunks=chunks,
             dtype=self.dtype,
         )
 

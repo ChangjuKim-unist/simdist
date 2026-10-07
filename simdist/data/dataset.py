@@ -141,6 +141,20 @@ class WorldModelDatasetBase(DatasetBase):
     def data_augmentations(self, item: DatasetItem) -> DatasetItem:
         return item
 
+    # DataLoader workers are spawned rather than forked (see modeling/trainer.py),
+    # so the dataset is pickled into each worker. The h5py handles cannot be
+    # pickled, so they are dropped here and reopened in the worker.
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        state["_files"] = {}
+        state["_data"] = {}
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._load_files(self._data_dir)
+        self._load_data()
+
     def _load_files(self, data_dir: str) -> None:
         self._files["start_idxs"] = h5py.File(paths.get_start_idxs_path(data_dir))
         self._files["proprio_obs"] = h5py.File(paths.get_proprio_obs_path(data_dir))

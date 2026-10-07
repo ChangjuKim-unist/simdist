@@ -1,11 +1,12 @@
 import datetime
+import functools as ft
 import os
 import yaml
 import time
 
 import wandb
 import torch
-from torch.utils.data import random_split, get_worker_info, DataLoader
+from torch.utils.data import get_worker_info, DataLoader
 import flax.nnx as nnx
 import orbax.checkpoint as ocp
 import optax
@@ -14,6 +15,38 @@ from tqdm import tqdm
 from simdist.data.dataset import get_dataset, DatasetBase
 from simdist.utils import io, model as model_utils, paths
 from simdist.modeling import models, losses, types
+
+
+
+class _RangeSubset(torch.utils.data.Dataset):
+    """A contiguous slice of a dataset.
+
+    Unlike ``torch.utils.data.Subset`` (as returned by ``random_split``) this holds
+    no index list; for ~100M trajectories that list is gigabytes and is copied into
+    every DataLoader worker. Trajectories are stored in episode order, so the
+    held-out slice at the end is made of whole episodes not seen in training.
+    """
+
+    def __init__(self, dataset: DatasetBase, start: int, stop: int):
+        self.dataset = dataset
+        self.start = start
+        self.stop = stop
+
+    def __len__(self) -> int:
+        return self.stop - self.start
+
+    def __getitem__(self, idx: int):
+        return self.dataset[self.start + idx]
+
+
+def _worker_init_fn(worker_id: int, training: bool) -> None:
+    worker_info = get_worker_info()
+    if worker_info is not None:
+        dataset: DatasetBase = worker_info.dataset.dataset
+        if training:
+            dataset.train()
+        else:
+            dataset.eval()
 
 
 def train(cfg: dict):
@@ -41,27 +74,15 @@ def train(cfg: dict):
     # Create datasets
     dataset = get_dataset(cfg)
     generator = torch.Generator().manual_seed(cfg["training"]["seed"])
-    train_dataset, test_dataset = random_split(
-        dataset,
-        [
-            cfg["training"]["training_data_ratio"],
-            1 - cfg["training"]["training_data_ratio"],
-        ],
-        generator=generator,
-    )
+    n_train = int(len(dataset) * cfg["training"]["training_data_ratio"])
+    train_dataset = _RangeSubset(dataset, 0, n_train)
+    test_dataset = _RangeSubset(dataset, n_train, len(dataset))
 
     # holds the current training mode
     training = True
 
     # used to update each worker's dataset each time all of the data is seen
-    def worker_init_fn(worker_id):
-        worker_info = get_worker_info()
-        if worker_info is not None:
-            dataset: DatasetBase = worker_info.dataset.dataset
-            if training:
-                dataset.train()
-            else:
-                dataset.eval()
+    worker_init_fn = ft.partial(_worker_init_fn, training=training)
 
     # create dataloaders
     train_set = DataLoader(
@@ -74,6 +95,10 @@ def train(cfg: dict):
         # collate_fn=collate_to_numpy_safe,
         prefetch_factor=cfg["data"]["prefetch_factor"],
         persistent_workers=False,
+        # forkserver: workers are forked from a small helper process instead of
+        # the main process, whose multi-GB heap forked workers would otherwise
+        # gradually duplicate through copy-on-write and exhaust RAM
+        multiprocessing_context="forkserver",
         generator=generator,
     )
     test_set = DataLoader(
@@ -85,6 +110,10 @@ def train(cfg: dict):
         # collate_fn=collate_to_numpy_safe,
         prefetch_factor=cfg["data"]["prefetch_factor"],
         persistent_workers=False,
+        # forkserver: workers are forked from a small helper process instead of
+        # the main process, whose multi-GB heap forked workers would otherwise
+        # gradually duplicate through copy-on-write and exhaust RAM
+        multiprocessing_context="forkserver",
         generator=generator,
     )
 
