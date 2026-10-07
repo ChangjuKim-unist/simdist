@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go1_description</name>
+  <version>1.0.0</version>
+  <description>
+    Unitree Go1 robot description (URDF from unitreerobotics/unitree_ros,
+    repackaged for ROS 2). Meshes are not committed; fetch them with
+    setup/fetch_go1_meshes.sh if you want them in RViz.
+  </description>
+  <maintainer email="kcj4746@unist.ac.kr">simdist</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -34,6 +34,10 @@ RUN \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/ros2_install.sh
 
+# Unitree Go1 low-level SDK (prebuilt static library) used by the go1_bridge package
+RUN git clone --depth 1 -b v3.8.0 https://github.com/unitreerobotics/unitree_legged_sdk /opt/unitree_legged_sdk
+ENV UNITREE_LEGGED_SDK_DIR=/opt/unitree_legged_sdk
+
 # Create user and setup permissions on /etc/sudoers
 ARG UID=1000
 ARG GID=1000

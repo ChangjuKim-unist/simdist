@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>go1_bridge</name>
+  <version>0.1.0</version>
+  <description>
+    Bridges a Unitree Go1 (unitree_legged_sdk, UDP low-level mode) to the
+    unitree_go LowState / LowCmd / WirelessController topics that the rest of
+    the workspace was written against for the Go2.
+  </description>
+  <maintainer email="kcj4746@unist.ac.kr">simdist</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>unitree_go</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -64,8 +64,11 @@ class SimdistControllerNode(Node):
         )
 
         # Load config
+        self.declare_parameter("controller_config", "simdist_controller.yaml")
         config_dir = get_package_share_directory("config")
-        yaml_path = os.path.join(config_dir, "config", "simdist_controller.yaml")
+        yaml_path = os.path.join(
+            config_dir, "config", self.get_parameter("controller_config").value
+        )
         with open(yaml_path, "r") as file:
             cfg = yaml.safe_load(file)
             self.get_logger().info(f"Config: {cfg}")

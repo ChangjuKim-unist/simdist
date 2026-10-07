@@ -1,5 +1,7 @@
 import os
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -24,11 +26,19 @@ def generate_launch_description():
         executable="simdist_controller_node.py",
         name="simdist_controller_node",
         output="screen",
-        parameters=[common_config],
+        parameters=[
+            common_config,
+            {"controller_config": LaunchConfiguration("controller_config")},
+        ],
     )
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "controller_config",
+                default_value="simdist_controller.yaml",
+                description="Controller config file in the config package (e.g. simdist_controller_go1.yaml)",
+            ),
             cmd_vel_pub,
             controller,
         ]

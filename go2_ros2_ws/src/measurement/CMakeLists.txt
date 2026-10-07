@@ -106,5 +106,10 @@ install(PROGRAMS
   measurement/pose_kf.py
   DESTINATION lib/${PROJECT_NAME}
 )
+install(PROGRAMS
+  measurement/leg_odometry.py
+  measurement/flat_elevation.py
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_package()

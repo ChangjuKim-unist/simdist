@@ -51,6 +51,7 @@ This project implements **Simulation Distillation (SimDist)**, a scalable framew
   - [Startup](docs/deployment_go2.md#startup)
   - [Running the Robot](docs/deployment_go2.md#running-the-robot)
   - [Shutdown](docs/deployment_go2.md#shutdown)
+- [🐕 Deployment (Real-World Go1)](docs/deployment_go1.md)
 - [⚙️ Adaptation](docs/adaptation.md)
   - [Processing Real-World Data](docs/adaptation.md#processing-real-world-data)
   - [Finetuning the World Model](docs/adaptation.md#finetuning-the-world-model)

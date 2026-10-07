@@ -96,6 +96,7 @@ echo "# Into CONTAINER_WORKSPACE_ROOT=$CONTAINER_WORKSPACE_ROOT"
 echo "# Using USE_SIM=$USE_SIM"
 
 docker run --rm -it \
+    --ulimit memlock=-1:-1 \
     $NETWORK_SETTINGS \
     $GRAPHICS_SETTINGS \
     -v "${HOST_WORKSPACE_ROOT}:${CONTAINER_WORKSPACE_ROOT}:rw" \

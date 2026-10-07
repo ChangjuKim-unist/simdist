@@ -1,0 +1,28 @@
+rate: 50.0
+action_scale: 0.25
+height_scan_offset: 0.3
+
+model:
+  # Either enter an absolute path to the model checkpoint, or the name of the checkpoint in checkpoints dir
+  checkpoint: go1_paper
+  step:  # leave blank for latest
+
+mppi:
+  num_samples: 450
+  iterations: 8 # number of MPPI iterations before taking a step
+  delay: 1  # the number of anticipated steps the controller takes to run
+  mixture_coef: 0.05
+  min_std: 0.05
+  base_act_std: 0.05
+  init_std: 2.0
+  num_elites: 64
+  temperature: 0.25
+  momentum: 0.0
+  discount: 0.99
+  seed: 42
+
+logging:
+  # log to the below dataset
+  enabled: true
+  # same of the dataset in the datasets/real directory to store data
+  dataset_name: go1_simdist_controller

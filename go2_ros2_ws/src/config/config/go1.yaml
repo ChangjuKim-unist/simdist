@@ -1,0 +1,45 @@
+# Parameters for running the stack on a Unitree Go1 without a lidar (flat ground).
+# Loaded after common.yaml / measurement.yaml by launch_go1.py.
+/**:
+  ros__parameters:
+    # Go1 URDF joint names (go1_description), Unitree joint order
+    joint_names:
+      - FR_hip_joint
+      - FR_thigh_joint
+      - FR_calf_joint
+      - FL_hip_joint
+      - FL_thigh_joint
+      - FL_calf_joint
+      - RR_hip_joint
+      - RR_thigh_joint
+      - RR_calf_joint
+      - RL_hip_joint
+      - RL_thigh_joint
+      - RL_calf_joint
+
+    go1:
+      robot_ip: 192.168.123.10  # Go1 main control board (low-level UDP)
+      robot_port: 8007
+      local_port: 8090
+      rate: 500.0
+      power_protect_level: 5  # 1..10 = 10%..100% of motor power allowed by the SDK
+      cmd_timeout: 0.5  # [s] without a /lowcmd the motors go to damping mode
+      damping_kd: 2.0
+      publish_clock: true  # the Go2 setup takes /clock from the lidar IMU; the Go1 has none
+
+    leg_odometry:
+      rate: 100.0
+      contact_force_threshold: 20.0  # raw foot_force units
+      alpha: 0.3
+
+    flat_elevation:
+      rate: 50.0
+      num_cells: 315  # 21 x 15 height scan, as in the simulation
+      contact_force_threshold: 20.0
+      default_body_height: 0.30
+      alpha: 0.2
+
+# The bridge is the source of /clock, so it must run on the system clock.
+go1_bridge:
+  ros__parameters:
+    use_sim_time: false

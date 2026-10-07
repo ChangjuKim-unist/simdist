@@ -50,6 +50,8 @@ class JointStatePublisher(Node):
         self.joint_states_topic = (
             self.get_parameter("topics.joint_states").get_parameter_value().string_value
         )
+        self.declare_parameter("joint_names", JOINT_NAMES)
+        self.joint_names = list(self.get_parameter("joint_names").value)
 
     def lowstate_callback(self, msg: LowState):
         self.latest_joint_pos = [msg.motor_state[i].q for i in range(12)]
@@ -59,7 +61,7 @@ class JointStatePublisher(Node):
             return
 
         msg = JointState()
-        msg.name = JOINT_NAMES
+        msg.name = self.joint_names
         msg.position = self.latest_joint_pos
         msg.header.stamp = self.get_clock().now().to_msg()
         self.js_pub.publish(msg)
