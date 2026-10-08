@@ -36,6 +36,9 @@ class LegOdometryNode(Node):
         self.declare_parameter("leg_odometry.rate", 100.0)
         # foot_force (raw sensor units) above which a foot counts as in contact
         self.declare_parameter("leg_odometry.contact_force_threshold", 20.0)
+        # feet whose force sensor is used for contact detection (FR, FL, RR, RL); set
+        # an entry to false for a broken sensor
+        self.declare_parameter("leg_odometry.use_foot", [True, True, True, True])
         # low-pass factor on the velocity estimate (1.0 = no filtering)
         self.declare_parameter("leg_odometry.alpha", 0.3)
 
@@ -47,6 +50,7 @@ class LegOdometryNode(Node):
         self.contact_threshold = self.get_parameter(
             "leg_odometry.contact_force_threshold"
         ).value
+        self.use_foot = list(self.get_parameter("leg_odometry.use_foot").value)
         self.alpha = self.get_parameter("leg_odometry.alpha").value
 
         self.lock = threading.Lock()
@@ -85,7 +89,7 @@ class LegOdometryNode(Node):
 
         velocities = []
         for leg in range(4):
-            if foot_force[leg] < self.contact_threshold:
+            if not self.use_foot[leg] or foot_force[leg] < self.contact_threshold:
                 continue
             q_leg = q[3 * leg : 3 * leg + 3]
             dq_leg = dq[3 * leg : 3 * leg + 3]

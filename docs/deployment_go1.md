@@ -81,11 +81,13 @@ ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.
 
 ### Running the Robot
 
-The state machine (already running in its pane) is driven from the keyboard in its pane or the wireless remote, exactly as on the Go2; see [Running the Robot](deployment_go2.md#running-the-robot). The order is prone → stand → walk. The `go1_bridge` applies the SDK's joint limits and power protection (`go1.power_protect_level`, 5 = 50% by default; raise it once the robot walks reliably) and switches the motors to damping if `/lowcmd` stops for `go1.cmd_timeout` seconds.
+The state machine (already running in its pane, started with `robot_config:=go1.yaml` so it uses the Go1 gains: stand Kp 30, walk Kp 25, Kd 1.0) is driven from the keyboard in its pane or the wireless remote, exactly as on the Go2; see [Running the Robot](deployment_go2.md#running-the-robot). The order is prone → stand → walk. The `go1_bridge` applies the SDK's joint limits and power protection (`go1.power_protect_level`, 5 = 50% by default; raise it once the robot walks reliably) and switches the motors to damping if `/lowcmd` stops for `go1.cmd_timeout` seconds.
 
 Safety notes for the Go1:
 
 - Keep a hand on the remote: prone (stop walking) is one key away, and killing the state machine or the bridge puts the motors in damping mode.
+- The bridge treats |roll| or |pitch| above `go1.abort_roll_pitch` (0.7 rad) as a fall: the motors go to damping and stay there until the robot is upright **and** the state machine has been switched back to prone, so a righted robot never resumes a walking command by itself.
+- The bridge watches the motor temperatures and battery reported in `/lowstate`: above `go1.motor_temp_warn` (60 °C) it logs a warning, above `go1.motor_temp_stop` (70 °C) it holds the motors in damping mode until they cool down, and it warns below `go1.battery_warn` (20 %). Watch them yourself with `ros2 topic echo /lowstate --field motor_state[1].temperature` and `--field bms_state.soc`.
 - Use a harness for the first stand/walk tests. The Go1 is lighter than the Go2 and the world model was trained with Go1 motor limits (23.7 N·m), but the stand/prone joint targets in `state_machine.cpp` are shared with the Go2.
 - Foot contact (for velocity and height estimation) uses the Go1 foot force sensors with threshold `contact_force_threshold` in `go1.yaml`; check `ros2 topic echo /lowstate --field foot_force` while the robot stands and lift a leg to confirm the threshold separates contact from swing.
 

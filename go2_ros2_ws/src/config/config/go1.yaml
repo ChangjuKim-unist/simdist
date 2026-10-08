@@ -22,20 +22,27 @@
       robot_port: 8007
       local_port: 8090
       rate: 500.0
-      power_protect_level: 5  # 1..10 = 10%..100% of motor power allowed by the SDK
+      power_protect_level: 8  # 1..10 = 10%..100% of motor power allowed by the SDK (earlier Go1 experiments ran at 10)
       cmd_timeout: 0.5  # [s] without a /lowcmd the motors go to damping mode
       damping_kd: 2.0
       publish_clock: true  # the Go2 setup takes /clock from the lidar IMU; the Go1 has none
+      send_commands: true  # false = receive-only (first bench test: nothing is sent to the motors)
+      motor_temp_warn: 60.0  # [C] log a warning above this
+      motor_temp_stop: 70.0  # [C] hold the motors in damping mode above this, until back below motor_temp_warn
+      battery_warn: 20.0  # [%] warn below this state of charge
+      abort_roll_pitch: 0.7  # [rad] fallen: damping until the state machine is back in prone
 
     leg_odometry:
       rate: 100.0
-      contact_force_threshold: 20.0  # raw foot_force units
+      contact_force_threshold: 100.0  # raw foot_force units; walking logs: stance 700-1700, swing 2-60, standing ~175-235
+      use_foot: [true, true, false, true]  # FR, FL, RR, RL; the RR force sensor on our Go1 is broken (stuck at 900)
       alpha: 0.3
 
     flat_elevation:
       rate: 50.0
       num_cells: 315  # 21 x 15 height scan, as in the simulation
-      contact_force_threshold: 20.0
+      contact_force_threshold: 100.0
+      use_foot: [true, true, false, true]
       default_body_height: 0.30
       alpha: 0.2
 
@@ -43,3 +50,16 @@
 go1_bridge:
   ros__parameters:
     use_sim_time: false
+
+# State machine gains for the Go1 (the defaults in control.yaml are for the Go2).
+# Earlier experiments on this Go1 stood and walked with Kp 20-30, Kd 1.0.
+state_machine:
+  ros__parameters:
+    state_machine:
+      standing_duration: 3.0
+      proning_duration: 3.0
+      stand_Kp: 30.0
+      walking_Kp: 25.0  # joint stiffness the world model was trained with in simulation
+      proning_Kp: 20.0
+      prone_Kp: 5.0
+      Kd: 1.0

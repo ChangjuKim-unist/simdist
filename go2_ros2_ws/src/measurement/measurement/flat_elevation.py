@@ -30,6 +30,9 @@ class FlatElevationNode(Node):
         # height scan grid of the simulation: size [2.0, 1.4] m at 0.1 m resolution
         self.declare_parameter("flat_elevation.num_cells", 21 * 15)
         self.declare_parameter("flat_elevation.contact_force_threshold", 20.0)
+        # feet whose force sensor is used for contact detection (FR, FL, RR, RL); set
+        # an entry to false for a broken sensor
+        self.declare_parameter("flat_elevation.use_foot", [True, True, True, True])
         # body height used until a foot touches the ground
         self.declare_parameter("flat_elevation.default_body_height", 0.30)
         self.declare_parameter("flat_elevation.alpha", 0.2)
@@ -41,6 +44,7 @@ class FlatElevationNode(Node):
         self.contact_threshold = self.get_parameter(
             "flat_elevation.contact_force_threshold"
         ).value
+        self.use_foot = list(self.get_parameter("flat_elevation.use_foot").value)
         self.body_height = self.get_parameter("flat_elevation.default_body_height").value
         self.alpha = self.get_parameter("flat_elevation.alpha").value
 
@@ -71,7 +75,7 @@ class FlatElevationNode(Node):
             R = kin.quat_wxyz_to_matrix(np.array(msg.imu_state.quaternion))
             heights = []
             for leg in range(4):
-                if msg.foot_force[leg] < self.contact_threshold:
+                if not self.use_foot[leg] or msg.foot_force[leg] < self.contact_threshold:
                     continue
                 p_world = R @ kin.foot_position(leg, q[3 * leg : 3 * leg + 3])
                 heights.append(-p_world[2])

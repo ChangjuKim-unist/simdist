@@ -22,6 +22,8 @@ from simdist.rl.go2 import (
 )
 
 BASE_BODY = "trunk"
+# IMU position in the trunk frame, from the imu_joint of go1_description's URDF
+IMU_OFFSET = (-0.01592, -0.06659, -0.00617)
 # Go1 motor limits taken from the spec sheet (same values Isaac Lab uses for
 # the Go1 actuator net). The Go2 environment's joint stiffness and damping
 # randomization requires a PD-based motor model, so a DC motor model is used
@@ -52,6 +54,7 @@ def _apply_go1(cfg: Go2EnvCfg):
     # everything attached to or referring to the base body
     cfg.scene.height_scanner.prim_path = f"{{ENV_REGEX_NS}}/Robot/{BASE_BODY}"
     cfg.scene.imu_body.prim_path = f"{{ENV_REGEX_NS}}/Robot/{BASE_BODY}"
+    cfg.scene.imu_body.offset.pos = IMU_OFFSET
     cfg.events.add_base_mass.params["asset_cfg"].body_names = BASE_BODY
     cfg.events.base_external_force_torque.params["asset_cfg"].body_names = BASE_BODY
     if hasattr(cfg.observations.policy, "base_mass"):

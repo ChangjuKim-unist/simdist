@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosgraph_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(unitree_go REQUIRED)
 
 # unitree_legged_sdk v3.8.0 (Go1). Prebuilt static library shipped with the SDK;
@@ -34,7 +35,7 @@ endif()
 add_executable(go1_bridge src/go1_bridge.cpp)
 target_include_directories(go1_bridge PRIVATE ${UNITREE_LEGGED_SDK_DIR}/include)
 target_link_libraries(go1_bridge ${UNITREE_SDK_LIB} pthread)
-ament_target_dependencies(go1_bridge rclcpp rosgraph_msgs unitree_go)
+ament_target_dependencies(go1_bridge rclcpp rosgraph_msgs std_msgs unitree_go)
 
 install(TARGETS go1_bridge DESTINATION lib/${PROJECT_NAME})
 

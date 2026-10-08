@@ -1,5 +1,7 @@
 import os
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -17,12 +19,21 @@ def generate_launch_description():
     state_machine = Node(
         package="control",
         executable="state_machine",
-        parameters=[common_config, control_config],
+        parameters=[
+            common_config,
+            control_config,
+            PathJoinSubstitution([config_dir, "config", LaunchConfiguration("robot_config")]),
+        ],
         prefix=prefix,
     )
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "robot_config",
+                default_value="control.yaml",
+                description="Extra params file in the config package, e.g. go1.yaml for the Go1 gains",
+            ),
             state_machine,
         ]
     )

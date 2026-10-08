@@ -56,7 +56,7 @@ fi
 chmod a+r "$XAUTH" || true
 
 # graphics
-GRAPHICS_SETTINGS+="  --runtime=nvidia \
+GRAPHICS_SETTINGS+="  \
                       -e DISPLAY=$DISPLAY \
                       -e GPU=true \
                       -e NVIDIA_DRIVER_CAPABILITIES=all \

@@ -23,6 +23,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <unitree_go/msg/low_cmd.hpp>
 #include <unitree_go/msg/low_state.hpp>
 #include <unitree_go/msg/wireless_controller.hpp>
@@ -60,6 +61,17 @@ public:
     declare_parameter<double>("go1.cmd_timeout", 0.5);
     declare_parameter<double>("go1.damping_kd", 2.0);
     declare_parameter<bool>("go1.publish_clock", true);
+    // false: receive-only, nothing is sent to the motors (first bench test)
+    declare_parameter<bool>("go1.send_commands", true);
+    // motor temperature [C]: warn above the first, hold the motors in damping above the second
+    declare_parameter<double>("go1.motor_temp_warn", 60.0);
+    declare_parameter<double>("go1.motor_temp_stop", 70.0);
+    // battery state of charge [%] below which a warning is logged
+    declare_parameter<double>("go1.battery_warn", 20.0);
+    // |roll| or |pitch| [rad] above which the robot is considered fallen: motors go
+    // to damping and stay there until the state machine is back in OFF/PRONE
+    declare_parameter<double>("go1.abort_roll_pitch", 0.7);
+    declare_parameter<std::string>("topics.robot_state", "/robot_state");
 
     const auto lowstate_topic = get_parameter("topics.lowstate").as_string();
     const auto lowcmd_topic = get_parameter("topics.lowcmd").as_string();
@@ -72,6 +84,20 @@ public:
     cmd_timeout_ = get_parameter("go1.cmd_timeout").as_double();
     damping_kd_ = get_parameter("go1.damping_kd").as_double();
     publish_clock_ = get_parameter("go1.publish_clock").as_bool();
+    send_commands_ = get_parameter("go1.send_commands").as_bool();
+    motor_temp_warn_ = get_parameter("go1.motor_temp_warn").as_double();
+    motor_temp_stop_ = get_parameter("go1.motor_temp_stop").as_double();
+    battery_warn_ = get_parameter("go1.battery_warn").as_double();
+    abort_roll_pitch_ = get_parameter("go1.abort_roll_pitch").as_double();
+    robot_state_sub_ = create_subscription<std_msgs::msg::String>(
+        get_parameter("topics.robot_state").as_string(), 1,
+        [this](const std_msgs::msg::String::SharedPtr msg) {
+          std::lock_guard<std::mutex> lock(cmd_mutex_);
+          robot_state_ = msg->data;
+        });
+    if (!send_commands_) {
+      RCLCPP_WARN(get_logger(), "go1.send_commands=false: receive-only, motors are not commanded");
+    }
 
     lowstate_pub_ = create_publisher<unitree_go::msg::LowState>(lowstate_topic, 10);
     wireless_pub_ = create_publisher<unitree_go::msg::WirelessController>(wireless_topic, 10);
@@ -85,6 +111,10 @@ public:
     safety_ = std::make_unique<sdk::Safety>(sdk::LeggedType::Go1);
     udp_ = std::make_unique<sdk::UDP>(sdk::LOWLEVEL, local_port, robot_ip.c_str(), robot_port);
     udp_->InitCmdData(sdk_cmd_);
+    // The control board only answers packets it receives, so even receive-only
+    // mode must send something: the SDK's initial command (no position target,
+    // zero gains, zero torque), which leaves the motors passive.
+    passive_cmd_ = sdk_cmd_;
     set_damping(sdk_cmd_);
 
     RCLCPP_INFO(get_logger(), "Go1 bridge: %s:%d <-> local %d at %.0f Hz, power level %d/10",
@@ -146,9 +176,21 @@ private:
     while (running_ && rclcpp::ok()) {
       next += std::chrono::duration_cast<std::chrono::steady_clock::duration>(period);
 
-      udp_->Recv();
+      const int received = udp_->Recv();
+      if (received > 0) {
+        ++packets_received_;
+      }
       udp_->GetRecv(sdk_state_);
       publish_state();
+      const bool overheated = check_health();
+
+      if (!send_commands_) {
+        sdk::LowCmd passive = passive_cmd_;
+        udp_->SetSend(passive);
+        udp_->Send();
+        std::this_thread::sleep_until(next);
+        continue;
+      }
 
       sdk::LowCmd cmd;
       {
@@ -166,6 +208,9 @@ private:
         }
         cmd = sdk_cmd_;
       }
+      if (overheated) {
+        set_damping(cmd);
+      }
       const int protect = safety_->PowerProtect(cmd, sdk_state_, power_protect_level_);
       if (protect < 0) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
@@ -176,6 +221,68 @@ private:
 
       std::this_thread::sleep_until(next);
     }
+  }
+
+  // ---- motor temperature and battery ---------------------------------------
+  // Returns true while any motor is above the stop temperature; the caller then
+  // overrides the command with damping until the motor has cooled below the
+  // warn temperature.
+  bool check_health() {
+    if (!connected_) {
+      return false;
+    }
+    int hottest = -1;
+    int hottest_temp = -128;
+    for (int i = 0; i < kNumJoints; ++i) {
+      const int t = sdk_state_.motorState[i].temperature;
+      if (t > hottest_temp) {
+        hottest_temp = t;
+        hottest = i;
+      }
+    }
+    if (hottest_temp >= motor_temp_stop_) {
+      if (!overheated_) {
+        RCLCPP_ERROR(get_logger(), "Motor %d at %d C (stop %.0f C): holding motors in damping mode",
+                     hottest, hottest_temp, motor_temp_stop_);
+      }
+      overheated_ = true;
+    } else if (overheated_ && hottest_temp < motor_temp_warn_) {
+      RCLCPP_WARN(get_logger(), "Motors cooled to %d C: commands accepted again", hottest_temp);
+      overheated_ = false;
+    } else if (hottest_temp >= motor_temp_warn_) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 10000, "Motor %d at %d C (warn %.0f C)",
+                           hottest, hottest_temp, motor_temp_warn_);
+    }
+
+    const int soc = sdk_state_.bms.SOC;
+    if (soc > 0 && soc <= battery_warn_) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 30000, "Battery at %d%%", soc);
+    }
+
+    // fall detection: latch damping until the operator has put the state machine
+    // back in OFF/PRONE, so a righted robot does not resume a walking command
+    const double roll = sdk_state_.imu.rpy[0];
+    const double pitch = sdk_state_.imu.rpy[1];
+    const bool tilted = std::abs(roll) > abort_roll_pitch_ || std::abs(pitch) > abort_roll_pitch_;
+    if (tilted && !fallen_) {
+      RCLCPP_ERROR(get_logger(), "Roll %.2f / pitch %.2f rad beyond %.2f: damping mode until the state machine is OFF or PRONE",
+                   roll, pitch, abort_roll_pitch_);
+      fallen_ = true;
+    } else if (fallen_ && !tilted) {
+      std::string state;
+      {
+        std::lock_guard<std::mutex> lock(cmd_mutex_);
+        state = robot_state_;
+      }
+      if (state == "OFF" || state == "PRONE" || state == "PRONING") {
+        RCLCPP_WARN(get_logger(), "Upright again and state machine in %s: commands accepted again", state.c_str());
+        fallen_ = false;
+      } else {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "Upright again; switch the state machine to prone to resume (now %s)", state.c_str());
+      }
+    }
+    return overheated_ || fallen_;
   }
 
   // ---- SDK -> /lowstate, /wirelesscontroller, /clock ----------------------
@@ -191,7 +298,9 @@ private:
     if (s.tick == last_tick_) {
       if (!connected_) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                             "No LowState from the Go1 yet (is it in low-level mode?)");
+                             "No LowState from the Go1 yet (is it in low-level mode?) "
+                             "UDP packets received so far: %ld",
+                             static_cast<long>(packets_received_));
       }
       return;
     }
@@ -278,7 +387,9 @@ private:
   std::unique_ptr<sdk::UDP> udp_;
   std::unique_ptr<sdk::Safety> safety_;
   sdk::LowCmd sdk_cmd_ = {};
+  sdk::LowCmd passive_cmd_ = {};
   sdk::LowState sdk_state_ = {};
+  long packets_received_ = 0;
 
   std::mutex cmd_mutex_;
   std::chrono::steady_clock::time_point last_cmd_time_;
@@ -292,6 +403,15 @@ private:
   double cmd_timeout_;
   double damping_kd_;
   bool publish_clock_;
+  bool send_commands_;
+  double motor_temp_warn_;
+  double motor_temp_stop_;
+  double battery_warn_;
+  double abort_roll_pitch_;
+  bool overheated_ = false;
+  bool fallen_ = false;
+  std::string robot_state_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr robot_state_sub_;
 
   std::atomic<bool> running_{false};
   std::thread loop_thread_;
