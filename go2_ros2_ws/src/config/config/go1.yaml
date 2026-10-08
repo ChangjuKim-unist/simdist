@@ -26,7 +26,8 @@
       cmd_timeout: 0.5  # [s] without a /lowcmd the motors go to damping mode
       damping_kd: 2.0
       publish_clock: true  # the Go2 setup takes /clock from the lidar IMU; the Go1 has none
-      send_commands: true  # false = receive-only (first bench test: nothing is sent to the motors)
+      send_commands: true  # false = receive-only: only the passive (damping) packet is sent, no position targets
+      start_delay: 5.0  # [s] warning + wait before the first packet; the first low-level packet drops a standing robot
       motor_temp_warn: 60.0  # [C] log a warning above this
       motor_temp_stop: 70.0  # [C] hold the motors in damping mode above this, until back below motor_temp_warn
       battery_warn: 20.0  # [%] warn below this state of charge

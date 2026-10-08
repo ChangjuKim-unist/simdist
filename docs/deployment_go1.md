@@ -57,7 +57,7 @@ Configure the controller in [`simdist_controller_go1.yaml`](../go2_ros2_ws/src/c
 ### Startup
 
 1. Put the Go1 on the ground (or hang it in a harness for the first tests), turn it on and let it stand up.
-2. Switch the robot to **low-level mode** with the remote: `L2+A`, `L2+A`, `L2+B`, then `L1+L2+Start`. The robot lies down and the internal controller releases the motors. Nothing else may be sending low-level commands at this point.
+2. Switch the robot to **low-level mode** with the remote: `L2+A`, `L2+A`, `L2+B`, then `L1+L2+Start`. The robot lies down and the internal controller releases the motors. **Do this before starting the bridge, every time — including receive-only tests.** The first low-level packet the control board receives switches it out of its normal balancing mode, so a robot that is still standing collapses. The bridge prints this warning and waits `go1.start_delay` (5 s) before its first packet so you can abort with `Ctrl+C`.
 3. Start the container and the tmux layout:
 
 ```bash

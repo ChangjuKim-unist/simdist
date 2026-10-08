@@ -72,6 +72,8 @@ public:
     // to damping and stay there until the state machine is back in OFF/PRONE
     declare_parameter<double>("go1.abort_roll_pitch", 0.7);
     declare_parameter<std::string>("topics.robot_state", "/robot_state");
+    // seconds to wait, after printing the low-level-mode warning, before the first packet
+    declare_parameter<double>("go1.start_delay", 5.0);
 
     const auto lowstate_topic = get_parameter("topics.lowstate").as_string();
     const auto lowcmd_topic = get_parameter("topics.lowcmd").as_string();
@@ -89,6 +91,7 @@ public:
     motor_temp_stop_ = get_parameter("go1.motor_temp_stop").as_double();
     battery_warn_ = get_parameter("go1.battery_warn").as_double();
     abort_roll_pitch_ = get_parameter("go1.abort_roll_pitch").as_double();
+    start_delay_ = get_parameter("go1.start_delay").as_double();
     robot_state_sub_ = create_subscription<std_msgs::msg::String>(
         get_parameter("topics.robot_state").as_string(), 1,
         [this](const std_msgs::msg::String::SharedPtr msg) {
@@ -112,10 +115,25 @@ public:
     udp_ = std::make_unique<sdk::UDP>(sdk::LOWLEVEL, local_port, robot_ip.c_str(), robot_port);
     udp_->InitCmdData(sdk_cmd_);
     // The control board only answers packets it receives, so even receive-only
-    // mode must send something: the SDK's initial command (no position target,
-    // zero gains, zero torque), which leaves the motors passive.
+    // mode must send something. Any low-level packet takes the robot out of its
+    // normal (sport) mode, so the "passive" command still applies damping: if
+    // the bridge is started while the robot stands, it sinks instead of dropping.
     passive_cmd_ = sdk_cmd_;
+    set_damping(passive_cmd_);
     set_damping(sdk_cmd_);
+
+    RCLCPP_WARN(get_logger(),
+                "The first packet switches the Go1 to low-level control. The robot must already "
+                "be lying in low-level mode (remote: L2+A, L2+A, L2+B, L1+L2+Start); a standing "
+                "robot will collapse. Starting in %.0f s, Ctrl+C to abort.",
+                start_delay_);
+    const auto t_end = std::chrono::steady_clock::now() + std::chrono::duration<double>(start_delay_);
+    while (rclcpp::ok() && std::chrono::steady_clock::now() < t_end) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (!rclcpp::ok()) {
+      return;
+    }
 
     RCLCPP_INFO(get_logger(), "Go1 bridge: %s:%d <-> local %d at %.0f Hz, power level %d/10",
                 robot_ip.c_str(), robot_port, local_port, rate_, power_protect_level_);
@@ -408,6 +426,7 @@ private:
   double motor_temp_stop_;
   double battery_warn_;
   double abort_roll_pitch_;
+  double start_delay_;
   bool overheated_ = false;
   bool fallen_ = false;
   std::string robot_state_;
