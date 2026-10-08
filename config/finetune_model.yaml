@@ -7,6 +7,17 @@ defaults:
 
 run_name:
 
+# Value adaptation options (used with loss=world_model_value_adapt):
+#   value_residual: add a zero-initialized residual head delta(z, cmd); train it with
+#                   heads=dynamics_value_residual
+#   value_anchor:   keep a frozen copy of the pretrained value head as the bootstrap
+#                   target (otherwise the head being trained bootstraps itself)
+adapt:
+  value_residual:
+    enabled: false
+    hidden_dims: [128, 128]
+  value_anchor: false
+
 data:
   dataset_name:
   num_train_workers: 8

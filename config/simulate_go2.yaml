@@ -23,8 +23,15 @@ sim:
   friction: 0.8
   restitution: 0.05
   add_mass: 0.0
+  motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
 
 wandb:
   log: false
   run_name:
   entity:
+
+# Log the rollouts in the real-world data format (datasets/real/<dataset_name>/raw),
+# with the simulator reward alongside, for sim-to-sim adaptation experiments.
+logging:
+  enabled: false
+  dataset_name: sim2sim

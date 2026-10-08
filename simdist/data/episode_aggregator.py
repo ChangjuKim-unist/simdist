@@ -10,6 +10,9 @@ from isaaclab.utils.datasets import EpisodeData, HDF5DatasetFileHandler
 from simdist.utils import paths
 from simdist.data import REAL_DATA_KEYS
 
+# per-step keys copied when present (the controller's logger does not write them)
+_OPTIONAL_KEYS = ["reward"]
+
 
 class EpisodeAggregator:
     def __init__(self, cfg: dict):
@@ -37,14 +40,20 @@ class EpisodeAggregator:
 
     def process_all_episodes(self):
         total_steps = 0
+        # optional budget: stop adding episodes once this many steps are aggregated
+        max_steps = self.cfg.get("max_steps", None)
+        num_episodes = 0
         for path in tqdm(self.episode_paths):
+            if max_steps is not None and total_steps >= max_steps:
+                break
             print(f"Processing {path}")
             last_ep_len = self.process_episode(path)
             total_steps += last_ep_len
+            num_episodes += 1
         print(f"Total steps: {total_steps}")
-        print(f"Total episodes: {len(self.episode_paths)}")
+        print(f"Total episodes: {num_episodes}")
         metrics = {
-            "total_episodes": len(self.episode_paths),
+            "total_episodes": num_episodes,
             "total_steps": total_steps,
             "control_rate_hz": self.cfg["control_rate"],
             "total_duration_min": total_steps / self.cfg["control_rate"] / 60.0,
@@ -59,7 +68,8 @@ class EpisodeAggregator:
         ep_data = EpisodeData()
         ep_len = 0
         with h5py.File(file_path, "r") as f:
-            for key in REAL_DATA_KEYS.values():
+            # "reward" is only present in simulated "real-world" logs (sim-to-sim)
+            for key in list(REAL_DATA_KEYS.values()) + _OPTIONAL_KEYS:
                 if key in f:
                     data = f[key][:]
                     ep_len = data.shape[0]
@@ -67,6 +77,7 @@ class EpisodeAggregator:
                     if (
                         key == REAL_DATA_KEYS["actions"]
                         or key == REAL_DATA_KEYS["commands"]
+                        or key in _OPTIONAL_KEYS
                     ):
                         first_sample = np.zeros_like(first_sample)
                     first_sample = first_sample[None, ...].repeat(
@@ -75,7 +86,7 @@ class EpisodeAggregator:
                     data = np.concatenate([first_sample, data], axis=0)
                     ep_data.add(key, torch.tensor(data))
                     ep_data.data[key] = ep_data.data[key].squeeze()
-                else:
+                elif key not in _OPTIONAL_KEYS:
                     print(f"{key}: NOT FOUND")
 
         self._dataset_file_handler.write_episode(ep_data)

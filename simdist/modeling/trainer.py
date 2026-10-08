@@ -136,6 +136,16 @@ def train(cfg: dict):
             max_steps += train_steps
         if finetuning:
             print("Finetuning the model...")
+            adapt_cfg = cfg.get("adapt", {}) or {}
+            res_cfg = adapt_cfg.get("value_residual", {}) or {}
+            if res_cfg.get("enabled", False) and model.value_res is None:
+                model.add_value_residual(res_cfg, nnx.Rngs(cfg["training"]["seed"]))
+                cfg["model"]["value_residual"] = dict(model.model_cfg["value_residual"])
+                print("Added a zero-initialized residual value head")
+            if adapt_cfg.get("value_anchor", False) and model.value_anchor is None:
+                model.add_value_anchor()
+                cfg["model"]["value_anchor"] = True
+                print("Froze a copy of the pretrained value head as the bootstrap anchor")
     elif finetuning:
         raise ValueError("checkpoint.resume_checkpoint must be given when finetuning.")
     else:

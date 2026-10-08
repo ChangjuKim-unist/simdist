@@ -1,3 +1,4 @@
 dataset_name:
 beg_padding: 25  # steps to pad at beginning of each episode with the first data point; ideally should match model prediction length
 control_rate: 50  # [Hz]
+max_steps:  # optional step budget; stop aggregating episodes beyond this (e.g. 15000 = 5 min at 50 Hz)

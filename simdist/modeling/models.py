@@ -19,6 +19,15 @@ def get_model(
     return _MODEL_REGISTRY.create(model_name, cfg, scaler_params, rngs)
 
 
+class _ValueHead(nnx.Module):
+    """Embedding, transformer encoder and decoder of a value head (frozen anchor copy)."""
+
+    def __init__(self, emb, enc, dec):
+        self.emb = emb
+        self.enc = enc
+        self.dec = dec
+
+
 class ModelBase(nnx.Module):
     def __init__(
         self, cfg: dict, scaler_params: types.ScalerParams, rngs: nnx.Rngs, **kwargs
@@ -120,32 +129,20 @@ class WorldModelBase(ModelBase):
         )
 
         # value head
-        attn_cfg = self.model_cfg["value"]["attention"]
-        dec_cfg = self.model_cfg["value"]["decoder"]
-        dec_h_size = self.latent_dim * dec_cfg["mlp_hidden_size_factor"]
-        self.value_emb = modules.Embedding(
-            seq_len=T,
-            input_dim=self.latent_dim + self.cmd_dim,
-            hidden_dims=[emb_hidden_size] * emb_cfg["value_layers"],
-            embed_dim=self.latent_dim,
-            rngs=rngs,
-        )
-        self.value = modules.TransformerEncoder(
-            num_layers=attn_cfg["layers"],
-            embed_dim=self.latent_dim,
-            mlp_hidden_dim=self.latent_dim * attn_cfg["mlp_hidden_size_factor"],
-            num_heads=attn_cfg["heads"],
-            rngs=rngs,
-            attention_dropout_rate=self.attention_dropout_rate,
-            mlp_dropout_rate=self.mlp_dropout_rate,
-            mask=attn_cfg["mask"],
-        )
-        self.value_dec = modules.MLP(
-            input_dim=self.latent_dim,
-            hidden_dims=[dec_h_size] * dec_cfg["layers"],
-            output_dim=1,
-            rngs=rngs,
-        )
+        self.value_emb, self.value, self.value_dec = self._build_value_head(rngs)
+
+        # optional residual value head, V_real = V_sim + delta, zero-initialized so
+        # adaptation starts exactly at the simulation value (see losses.WorldModelValueAdaptLoss)
+        self.value_res = None
+        res_cfg = self.model_cfg.get("value_residual", {})
+        if res_cfg.get("enabled", False):
+            self.value_res = self._build_value_residual(res_cfg, rngs)
+
+        # optional frozen copy of the pretrained value head, used as the bootstrap
+        # target during adaptation when the value head itself is being updated
+        self.value_anchor = None
+        if self.model_cfg.get("value_anchor", False):
+            self.value_anchor = _ValueHead(*self._build_value_head(rngs))
 
         # policy head
         attn_cfg = self.model_cfg["policy"]["attention"]
@@ -167,6 +164,93 @@ class WorldModelBase(ModelBase):
             output_dim=self.action_dim,
             rngs=rngs,
         )
+
+    def _build_value_head(self, rngs: nnx.Rngs):
+        T = self.model_cfg["dataset"]["prediction_length"]
+        emb_cfg = self.model_cfg["embedding"]
+        emb_hidden_size = emb_cfg["mlp_hidden_size_factor"] * self.latent_dim
+        attn_cfg = self.model_cfg["value"]["attention"]
+        dec_cfg = self.model_cfg["value"]["decoder"]
+        dec_h_size = self.latent_dim * dec_cfg["mlp_hidden_size_factor"]
+        value_emb = modules.Embedding(
+            seq_len=T,
+            input_dim=self.latent_dim + self.cmd_dim,
+            hidden_dims=[emb_hidden_size] * emb_cfg["value_layers"],
+            embed_dim=self.latent_dim,
+            rngs=rngs,
+        )
+        value = modules.TransformerEncoder(
+            num_layers=attn_cfg["layers"],
+            embed_dim=self.latent_dim,
+            mlp_hidden_dim=self.latent_dim * attn_cfg["mlp_hidden_size_factor"],
+            num_heads=attn_cfg["heads"],
+            rngs=rngs,
+            attention_dropout_rate=self.attention_dropout_rate,
+            mlp_dropout_rate=self.mlp_dropout_rate,
+            mask=attn_cfg["mask"],
+        )
+        value_dec = modules.MLP(
+            input_dim=self.latent_dim,
+            hidden_dims=[dec_h_size] * dec_cfg["layers"],
+            output_dim=1,
+            rngs=rngs,
+        )
+
+        return value_emb, value, value_dec
+
+    def _build_value_residual(self, res_cfg: dict, rngs: nnx.Rngs) -> modules.MLP:
+        head = modules.MLP(
+            input_dim=self.latent_dim + self.cmd_dim,
+            hidden_dims=list(res_cfg.get("hidden_dims", [128, 128])),
+            output_dim=1,
+            rngs=rngs,
+            dropout_rate=self.mlp_dropout_rate,
+        )
+        head.output_layer.kernel.value = jnp.zeros_like(head.output_layer.kernel.value)
+        head.output_layer.bias.value = jnp.zeros_like(head.output_layer.bias.value)
+        return head
+
+    def add_value_residual(self, res_cfg: dict, rngs: nnx.Rngs) -> None:
+        """Attach a zero-initialized residual value head to a pretrained model."""
+        res_cfg = dict(res_cfg)
+        res_cfg["enabled"] = True
+        self.model_cfg["value_residual"] = res_cfg
+        self.value_res = self._build_value_residual(res_cfg, rngs)
+
+    def add_value_anchor(self) -> None:
+        """Freeze a copy of the current value head as the adaptation bootstrap target."""
+        self.model_cfg["value_anchor"] = True
+        self.value_anchor = _ValueHead(
+            nnx.clone(self.value_emb), nnx.clone(self.value), nnx.clone(self.value_dec)
+        )
+
+    def value_from_latents(
+        self,
+        latents: jnp.ndarray,
+        fut_cmds_next: jnp.ndarray,
+        deterministic: bool | None = None,
+        use_residual: bool = True,
+        use_anchor: bool = False,
+    ) -> jnp.ndarray:
+        """Value of each latent in ``latents`` (..., T, lat_dim), in scaled units.
+
+        ``fut_cmds_next`` are the commands aligned with the latents (..., T, cmd_dim).
+        With ``use_anchor`` the frozen pretrained head is used (no residual).
+        """
+        value_in = jnp.concatenate((latents, fut_cmds_next), axis=-1)
+        if use_anchor:
+            assert self.value_anchor is not None, "model has no value anchor"
+            head = self.value_anchor
+            value_in_emb = head.emb(value_in, deterministic=deterministic)
+            value_pred = head.enc(value_in_emb, deterministic=deterministic)
+            values = head.dec(value_pred, deterministic=deterministic)
+        else:
+            value_in_emb = self.value_emb(value_in, deterministic=deterministic)
+            value_pred = self.value(value_in_emb, deterministic=deterministic)
+            values = self.value_dec(value_pred, deterministic=deterministic)
+            if use_residual and self.value_res is not None:
+                values = values + self.value_res(value_in, deterministic=deterministic)
+        return values.squeeze()
 
     def __call__(
         self,
@@ -204,14 +288,8 @@ class WorldModelBase(ModelBase):
         rew_pred = self.reward(rew_in_emb, deterministic=deterministic)
         rewards = self.reward_dec(rew_pred, deterministic=deterministic).squeeze()
 
-        # value head
-        # concatenate latent prediction with future commands
-        value_in = jnp.concatenate((latents, x["fut_cmds"][:, 1:]), axis=-1)
-        # embedding
-        value_in_emb = self.value_emb(value_in, deterministic=deterministic)
-        # prediction
-        value_pred = self.value(value_in_emb, deterministic=deterministic)
-        values = self.value_dec(value_pred, deterministic=deterministic).squeeze()
+        # value head: latent prediction with future commands
+        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic)
 
         # policy head
         latent_acts_pred = self.policy(

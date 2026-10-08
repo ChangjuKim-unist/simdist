@@ -1,0 +1,9 @@
+type: "world_model_value_adapt"
+
+# discount of the value function (same as the RL critic / MPPI)
+discount: 0.99
+
+weights:
+  latent_dynamics: 1.0
+  value_adapt: 1.0
+  value_reg: 0.01  # L2 on the residual value output (0 when there is no residual head)

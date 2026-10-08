@@ -223,3 +223,6 @@ wandb/
 outputs/
 checkpoints/
 go2_ros2_ws/docker/simdist.requirements.txt
+
+# experiment outputs
+results/

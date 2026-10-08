@@ -37,6 +37,7 @@ from simdist.utils import paths, model as model_utils, config
 from simdist.control.controller_base import ControllerInput
 from simdist.control.mppi import MppiController
 from simdist.rl.envs import get_sim_env_cfg
+from simdist.data.episode_logger import HDF5EpisodeLogger
 
 
 class Go2Sim:
@@ -87,6 +88,13 @@ class Go2Sim:
         env_cfg.events.physics_material.params["restitution_range"] = (rest, rest)
         mass = cfg["sim"]["add_mass"]
         env_cfg.events.add_base_mass.params["mass_distribution_params"] = (mass, mass)
+        # scale the motor torque limits, e.g. to mimic weaker or worn motors
+        motor_strength = cfg["sim"].get("motor_strength", 1.0)
+        if motor_strength != 1.0:
+            act_cfg = env_cfg.scene.robot.actuators["base_legs"]
+            act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
+            if getattr(act_cfg, "saturation_effort", None) is not None:
+                act_cfg.saturation_effort = act_cfg.saturation_effort * motor_strength
 
         # create the env
         self.env = ManagerBasedRLEnv(env_cfg)
@@ -130,6 +138,16 @@ class Go2Sim:
         self.total_reward = 0
         self.episode_terminated = False
         self.episode_length = 0
+        self.start_pos = None
+        self.end_pos = None
+
+        # optional logging of the rollouts in the real-world data format, with the
+        # simulator reward alongside (used for sim-to-sim adaptation experiments)
+        self.logger = None
+        log_cfg = cfg.get("logging", {})
+        if log_cfg.get("enabled", False):
+            self.logger = HDF5EpisodeLogger(log_cfg["dataset_name"], extra_keys=("reward",))
+            print(f"Logging episodes to dataset: {log_cfg['dataset_name']}")
 
     def run(self):
         while simulation_app.is_running():
@@ -143,6 +161,8 @@ class Go2Sim:
                 print("Episode terminated. Exiting simulation.")
                 break
 
+        if self.logger is not None:
+            self.logger.close()
         self.logging()
         self.env.close()
         simulation_app.close()
@@ -190,8 +210,13 @@ class Go2Sim:
         if resetting:
             # apply zero action just after reset to stabilize the simulation
             action = self.zero_action
+        elif self.logger is not None and self.steps == self.reset_steps:
+            self.logger.open()
 
         self.last_action = action
+
+        if not self.episode_terminated and self.start_pos is None and not resetting:
+            self.start_pos = self.root_pos_xy()
 
         # step the simulation
         action_torch = self.action_to_torch(action)
@@ -202,6 +227,13 @@ class Go2Sim:
         if not self.episode_terminated:
             self.total_reward += reward[0].item()
             self.episode_length += 1
+            if not resetting:
+                self.end_pos = self.root_pos_xy()
+
+        if self.logger is not None and not resetting:
+            self.logger.write(
+                proprio_obs, height_scan, action, cmd, extras={"reward": reward[0].item()}
+            )
 
         # process reset if terminated
         if reset[0]:
@@ -212,21 +244,34 @@ class Go2Sim:
     def action_to_torch(self, action):
         return torch.from_numpy(np.asarray(action)).unsqueeze(0).to(self.env.device)
 
+    def root_pos_xy(self) -> np.ndarray:
+        return self.env.scene["robot"].data.root_pos_w[0, :2].cpu().numpy().copy()
+
     def reset(self):
         self.episode_terminated = True
         self.steps = 0
+        if self.logger is not None:
+            self.logger.close()
         proprio_obs, height_scan = self.get_obs(self.obs_dict)
         x = self.make_controller_input(proprio_obs, height_scan, self.zero_action)
         self.controller.reset(x, self.zero_cmd)
 
     def logging(self):
-        rps = self.total_reward / (self.episode_length - self.reset_steps)
+        rps = self.total_reward / max(self.episode_length - self.reset_steps, 1)
+        if self.start_pos is not None and self.end_pos is not None:
+            # displacement along the commanded walking direction (+x) in the first episode
+            forward_progress = float(self.end_pos[0] - self.start_pos[0])
+        else:
+            forward_progress = 0.0
         metrics = {
             "total_reward": self.total_reward,
             "reward_per_step": rps,
             "total_steps": self.total_step_count,
             "episode_length": self.episode_length,
+            "forward_progress": forward_progress,
         }
+        if self.logger is not None:
+            metrics["logged_episodes"] = self.logger.num_episodes
         print(metrics)
 
         if self.cfg["wandb"]["log"]:

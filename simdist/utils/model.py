@@ -36,15 +36,55 @@ def load_model_from_ckpt(
     ) as mngr:
         if step is None:
             step = mngr.latest_step()
-        restored_pure_dict = mngr.restore(
-            step,
-            args=ocp.args.StandardRestore(item=model_state.to_pure_dict()),
-        )
+        restored_pure_dict = mngr.restore(step)
 
+    # Heads added after pretraining (residual value head, value anchor) carry
+    # their own RNG state, so a checkpoint can hold RNG entries at paths the
+    # freshly built model shares with other modules, and vice versa. Parameters
+    # always match; RNG state is irrelevant at inference, so restore the
+    # intersection and leave the rest at its initial value.
+    restored_pure_dict, dropped, missing = _match_pure_dicts(
+        restored_pure_dict, model_state.to_pure_dict()
+    )
+    if dropped or missing:
+        print(
+            f"Checkpoint {ckpt_dir}: ignoring {len(dropped)} checkpoint entries not in the "
+            f"model and {len(missing)} model entries not in the checkpoint "
+            f"(e.g. {(dropped + missing)[0]})"
+        )
     model_state.replace_by_pure_dict(restored_pure_dict)
     model = nnx.merge(graphdef, model_state)
 
     return model, model_cfg, step
+
+
+def _match_pure_dicts(restored: dict, target: dict, prefix: str = ""):
+    """Keep only the entries of ``restored`` that exist in ``target``; report the
+    entries dropped from ``restored`` and those of ``target`` not restored."""
+    out, dropped, missing = {}, [], []
+    matched = set()
+    for k, v in restored.items():
+        path = f"{prefix}{k}"
+        # orbax stores integer keys (list indices) as strings
+        tk = k
+        if tk not in target and isinstance(k, str) and k.isdigit() and int(k) in target:
+            tk = int(k)
+        if tk not in target:
+            dropped.append(path)
+            continue
+        matched.add(tk)
+        t = target[tk]
+        if isinstance(v, dict) and isinstance(t, dict):
+            sub, d, m = _match_pure_dicts(v, t, path + ".")
+            out[tk] = sub
+            dropped += d
+            missing += m
+        else:
+            out[tk] = v
+    for k in target:
+        if k not in matched:
+            missing.append(f"{prefix}{k}")
+    return out, dropped, missing
 
 
 def make_dummy_scaler_params(cfg: dict):
