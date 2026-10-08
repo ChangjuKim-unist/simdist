@@ -39,6 +39,9 @@ class LegOdometryNode(Node):
         # feet whose force sensor is used for contact detection (FR, FL, RR, RL); set
         # an entry to false for a broken sensor
         self.declare_parameter("leg_odometry.use_foot", [True, True, True, True])
+        # raw foot_force reading of each unloaded foot (sensor zero offset), subtracted
+        # before comparing with the threshold
+        self.declare_parameter("leg_odometry.foot_force_offset", [0.0, 0.0, 0.0, 0.0])
         # low-pass factor on the velocity estimate (1.0 = no filtering)
         self.declare_parameter("leg_odometry.alpha", 0.3)
 
@@ -51,6 +54,9 @@ class LegOdometryNode(Node):
             "leg_odometry.contact_force_threshold"
         ).value
         self.use_foot = list(self.get_parameter("leg_odometry.use_foot").value)
+        self.foot_force_offset = np.array(
+            self.get_parameter("leg_odometry.foot_force_offset").value, dtype=float
+        )
         self.alpha = self.get_parameter("leg_odometry.alpha").value
 
         self.lock = threading.Lock()
@@ -85,7 +91,7 @@ class LegOdometryNode(Node):
         dq = np.array([msg.motor_state[i].dq for i in range(12)])
         quat = np.array(msg.imu_state.quaternion)  # (w, x, y, z)
         gyro = np.array(msg.imu_state.gyroscope)
-        foot_force = np.array(msg.foot_force)
+        foot_force = np.array(msg.foot_force) - self.foot_force_offset
 
         velocities = []
         for leg in range(4):

@@ -33,6 +33,9 @@ class FlatElevationNode(Node):
         # feet whose force sensor is used for contact detection (FR, FL, RR, RL); set
         # an entry to false for a broken sensor
         self.declare_parameter("flat_elevation.use_foot", [True, True, True, True])
+        # raw foot_force reading of each unloaded foot (sensor zero offset), subtracted
+        # before comparing with the threshold
+        self.declare_parameter("flat_elevation.foot_force_offset", [0.0, 0.0, 0.0, 0.0])
         # body height used until a foot touches the ground
         self.declare_parameter("flat_elevation.default_body_height", 0.30)
         self.declare_parameter("flat_elevation.alpha", 0.2)
@@ -45,6 +48,9 @@ class FlatElevationNode(Node):
             "flat_elevation.contact_force_threshold"
         ).value
         self.use_foot = list(self.get_parameter("flat_elevation.use_foot").value)
+        self.foot_force_offset = np.array(
+            self.get_parameter("flat_elevation.foot_force_offset").value, dtype=float
+        )
         self.body_height = self.get_parameter("flat_elevation.default_body_height").value
         self.alpha = self.get_parameter("flat_elevation.alpha").value
 
@@ -73,9 +79,10 @@ class FlatElevationNode(Node):
         if msg is not None:
             q = np.array([msg.motor_state[i].q for i in range(12)])
             R = kin.quat_wxyz_to_matrix(np.array(msg.imu_state.quaternion))
+            foot_force = np.array(msg.foot_force) - self.foot_force_offset
             heights = []
             for leg in range(4):
-                if not self.use_foot[leg] or msg.foot_force[leg] < self.contact_threshold:
+                if not self.use_foot[leg] or foot_force[leg] < self.contact_threshold:
                     continue
                 p_world = R @ kin.foot_position(leg, q[3 * leg : 3 * leg + 3])
                 heights.append(-p_world[2])

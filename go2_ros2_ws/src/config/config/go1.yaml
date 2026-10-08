@@ -37,6 +37,7 @@
       rate: 100.0
       contact_force_threshold: 100.0  # raw foot_force units; walking logs: stance 700-1700, swing 2-60, standing ~175-235
       use_foot: [true, true, false, true]  # FR, FL, RR, RL; the RR force sensor on our Go1 is broken (stuck at 900)
+      foot_force_offset: [97.0, 115.0, 0.0, 100.0]  # raw reading of each foot when lifted (measured 2026-10-08); RR is excluded anyway
       alpha: 0.3
 
     flat_elevation:
@@ -44,6 +45,7 @@
       num_cells: 315  # 21 x 15 height scan, as in the simulation
       contact_force_threshold: 100.0
       use_foot: [true, true, false, true]
+      foot_force_offset: [97.0, 115.0, 0.0, 100.0]
       default_body_height: 0.30
       alpha: 0.2
 
