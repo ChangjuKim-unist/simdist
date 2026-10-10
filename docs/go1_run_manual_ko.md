@@ -18,6 +18,12 @@ ip -4 addr show enx00e04c680024 | grep inet      # 192.168.123.162/24 가 보여
 ping -c 2 192.168.123.10                           # 제어보드 응답
 ```
 
+처음 한 번(재부팅 후에도) 소켓 버퍼 상한을 올려 둔다:
+```bash
+sudo sysctl -w net.core.rmem_max=26214400 net.core.wmem_max=26214400
+```
+`go2_ros2_ws/.env` 의 `CYCLONEDDS_IFACE=lo` 를 바꾸지 말 것 (ROS 2 통신은 컴퓨터 내부에서만; 로봇 포트로 보내면 버퍼가 넘쳐 모든 토픽이 멈춘다).
+
 ## 2. 로봇 전원 → 저수준 모드 (★ 컴퓨터 쪽을 켜기 전에 ★)
 1. Go1 전원 ON → 평소처럼 일어설 때까지 대기.
 2. 조종기: **`L2+A` → `L2+A` → `L2+B` → `L1+L2+Start`** → 로봇이 스스로 엎드리고 힘이 빠짐 = 저수준 모드.
@@ -52,20 +58,20 @@ python3 scripts/go1_monitor.py
 ```
 확인: `/lowstate msgs: 250` (=500 Hz), 배터리 %, 모터 온도 < 60 °C, 발 힘(들었을 때 ≈100, 접지 판정은 200 이상), IMU roll/pitch ≈ 0.
 
-## 5. 상태머신 조작
-| 현재 상태 | 입력 (키보드 = 상태머신 창 / 조종기) | 결과 |
+## 5. 상태머신 조작 (조종기로 — `ros2 launch` 로 띄운 노드에는 키보드 입력이 전달되지 않음)
+| 현재 상태 | 조종기 입력 | 결과 |
 |---|---|---|
-| OFF | **스페이스** / **Start** | PRONE (엎드린 채 약한 Kp 유지) |
-| PRONE | 스페이스 / Start | STANDING → 3 초 뒤 STAND |
-| STAND | 스페이스 / Start | WALKING (컨트롤러가 켜져 있어야 함) |
-| STAND | **그 외 아무 키 / Start 외 버튼** | PRONING → PRONE |
-| WALKING | 스페이스 / Start | STAND (멈춤) |
-| WALKING | 그 외 아무 키 / 버튼 | RECOVERY (복구 자세) → 스페이스로 다시 서기, 다른 키로 엎드리기 |
+| OFF | **Start** | PRONE (엎드린 채 약한 Kp 유지) |
+| PRONE | Start | STANDING → 3 초 뒤 STAND |
+| STAND | Start | WALKING (컨트롤러가 켜져 있어야 함) |
+| STAND | **Start 외 아무 버튼** | PRONING → PRONE |
+| WALKING | Start | STAND (멈춤) |
+| WALKING | Start 외 버튼 | RECOVERY (복구 자세) → Start 로 다시 서기, 다른 버튼으로 엎드리기 |
 
 ## 6. 단계별 진행과 중단 기준
 | 단계 | 하는 것 | 통과 기준 | 즉시 엎드리기 |
 |---|---|---|---|
-| 1 서기 | PRONE → 스페이스 (끈 잡은 채) | 떨림·소음 없이 3 초 안에 서고 10 초 유지 | 떨림, 윙윙 소리, 한쪽 기움 |
+| 1 서기 | Start, Start (끈 잡은 채) | 떨림·소음 없이 3 초 안에 서고 10 초 유지 | 떨림, 윙윙 소리, 한쪽 기움 |
 | 2 반복 | 서기↔엎드리기 3 회 | 매번 같은 자세 | 자세가 달라짐 |
 | 3 컨트롤러 | control 창 Enter → `Controller initialized` 확인 → STAND | 선 채로 유지 | 다리 떨림, 미끄러짐 |
 | 4 첫 보행 | STAND → 스페이스 → 조종기 스틱 살짝 (최대 0.3 m/s로 제한돼 있음) | 3 m 직진, 안 넘어짐 | 넘어짐 2 회 → 중단, 로그 분석 |
@@ -107,3 +113,6 @@ cd ~/simdist-docker
 - `go2_ros2_ws/src/config/config/go1.yaml` — 로봇 IP, 안전 한계, 접지 임계값·오프셋, 상태머신 Kp/Kd, 속도 제한
 - `go2_ros2_ws/src/config/config/simdist_controller_go1.yaml` — 체크포인트, MPPI, 로깅 데이터셋 이름
 - 수정 후 컨테이너 안에서 `colcon build --packages-select config` 또는 컨테이너 재시작.
+
+## 11. 세션 기록
+- 2026-10-10: 통신 500 Hz, 서기↔엎드리기 3회 정상(관절 ±0.13/0.87/−1.7, 온도 ≤43 °C), 컨트롤러 초기화 확인. DDS를 loopback으로 변경(로봇 포트로 보낼 때 버퍼 넘침), 접지 임계값 100→50, 키보드 대신 조종기 사용. 배터리 55→24 %로 보행은 다음 세션.

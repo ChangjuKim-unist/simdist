@@ -16,7 +16,31 @@ else
   fi
   echo "Using CycloneDDS interface: $CYCLONEDDS_IFACE"
   export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-  export CYCLONEDDS_URI="<CycloneDDS>
+  if [ "$CYCLONEDDS_IFACE" = "lo" ]; then
+    # All ROS 2 nodes run on this machine and the robot itself does not speak DDS
+    # (Go1 over the unitree_legged_sdk bridge): keep DDS on the loopback interface
+    # so the 500 Hz topics never touch the robot's network link. Loopback has no
+    # multicast, so discovery is unicast over local participant indices.
+    export CYCLONEDDS_URI="<CycloneDDS>
+    <Domain>
+      <General>
+        <Interfaces>
+          <NetworkInterface name=\"lo\" priority=\"default\" multicast=\"false\"/>
+        </Interfaces>
+        <AllowMulticast>false</AllowMulticast>
+      </General>
+      <Discovery>
+        <ParticipantIndex>auto</ParticipantIndex>
+        <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+      </Discovery>
+      <Internal>
+        <SocketReceiveBufferSize min=\"10MB\"/>
+        <SocketSendBufferSize min=\"2MB\"/>
+      </Internal>
+    </Domain>
+  </CycloneDDS>"
+  else
+    export CYCLONEDDS_URI="<CycloneDDS>
     <Domain>
       <General>
         <Interfaces>
@@ -25,4 +49,5 @@ else
       </General>
     </Domain>
   </CycloneDDS>"
+  fi
 fi

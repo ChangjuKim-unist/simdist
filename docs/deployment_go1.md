@@ -36,7 +36,13 @@ Connect the PC to the Go1's Ethernet port and give the interface a static addres
 
 ```bash
 cp go2_ros2_ws/.env.example go2_ros2_ws/.env
-# edit go2_ros2_ws/.env and set CYCLONEDDS_IFACE=<your_interface_name>
+# edit go2_ros2_ws/.env and set CYCLONEDDS_IFACE=lo
+```
+
+Unlike the Go2, the Go1 does not speak DDS, so ROS 2 traffic stays on the loopback interface (`scripts/setup.sh` configures CycloneDDS for unicast discovery on `lo`). Routing DDS over the robot link overflowed the USB adapter's socket buffers and silently stopped every topic. Raise the kernel socket buffer limits once on the host:
+
+```bash
+sudo sysctl -w net.core.rmem_max=26214400 net.core.wmem_max=26214400
 ```
 
 Optionally fetch the Go1 meshes for RViz (not needed to run):
@@ -81,7 +87,7 @@ ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.
 
 ### Running the Robot
 
-The state machine (already running in its pane, started with `robot_config:=go1.yaml` so it uses the Go1 gains: stand Kp 30, walk Kp 25, Kd 1.0) is driven from the keyboard in its pane or the wireless remote, exactly as on the Go2; see [Running the Robot](deployment_go2.md#running-the-robot). The order is prone → stand → walk. The `go1_bridge` applies the SDK's joint limits and power protection (`go1.power_protect_level`, 5 = 50% by default; raise it once the robot walks reliably) and switches the motors to damping if `/lowcmd` stops for `go1.cmd_timeout` seconds.
+The state machine (already running in its pane, started with `robot_config:=go1.yaml` so it uses the Go1 gains: stand Kp 30, walk Kp 25, Kd 1.0) is driven with the wireless remote (`Start` = next state, any other button = prone/recovery); keyboard input does not reach a node started by `ros2 launch`, so use the remote; see [Running the Robot](deployment_go2.md#running-the-robot). The order is prone → stand → walk. The `go1_bridge` applies the SDK's joint limits and power protection (`go1.power_protect_level`, 5 = 50% by default; raise it once the robot walks reliably) and switches the motors to damping if `/lowcmd` stops for `go1.cmd_timeout` seconds.
 
 Safety notes for the Go1:
 

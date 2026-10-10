@@ -35,7 +35,7 @@
 
     leg_odometry:
       rate: 100.0
-      contact_force_threshold: 100.0  # raw foot_force units; walking logs: stance 700-1700, swing 2-60, standing ~175-235
+      contact_force_threshold: 50.0  # offset-corrected units; standing on this Go1 reads only 25-90 above the offset, walking stance 700+
       use_foot: [true, true, false, true]  # FR, FL, RR, RL; the RR force sensor on our Go1 is broken (stuck at 900)
       foot_force_offset: [100.0, 100.0, 100.0, 100.0]  # the feet read roughly 100 when lifted (varies run to run by 10-20)
       alpha: 0.3
@@ -43,7 +43,7 @@
     flat_elevation:
       rate: 50.0
       num_cells: 315  # 21 x 15 height scan, as in the simulation
-      contact_force_threshold: 100.0
+      contact_force_threshold: 50.0
       use_foot: [true, true, false, true]
       foot_force_offset: [100.0, 100.0, 100.0, 100.0]
       default_body_height: 0.30
