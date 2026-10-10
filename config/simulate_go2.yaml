@@ -17,6 +17,7 @@ sim:
   kill_on_reset: false  # stop simulation on the first termination
   reset_steps: 25  # number of steps after a reset to apply no actions to stabilize the robot
   total_steps: 1000  # number of steps to run the simulation
+  episode_length_s:  # episode time limit [s]; blank keeps the training value (20 s), after which the robot is reset
   seed: 42
   terrain: boxes  # plane, boxes, random_rough, pyramid_stairs, pyramid_stairs_inv, hf_pyramid_slope, hf_pyramid_slope_inv
   terrain_difficulty: 0.4  # 0.0 to 1.0

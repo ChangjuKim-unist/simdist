@@ -73,6 +73,8 @@ class Go2Sim:
         terr = cfg["sim"]["terrain"]
         diff = cfg["sim"]["terrain_difficulty"]
         env_cfg.scene.terrain.terrain_generator.seed = cfg["sim"]["seed"]
+        if cfg["sim"].get("episode_length_s") is not None:
+            env_cfg.episode_length_s = float(cfg["sim"]["episode_length_s"])
         env_cfg.scene.terrain.terrain_generator.curriculum = False
         env_cfg.scene.terrain.terrain_generator.size = (15.0, 15.0)
         env_cfg.scene.terrain.terrain_generator.num_rows = 1
@@ -220,14 +222,19 @@ class Go2Sim:
 
         # step the simulation
         action_torch = self.action_to_torch(action)
-        self.obs_dict, reward, reset = self.env.step(action_torch)[0:3]
+        self.obs_dict, reward, terminated, truncated = self.env.step(action_torch)[0:4]
+        # the environment resets the robot inside step() on a fall (terminated) and
+        # on the episode time limit (truncated); both end the controller episode
+        reset = terminated | truncated
         self.pbar.update(1)
         self.steps += 1
         self.total_step_count += 1
         if not self.episode_terminated:
             self.total_reward += reward[0].item()
             self.episode_length += 1
-            if not resetting:
+            # on a reset (fall or time-out) the environment has already moved the
+            # robot back to its start inside env.step, so keep the previous position
+            if not resetting and not reset[0]:
                 self.end_pos = self.root_pos_xy()
 
         if self.logger is not None and not resetting:

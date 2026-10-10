@@ -19,6 +19,7 @@
 #   SPEEDS      forward velocities for collection runs        (default: "0.3 0.6 0.9")
 #   ROUNDS      collection rounds over SPEEDS; runs are interleaved so that any
 #               step-budget prefix contains every speed            (default: 1)
+#   COLLECT_EPISODE_S episode time limit during collection [s]  (default: 100; evaluation keeps 20)
 #   BUDGETS     real-data budgets in steps for finetuning     (default: "15000")
 #   VARIANTS    finetune recipes, see VARIANTS below          (default: "dyn res res_anchor full full_anchor")
 #   FT_STEPS    gradient steps per finetune                   (default: 3000)
@@ -34,6 +35,7 @@ SYSTEM="${SYSTEM:-go1}"
 COND="${COND:-low_friction}"
 COLLECT_STEPS="${COLLECT_STEPS:-5000}"
 ROUNDS="${ROUNDS:-1}"
+COLLECT_EPISODE_S="${COLLECT_EPISODE_S:-100}"
 SPEEDS="${SPEEDS:-0.3 0.6 0.9}"
 BUDGETS="${BUDGETS:-15000}"
 VARIANTS="${VARIANTS:-dyn res res_anchor full full_anchor}"
@@ -59,7 +61,9 @@ condition_overrides() {
     low_friction) echo "sim.friction=0.3 sim.add_mass=0.0 sim.motor_strength=1.0" ;;
     payload)      echo "sim.friction=0.8 sim.add_mass=3.0 sim.motor_strength=1.0" ;;
     weak_motor)   echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.6" ;;
+    very_weak_motor) echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.4" ;;
     combo)        echo "sim.friction=0.4 sim.add_mass=2.0 sim.motor_strength=0.8" ;;
+    combo_hard)   echo "sim.friction=0.3 sim.add_mass=3.0 sim.motor_strength=0.6" ;;
     *) echo "unknown condition: $1" >&2; exit 1 ;;
   esac
 }
@@ -90,6 +94,7 @@ stage_collect() {
     for v in $SPEEDS; do
       i=$((i + 1))
       sim "$BASE" "$COND" "$((1000 + 10 * r + i))" "$COLLECT_STEPS" task.forward_vel="$v" \
+        sim.episode_length_s="$COLLECT_EPISODE_S" \
         logging.enabled=true logging.dataset_name="$DATASET" | grep -E "^\{'total_reward|Error|Traceback" || true
     done
   done
