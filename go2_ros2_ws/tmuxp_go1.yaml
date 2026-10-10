@@ -21,7 +21,7 @@ windows:
           - cmd: "ros2 launch bringup launch_go1.py"
             enter: false
       - shell_command:
-          - history -s "ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.yaml"
-          - cmd: "ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.yaml"
+          - history -s "ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.yaml robot_config:=go1.yaml"
+          - cmd: "ros2 launch bringup launch_control.py controller_config:=simdist_controller_go1.yaml robot_config:=go1.yaml"
             enter: false
       - pane

@@ -1,7 +1,7 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
@@ -18,7 +18,11 @@ def generate_launch_description():
         executable="cmd_vel_pub",
         name="cmd_vel_pub",
         output="screen",
-        parameters=[common_config, control_config],
+        parameters=[
+            common_config,
+            control_config,
+            PathJoinSubstitution([config_dir, "config", LaunchConfiguration("robot_config")]),
+        ],
     )
 
     controller = Node(
@@ -34,6 +38,11 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "robot_config",
+                default_value="control.yaml",
+                description="Extra params file in the config package for cmd_vel_pub, e.g. go1.yaml",
+            ),
             DeclareLaunchArgument(
                 "controller_config",
                 default_value="simdist_controller.yaml",
