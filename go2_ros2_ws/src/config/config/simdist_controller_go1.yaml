@@ -4,7 +4,7 @@ height_scan_offset: 0.3
 
 model:
   # Either enter an absolute path to the model checkpoint, or the name of the checkpoint in checkpoints dir
-  checkpoint: go1_finetuned  # round-1 adaptation (dynamics only, paper recipe) from 6.4 min of real Go1 data; go1_paper = before adaptation
+  checkpoint: go1_finetuned_r2  # round-2 adaptation (dynamics only) from 19.8 min of real Go1 data; go1_finetuned = round 1, go1_paper = before adaptation
   step:  # leave blank for latest
 
 mppi:
