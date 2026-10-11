@@ -217,9 +217,12 @@ class SimdistControllerNode(Node):
             )
         )
 
-        # get action
+        # get action. The planner also runs while standing so that its sampling
+        # distribution is warmed up when walking starts (the simulation deployment
+        # does the same during its reset steps); the result is discarded until
+        # the state machine switches to WALKING.
+        ctrl_out = self.controller.run_control()
         if self.robot_state == "WALKING":
-            ctrl_out = self.controller.run_control()
             action = ctrl_out["actions"][0]  # First action in sequence
             if not self.first_action_taken:
                 self.first_action_taken = True
