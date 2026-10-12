@@ -7,6 +7,7 @@ import time
 import wandb
 import torch
 from torch.utils.data import get_worker_info, DataLoader
+import jax
 import flax.nnx as nnx
 import orbax.checkpoint as ocp
 import optax
@@ -200,7 +201,51 @@ def train(cfg: dict):
         decay_steps=cfg["training"]["decay_steps"],
         end_value=cfg["training"]["end_learning_rate"],
     )
-    optimizer = nnx.Optimizer(model, optax.adam(lr_sched), wrt=filt)
+    adapt_cfg = cfg.get("adapt", {}) or {}
+    residual_lr = adapt_cfg.get("residual_lr", None)
+    if residual_lr is not None and getattr(model, "value_res", None) is not None:
+        # the residual value head starts at zero and is small; give it its own
+        # constant learning rate instead of the warmup/decay schedule of the rest
+        def _labels(params):
+            return jax.tree_util.tree_map_with_path(
+                lambda path, _: "res" if any("value_res" in str(k) for k in path) else "rest",
+                params,
+            )
+
+        tx = optax.multi_transform(
+            {"res": optax.adam(float(residual_lr)), "rest": optax.adam(lr_sched)}, _labels
+        )
+        print(f"Residual value head learning rate: {residual_lr}")
+    else:
+        tx = optax.adam(lr_sched)
+    optimizer = nnx.Optimizer(model, tx, wrt=filt)
+
+    # optional simulation replay for the value data anchor (see losses.WorldModelValueAdaptLoss)
+    replay_cfg = adapt_cfg.get("replay", {}) or {}
+    replay_iter = None
+    if replay_cfg.get("dataset_name"):
+        replay_cfg_full = dict(cfg)
+        replay_cfg_full["data"] = {"dataset_name": replay_cfg["dataset_name"]}
+        replay_dataset = get_dataset(replay_cfg_full)
+        replay_dataset.train()
+        replay_loader = DataLoader(
+            replay_dataset,
+            batch_size=int(replay_cfg.get("batch_size", 64)),
+            drop_last=True,
+            shuffle=True,
+            num_workers=int(replay_cfg.get("num_workers", 2)),
+            persistent_workers=False,
+            multiprocessing_context="forkserver",
+        )
+
+        def _cycle(loader):
+            while True:
+                for b in loader:
+                    if b is not None:
+                        yield b
+
+        replay_iter = _cycle(replay_loader)
+        print(f"Value replay from simulation dataset: {replay_cfg['dataset_name']}")
     metrics = nnx.MultiMetric(
         loss=nnx.metrics.Average("loss"),
         **{k: nnx.metrics.Average(k) for k in loss_fn.loss_terms},
@@ -216,6 +261,25 @@ def train(cfg: dict):
         y: types.TrainingLabels,
     ):
         grad_fn = nnx.value_and_grad(loss_fn, argnums=diff_state, has_aux=True)
+        (loss, losses), grads = grad_fn(model, x, y, False)
+        metrics.update(loss=loss, **losses)
+        optimizer.update(grads)
+        return loss
+
+    @nnx.jit
+    def train_step_replay(
+        model,
+        optimizer: nnx.Optimizer,
+        metrics: nnx.MultiMetric,
+        x: types.ModelInputs,
+        y: types.TrainingLabels,
+        xr: types.ModelInputs,
+        yr: types.TrainingLabels,
+    ):
+        def loss_with_replay(model, x, y, deterministic):
+            return loss_fn(model, x, y, deterministic, replay=(xr, yr))
+
+        grad_fn = nnx.value_and_grad(loss_with_replay, argnums=diff_state, has_aux=True)
         (loss, losses), grads = grad_fn(model, x, y, False)
         metrics.update(loss=loss, **losses)
         optimizer.update(grads)
@@ -247,9 +311,16 @@ def train(cfg: dict):
             if batch is None:
                 continue
             batch = model_utils.dataset_batch_to_jax(batch)
-            loss = train_step(
-                model, optimizer, metrics, batch["model_in"], batch["labels"]
-            )
+            if replay_iter is not None:
+                rb = model_utils.dataset_batch_to_jax(next(replay_iter))
+                loss = train_step_replay(
+                    model, optimizer, metrics, batch["model_in"], batch["labels"],
+                    rb["model_in"], rb["labels"],
+                )
+            else:
+                loss = train_step(
+                    model, optimizer, metrics, batch["model_in"], batch["labels"]
+                )
             pbar_train.set_description(f"Training (Loss: {float(loss):.4f})")
             train_steps += 1
 

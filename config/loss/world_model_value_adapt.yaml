@@ -3,7 +3,11 @@ type: "world_model_value_adapt"
 # discount of the value function (same as the RL critic / MPPI)
 discount: 0.99
 
+# bootstrap of the truncated return: anchor (frozen pretrained value) or self (the value being adapted)
+bootstrap: anchor
+
 weights:
   latent_dynamics: 1.0
   value_adapt: 1.0
   value_reg: 0.01  # L2 on the residual value output (0 when there is no residual head)
+  value_replay: 0.0  # regression to simulation value labels on replay windows (adapt.replay)

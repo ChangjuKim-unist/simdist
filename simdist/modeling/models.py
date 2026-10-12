@@ -198,7 +198,18 @@ class WorldModelBase(ModelBase):
 
         return value_emb, value, value_dec
 
-    def _build_value_residual(self, res_cfg: dict, rngs: nnx.Rngs) -> modules.MLP:
+    def _build_value_residual(self, res_cfg: dict, rngs: nnx.Rngs):
+        """Residual value head delta(z, cmd) with a zero-initialized output layer.
+
+        ``type: mlp`` is a per-step MLP; ``type: transformer`` has the same
+        architecture as the value head (embedding, transformer encoder over the
+        latent sequence, decoder) so it can represent the same corrections.
+        """
+        if res_cfg.get("type", "mlp") == "transformer":
+            emb, enc, dec = self._build_value_head(rngs)
+            dec.output_layer.kernel.value = jnp.zeros_like(dec.output_layer.kernel.value)
+            dec.output_layer.bias.value = jnp.zeros_like(dec.output_layer.bias.value)
+            return _ValueHead(emb, enc, dec)
         head = modules.MLP(
             input_dim=self.latent_dim + self.cmd_dim,
             hidden_dims=list(res_cfg.get("hidden_dims", [128, 128])),
@@ -209,6 +220,14 @@ class WorldModelBase(ModelBase):
         head.output_layer.kernel.value = jnp.zeros_like(head.output_layer.kernel.value)
         head.output_layer.bias.value = jnp.zeros_like(head.output_layer.bias.value)
         return head
+
+    def value_residual(self, value_in: jnp.ndarray, deterministic: bool | None = None) -> jnp.ndarray:
+        """delta for ``value_in`` = concat(latents, cmds) (..., T, lat+cmd) -> (..., T, 1)."""
+        if isinstance(self.value_res, _ValueHead):
+            h = self.value_res.emb(value_in, deterministic=deterministic)
+            h = self.value_res.enc(h, deterministic=deterministic)
+            return self.value_res.dec(h, deterministic=deterministic)
+        return self.value_res(value_in, deterministic=deterministic)
 
     def add_value_residual(self, res_cfg: dict, rngs: nnx.Rngs) -> None:
         """Attach a zero-initialized residual value head to a pretrained model."""
@@ -249,7 +268,7 @@ class WorldModelBase(ModelBase):
             value_pred = self.value(value_in_emb, deterministic=deterministic)
             values = self.value_dec(value_pred, deterministic=deterministic)
             if use_residual and self.value_res is not None:
-                values = values + self.value_res(value_in, deterministic=deterministic)
+                values = values + self.value_residual(value_in, deterministic=deterministic)
         return values.squeeze()
 
     def __call__(

@@ -134,6 +134,12 @@ class WorldModelValueAdaptLoss(Loss):
     def __init__(self, cfg: dict):
         super().__init__(cfg)
         self.discount = float(self.loss_cfg.get("discount", 0.99))
+        # "anchor": bootstrap with the frozen pretrained value (anchor head if the
+        #           model has one, otherwise the head without the residual)
+        # "self":   bootstrap with the value being adapted (TD-style), which lets
+        #           the value scale move away from the simulation value
+        self.bootstrap = self.loss_cfg.get("bootstrap", "anchor")
+        assert self.bootstrap in ("anchor", "self")
 
     def compute_losses(
         self,
@@ -141,6 +147,7 @@ class WorldModelValueAdaptLoss(Loss):
         x: types.WorldModelSchema.Inputs,
         y: types.WorldModelSchema.Labels,
         deterministic: bool,
+        replay: tuple | None = None,
         **kwargs,
     ) -> Tuple[Losses, ExtraInfo]:
         y_pred = model(x, deterministic=deterministic)
@@ -154,15 +161,20 @@ class WorldModelValueAdaptLoss(Loss):
         )
         latent_dynamics_loss = jnp.mean((y_pred["latents"] - fut_latents) ** 2)
 
-        # bootstrap value of the last true latent, from the frozen pretrained head
+        # bootstrap value of the last true latent
         fut_cmds_next = x_s["fut_cmds"][:, 1:]
-        v_boot_s = model.value_from_latents(
-            fut_latents,
-            fut_cmds_next,
-            deterministic=True,
-            use_residual=False,
-            use_anchor=model.value_anchor is not None,
-        )
+        if self.bootstrap == "self":
+            v_boot_s = model.value_from_latents(
+                fut_latents, fut_cmds_next, deterministic=True, use_residual=True
+            )
+        else:
+            v_boot_s = model.value_from_latents(
+                fut_latents,
+                fut_cmds_next,
+                deterministic=True,
+                use_residual=False,
+                use_anchor=model.value_anchor is not None,
+            )
         v_boot_s = jax.lax.stop_gradient(v_boot_s)
         vp = scaler.get_scaler_params()["values"]
         v_mean, v_std = vp["mean"], vp["std"] + 1e-8
@@ -188,7 +200,7 @@ class WorldModelValueAdaptLoss(Loss):
         value_adapt_loss = jnp.mean((v_pred_s - targets_s) ** 2)
 
         if model.value_res is not None:
-            delta = model.value_res(
+            delta = model.value_residual(
                 jnp.concatenate((fut_latents, fut_cmds_next), axis=-1),
                 deterministic=deterministic,
             ).squeeze(-1)
@@ -201,4 +213,21 @@ class WorldModelValueAdaptLoss(Loss):
             "value_adapt": value_adapt_loss,
             "value_reg": value_reg,
         }
+
+        # optional data anchor: on windows of the simulation dataset the adapted
+        # value must still match the simulation critic's labels
+        if "value_replay" in self.weights:
+            if replay is not None:
+                xr, yr = replay
+                xr_s = jax.lax.stop_gradient(scaler.scale(xr))
+                yr_s = jax.lax.stop_gradient(scaler.scale(yr))
+                lat_r = jax.lax.stop_gradient(
+                    model.encode_latent(yr_s["proprio_obs"], yr_s["extero_obs"], deterministic=True)
+                )
+                v_r = model.value_from_latents(
+                    lat_r, xr_s["fut_cmds"][:, 1:], deterministic=deterministic, use_residual=True
+                )
+                losses["value_replay"] = jnp.mean((v_r - yr_s["values"]) ** 2)
+            else:
+                losses["value_replay"] = jnp.zeros(())
         return losses, {}

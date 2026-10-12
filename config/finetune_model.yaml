@@ -15,8 +15,17 @@ run_name:
 adapt:
   value_residual:
     enabled: false
+    type: mlp  # mlp (per-step MLP) or transformer (same architecture as the value head)
     hidden_dims: [128, 128]
   value_anchor: false
+  # learning rate for the residual head only (blank = same schedule as the rest)
+  residual_lr:
+  # data anchor: windows of a simulation dataset on which the adapted value is
+  # regressed to the simulation critic's labels (loss weight value_replay)
+  replay:
+    dataset_name:
+    batch_size: 64
+    num_workers: 2
 
 data:
   dataset_name:

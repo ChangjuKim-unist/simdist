@@ -40,6 +40,7 @@ SPEEDS="${SPEEDS:-0.3 0.6 0.9}"
 BUDGETS="${BUDGETS:-15000}"
 VARIANTS="${VARIANTS:-dyn res res_anchor full full_anchor}"
 FT_STEPS="${FT_STEPS:-3000}"
+FT_EXTRA="${FT_EXTRA:-}"  # extra hydra overrides for every finetune, e.g. training.warmup_steps=200
 EVAL_SEEDS="${EVAL_SEEDS:-42 7 123}"
 EVAL_STEPS="${EVAL_STEPS:-1000}"
 NOMINAL_DATASET="${NOMINAL_DATASET:-2026-10-02_01-18-59}"
@@ -76,6 +77,13 @@ variant_overrides() {
     res_anchor)  echo "loss=world_model_value_adapt heads=dynamics_value_residual adapt.value_residual.enabled=true adapt.value_anchor=true" ;;
     full)        echo "loss=world_model_value_adapt heads=dynamics_value_full adapt.value_anchor=false" ;;
     full_anchor) echo "loss=world_model_value_adapt heads=dynamics_value_full adapt.value_anchor=true" ;;
+    # --- second round of variants ---
+    full_self)   echo "loss=world_model_value_adapt heads=dynamics_value_full loss.bootstrap=self" ;;
+    full_replay) echo "loss=world_model_value_adapt heads=dynamics_value_full loss.bootstrap=self loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET" ;;
+    res_self)    echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3" ;;
+    res_self_mlp) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=mlp adapt.residual_lr=1e-3" ;;
+    res_anchor_tf) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
+    res_replay)  echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3" ;;
     *) echo "unknown variant: $1" >&2; exit 1 ;;
   esac
 }
@@ -119,10 +127,11 @@ stage_finetune() {
   for b in $BUDGETS; do
     for var in $VARIANTS; do
       local name; name="$(ckpt_name "$var" "$b")"
+      if ls -d "$REPO/checkpoints/models/$name"/[0-9]* >/dev/null 2>&1; then echo "== finetune: $name exists, skipping"; continue; fi
       echo "== finetune: $name"
       "$RUN" python scripts/finetune_model.py data.dataset_name="${DATASET}_b${b}" system="$SYSTEM" \
         checkpoint.resume_checkpoint="$BASE" run_name="$name" training.max_steps="$FT_STEPS" \
-        training.eval_interval="$FT_STEPS" $(variant_overrides "$var") 2>&1 \
+        training.eval_interval="$FT_STEPS" $(variant_overrides "$var") $FT_EXTRA 2>&1 \
         | grep -E "Parameters to be optimized|Steps: |Stopping|Error|Traceback" | cut -c1-300 || true
     done
   done
