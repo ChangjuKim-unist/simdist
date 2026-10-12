@@ -46,6 +46,15 @@ All recipes start from the pretrained checkpoint and train for the same number o
 
 The value target for the state at step t+k of a window is the SGFT-style truncated return `G_k = Σ_{j=k}^{T-1} γ^{j-k} r_j + γ^{T-k} V_boot(z_{t+T})`, computed on the encoded true future latents (so the value update is decoupled from dynamics error). Implemented in `simdist/modeling/losses.py::WorldModelValueAdaptLoss`; the residual head and anchor live in `simdist/modeling/models.py` (`value_from_latents`, `add_value_residual`, `add_value_anchor`) and are switched on through `config/finetune_model.yaml` (`adapt:`), `config/heads/dynamics_value_*.yaml` and `config/loss/world_model_value_adapt.yaml`. The planner picks up `V_sim + δ` automatically because it reads the model's `values` output.
 
+**Real-world data** carries no reward. With `loss.reward_source=model` the truncated returns use the rewards predicted by the frozen reward head on the encoded true latents (`models.py::reward_from_latents`) instead of logged rewards. Sanity check on `go1_finetuned_r2`: on sim-to-sim windows the predicted reward per step matches the logged one (0.0157 vs 0.0154), on the real Go1 logs it is 0.039 per step (nominal walking in simulation is ≈0.042). Example for the real Go1 data:
+
+```bash
+./run.sh python scripts/finetune_model.py data.dataset_name=go1_simdist_controller system=go1 \
+    checkpoint.resume_checkpoint=go1_finetuned_r2 run_name=go1_finetuned_r2_value \
+    loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.reward_source=model \
+    loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3
+```
+
 ### Metrics
 
 - **Deployment in the target condition** (`simulate_go2.py`, 1000 steps, several seeds): total reward, forward progress [m] of the first episode, and whether the robot fell (episode length < 1000).
@@ -83,5 +92,6 @@ Checkpoints are named `<base>_<condition>_<variant>_b<budget>` in `checkpoints/m
 | `simdist/modeling/models.py` | residual value head, frozen value anchor, `value_from_latents` |
 | `simdist/modeling/losses.py` | `world_model_value_adapt` loss |
 | `simdist/modeling/trainer.py`, `config/finetune_model.yaml` | `adapt.value_residual`, `adapt.value_anchor` |
-| `config/heads/dynamics_value_residual.yaml`, `config/heads/dynamics_value_full.yaml`, `config/loss/world_model_value_adapt.yaml` | recipe configs |
+| `config/heads/dynamics_value_residual.yaml`, `config/heads/dynamics_value_full.yaml`, `config/loss/world_model_value_adapt.yaml` | recipe configs (`bootstrap`, `reward_source`, `value_replay`) |
+| `simdist/utils/model.py` | checkpoint loader falls back to the default device (CPU runs while the GPU is busy: `JAX_PLATFORMS=cpu`) |
 | `scripts/sim2sim/run_pipeline.sh`, `value_forgetting.py`, `summarize.py` | experiment driver, forgetting metric, table |

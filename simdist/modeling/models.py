@@ -271,6 +271,31 @@ class WorldModelBase(ModelBase):
                 values = values + self.value_residual(value_in, deterministic=deterministic)
         return values.squeeze()
 
+    def reward_from_latents(
+        self,
+        x_s: types.WorldModelSchema.Inputs,
+        fut_latents: jnp.ndarray,
+        deterministic: bool | None = None,
+    ) -> jnp.ndarray:
+        """Reward head evaluated on the encoded *true* latents (scaled units, (B, T)).
+
+        ``x_s`` is the scaled model input and ``fut_latents`` the encoded true
+        future latents (B, T, lat_dim). Reward r_j is predicted from the latent
+        at step t+j, the action a_{t+j} and the command c_{t+j}, exactly as in
+        ``__call__`` but with the true latents instead of the predicted ones.
+        Used to label real-world data that carries no reward.
+        """
+        z_t = self.encoder.encode_latent(
+            x_s["proprio_obs_hist"][:, -1], x_s["extero_obs"], deterministic=deterministic
+        )
+        z_t_tm1 = jnp.concatenate((z_t[:, None, :], fut_latents[:, :-1]), axis=1)
+        rew_in = jnp.concatenate(
+            (z_t_tm1, x_s["fut_acts"], x_s["fut_cmds"][:, :-1]), axis=-1
+        )
+        rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
+        rew_pred = self.reward(rew_in_emb, deterministic=deterministic)
+        return self.reward_dec(rew_pred, deterministic=deterministic).squeeze(-1)
+
     def __call__(
         self,
         x: types.WorldModelSchema.Inputs,

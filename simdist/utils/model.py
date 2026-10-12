@@ -36,7 +36,19 @@ def load_model_from_ckpt(
     ) as mngr:
         if step is None:
             step = mngr.latest_step()
-        restored_pure_dict = mngr.restore(step)
+        try:
+            restored_pure_dict = mngr.restore(step)
+        except ValueError as e:
+            if "not found in jax.local_devices" not in str(e):
+                raise
+            # the checkpoint was saved on a device that is not available here
+            # (e.g. GPU checkpoint loaded on CPU): restore as host arrays
+            sharding = jax.sharding.SingleDeviceSharding(jax.devices()[0])
+            abstract = jax.tree.map(
+                lambda m: jax.ShapeDtypeStruct(m.shape, m.dtype, sharding=sharding),
+                mngr.item_metadata(step),
+            )
+            restored_pure_dict = mngr.restore(step, args=ocp.args.StandardRestore(abstract))
 
     # Heads added after pretraining (residual value head, value anchor) carry
     # their own RNG state, so a checkpoint can hold RNG entries at paths the

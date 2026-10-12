@@ -140,6 +140,11 @@ class WorldModelValueAdaptLoss(Loss):
         #           the value scale move away from the simulation value
         self.bootstrap = self.loss_cfg.get("bootstrap", "anchor")
         assert self.bootstrap in ("anchor", "self")
+        # "labels": rewards logged with the data (simulation / sim-to-sim logs)
+        # "model":  rewards predicted by the frozen reward head on the encoded
+        #           true latents (real-world data carries no reward)
+        self.reward_source = self.loss_cfg.get("reward_source", "labels")
+        assert self.reward_source in ("labels", "model")
 
     def compute_losses(
         self,
@@ -181,7 +186,12 @@ class WorldModelValueAdaptLoss(Loss):
         v_boot = v_boot_s[:, -1] * v_std + v_mean  # (B,), raw units
 
         # discounted returns G_j from step t+j (reward r_j onwards), j = 0..T-1
-        rewards = jnp.asarray(y["rewards"])  # raw units, (B, T)
+        if self.reward_source == "model":
+            rp = scaler.get_scaler_params()["rewards"]
+            rewards_s = model.reward_from_latents(x_s, fut_latents, deterministic=True)
+            rewards = jax.lax.stop_gradient(rewards_s * (rp["std"] + 1e-8) + rp["mean"])
+        else:
+            rewards = jnp.asarray(y["rewards"])  # raw units, (B, T)
         gamma = self.discount
 
         def _accumulate(carry, r_j):

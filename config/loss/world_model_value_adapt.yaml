@@ -6,6 +6,9 @@ discount: 0.99
 # bootstrap of the truncated return: anchor (frozen pretrained value) or self (the value being adapted)
 bootstrap: anchor
 
+# reward used in the truncated return: labels (logged with the data) or model (frozen reward head; for real data)
+reward_source: labels
+
 weights:
   latent_dynamics: 1.0
   value_adapt: 1.0
