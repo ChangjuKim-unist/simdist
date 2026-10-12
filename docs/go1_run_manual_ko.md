@@ -91,6 +91,13 @@ cd ~/simdist-docker
     checkpoint.resume_checkpoint=go1_paper run_name=go1_finetuned
 ```
 - 재배포: `simdist_controller_go1.yaml` 의 `model.checkpoint` 를 `go1_finetuned` 로 바꾸고 컨테이너 안에서 `colcon build`.
+- 위 네 단계를 한 번에 (세션 후 호스트에서, 시뮬 실험이 돌고 있으면 거부함):
+```bash
+cd ~/simdist
+PREV=go1_finetuned_r2 NEW=go1_finetuned_r3 scripts/go1_round.sh          # 동역학만 (논문 방식)
+PREV=go1_finetuned_r2 NEW=go1_finetuned_r2_value RECIPE=res scripts/go1_round.sh   # + 잔차 값 함수 (보상은 얼린 보상 헤드 예측)
+```
+집계 → 처리 → 파인튜닝(40 epoch) → 시뮬 확인(평지 1 시드, 41~42 기대) → 컨트롤러 설정의 체크포인트 교체 + `colcon build` → `~/simdist-docker/backup_go1_real_<이름>_<날짜>.tgz` 백업 순서로 진행된다.
 
 ## 8. 종료
 1. 상태머신으로 PRONE.

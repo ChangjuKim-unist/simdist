@@ -278,21 +278,24 @@ private:
     }
 
     // fall detection: latch damping until the operator has put the state machine
-    // back in OFF/PRONE, so a righted robot does not resume a walking command
+    // back in OFF/PRONE, so a righted robot does not resume a walking command.
+    // Only armed while the robot is actively commanded (standing / walking /
+    // recovery): tilting a prone robot (carrying it, flipping it) is harmless.
     const double roll = sdk_state_.imu.rpy[0];
     const double pitch = sdk_state_.imu.rpy[1];
     const bool tilted = std::abs(roll) > abort_roll_pitch_ || std::abs(pitch) > abort_roll_pitch_;
-    if (tilted && !fallen_) {
-      RCLCPP_ERROR(get_logger(), "Roll %.2f / pitch %.2f rad beyond %.2f: damping mode until the state machine is OFF or PRONE",
-                   roll, pitch, abort_roll_pitch_);
+    std::string state;
+    {
+      std::lock_guard<std::mutex> lock(cmd_mutex_);
+      state = robot_state_;
+    }
+    const bool resting = state.empty() || state == "OFF" || state == "PRONE" || state == "PRONING";
+    if (tilted && !fallen_ && !resting) {
+      RCLCPP_ERROR(get_logger(), "Roll %.2f / pitch %.2f rad beyond %.2f in %s: damping mode until the state machine is OFF or PRONE",
+                   roll, pitch, abort_roll_pitch_, state.c_str());
       fallen_ = true;
     } else if (fallen_ && !tilted) {
-      std::string state;
-      {
-        std::lock_guard<std::mutex> lock(cmd_mutex_);
-        state = robot_state_;
-      }
-      if (state == "OFF" || state == "PRONE" || state == "PRONING") {
+      if (resting) {
         RCLCPP_WARN(get_logger(), "Upright again and state machine in %s: commands accepted again", state.c_str());
         fallen_ = false;
       } else {
