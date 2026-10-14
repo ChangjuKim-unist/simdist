@@ -56,6 +56,20 @@ class Go2Sim:
             ckpt_dir, self.cfg["model"]["step"]
         )
         self.controller = MppiController(model, model_cfg, self.cfg["control"])
+
+        # optional: act with an exported RL policy (privileged expert) instead of
+        # the planner, e.g. as an upper bound / zero-shot baseline in a perturbed
+        # condition. The policy consumes the environment's "policy" observation
+        # group (with privileged terms and history) exactly as during RL training.
+        self.rl_policy = None
+        pol_cfg = cfg.get("policy", {}) or {}
+        if pol_cfg.get("rl_run"):
+            from simdist.utils.torch import get_actor_critic_from_iteration
+
+            self.rl_policy, _ = get_actor_critic_from_iteration(
+                pol_cfg["rl_run"], int(pol_cfg["iteration"]), "cuda:0"
+            )
+            print(f"Acting with RL policy {pol_cfg['rl_run']} iteration {pol_cfg['iteration']}")
         self.proprio_obs_names = config.proprio_obs_names_from_sys_config(
             model_cfg["system"]
         )
@@ -205,9 +219,13 @@ class Go2Sim:
             self.make_controller_input(proprio_obs, height_scan, self.last_action)
         )
 
-        # get the action from the controller
-        ctrl_out = self.controller.run_control()
-        action = ctrl_out["actions"][0]  # get first action in sequence
+        # get the action from the controller (or the RL policy)
+        if self.rl_policy is not None:
+            with torch.no_grad():
+                action = self.rl_policy(self.obs_dict["policy"].to("cuda:0"))[0].cpu().numpy()
+        else:
+            ctrl_out = self.controller.run_control()
+            action = ctrl_out["actions"][0]  # get first action in sequence
 
         if resetting:
             # apply zero action just after reset to stabilize the simulation

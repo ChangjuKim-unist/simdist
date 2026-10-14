@@ -42,7 +42,11 @@ VARIANTS="${VARIANTS:-dyn res res_anchor full full_anchor}"
 FT_STEPS="${FT_STEPS:-3000}"
 FT_EXTRA="${FT_EXTRA:-}"  # extra hydra overrides for every finetune, e.g. training.warmup_steps=200
 EVAL_SEEDS="${EVAL_SEEDS:-42 7 123}"
+NOMINAL_SEEDS="${NOMINAL_SEEDS:-$EVAL_SEEDS}"  # seeds for the nominal-condition (forgetting) evaluation
 EVAL_STEPS="${EVAL_STEPS:-1000}"
+TAG="${TAG:-}"            # optional suffix for checkpoint names (e.g. oracle)
+EXPERT_RUN="${EXPERT_RUN:-}"   # RL run whose exported expert policy is evaluated as a reference
+EXPERT_ITER="${EXPERT_ITER:-}"
 NOMINAL_DATASET="${NOMINAL_DATASET:-2026-10-02_01-18-59}"
 TERRAIN="${TERRAIN:-plane}"
 
@@ -83,6 +87,7 @@ variant_overrides() {
     res_self)    echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3" ;;
     res_self_mlp) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=mlp adapt.residual_lr=1e-3" ;;
     res_anchor_tf) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
+    res_anchor_replay) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
     res_replay)  echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3" ;;
     *) echo "unknown variant: $1" >&2; exit 1 ;;
   esac
@@ -121,7 +126,7 @@ stage_process() {
   done
 }
 
-ckpt_name() { echo "${BASE}_${COND}_${1}_b${2}"; }
+ckpt_name() { echo "${BASE}_${COND}_${1}_b${2}${TAG:+_$TAG}"; }
 
 stage_finetune() {
   for b in $BUDGETS; do
@@ -142,13 +147,22 @@ stage_evaluate() {
   [ -f "$csv" ] || echo "model,condition,seed,total_reward,reward_per_step,episode_length,forward_progress" > "$csv"
   local models="$BASE"
   for b in $BUDGETS; do for var in $VARIANTS; do models="$models $(ckpt_name "$var" "$b")"; done; done
+  # the privileged RL expert acting directly (EXPERT_RUN / EXPERT_ITER): an upper
+  # bound for shifts it observes (friction, mass), blind to motor strength
+  [ -n "$EXPERT_RUN" ] && models="$models expert_${EXPERT_ITER}"
   for m in $models; do
-    [ -d "$REPO/checkpoints/models/$m" ] || { echo "skip $m (no checkpoint)"; continue; }
+    local ckpt="$m" extra=""
+    if [[ "$m" == expert_* ]]; then
+      ckpt="$BASE"; extra="policy.rl_run=$EXPERT_RUN policy.iteration=$EXPERT_ITER"
+    else
+      [ -d "$REPO/checkpoints/models/$m" ] || { echo "skip $m (no checkpoint)"; continue; }
+    fi
     for cond in "$COND" nominal; do
-      for seed in $EVAL_SEEDS; do
+      local seeds="$EVAL_SEEDS"; [ "$cond" = nominal ] && seeds="$NOMINAL_SEEDS"
+      for seed in $seeds; do
         if grep -q "^$m,$cond,$seed," "$csv"; then continue; fi
         echo "== evaluate: $m on $cond seed $seed"
-        local out; out="$(sim "$m" "$cond" "$seed" "$EVAL_STEPS" | grep -E "^\{'total_reward" || true)"
+        local out; out="$(sim "$ckpt" "$cond" "$seed" "$EVAL_STEPS" $extra | grep -E "^\{'total_reward" || true)"
         local r rs el fp
         r="$(echo "$out" | grep -oE "'total_reward': [-0-9.e]+" | grep -oE "[-0-9.e]+$" || true)"
         rs="$(echo "$out" | grep -oE "'reward_per_step': [-0-9.e]+" | grep -oE "[-0-9.e]+$" || true)"

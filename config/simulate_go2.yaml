@@ -26,6 +26,12 @@ sim:
   add_mass: 0.0
   motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
 
+# Act with an exported RL policy instead of the planner (privileged expert, see
+# checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.
+policy:
+  rl_run:
+  iteration:
+
 wandb:
   log: false
   run_name:
