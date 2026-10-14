@@ -62,7 +62,7 @@ ls -d "$REPO/checkpoints/models/$NEW"/[0-9]* >/dev/null 2>&1 || { echo "finetune
 if [ "$SANITY" = "1" ]; then
   echo "== simulation sanity check of $NEW (plane, seed 42; go1_paper ≈ 41-42 reward, 1000/1000 steps)"
   "$RUN" python scripts/simulate_go2.py model.checkpoint="$NEW" sim.terrain=plane sim.seed=42 control.seed=42 \
-    control.num_samples=200 control.iterations=3 control.num_elites=32 2>&1 | grep -E "^\{'total_reward" || echo "WARNING: simulation gave no result"
+    control.num_samples=200 control.iterations=3 control.num_elites=32 --headless 2>&1 | grep -E "^\{'total_reward" || echo "WARNING: simulation gave no result"
 fi
 
 if [ "$NO_ROS" != "1" ]; then
