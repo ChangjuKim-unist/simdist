@@ -69,6 +69,7 @@ Our contributions are:
 \centering\small
 \caption{Closest prior work, by component. \todo{fill: what is frozen / adapted, anchor, forgetting measured, real robot}}
 \label{tab:related}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}lllll@{}}
 \toprule
 Method & Adapted & Anchor & Forgetting & Real robot \\
@@ -80,7 +81,7 @@ ReLA~\citep{sikchi2025rela} & residual critic (rand.\ init) & none & observed & 
 FOWM~\citep{feng2023fowm} & all heads & 50/50 replay & -- & arm \\
 \textbf{Ours} & dynamics + zero-init residual value & frozen $\vsim$ + sim replay & measured & Go1 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 % =====================================================================
