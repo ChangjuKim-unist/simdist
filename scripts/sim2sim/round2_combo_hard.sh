@@ -14,25 +14,7 @@ for M in dyn res_anchor_tf; do
   echo "### [$M] collect 15 min with $C1"
   COLLECT_CKPT=$C1 DATASET=$COLL ROUNDS=3 $P collect
   echo "### [$M] build dataset ${DS}_b45000 = first 45000 steps of round 1 + round 2"
-  python3 - "$COLL" "${DS}_b45000" <<'PY'
-import glob, os, sys, h5py
-coll, name = sys.argv[1], sys.argv[2]
-root = os.path.expanduser('~/simdist/datasets/real')
-raw = os.path.join(root, name, 'raw'); os.makedirs(os.path.join(raw, 'round1'), exist_ok=True); os.makedirs(os.path.join(raw, 'round2'), exist_ok=True)
-r1 = sorted(glob.glob(os.path.join(root, 'sim2sim_combo_hard_go1_paper', 'raw', '*', '*.hdf5')), key=os.path.getmtime)
-total = 0
-for f in r1:
-    if total >= 45000: break
-    with h5py.File(f) as h: total += len(h['reward'])
-    dst = os.path.join(raw, 'round1', os.path.basename(f))
-    if not os.path.exists(dst): os.symlink(f, dst)
-n2 = 0
-for f in sorted(glob.glob(os.path.join(root, coll, 'raw', '*', '*.hdf5')), key=os.path.getmtime):
-    dst = os.path.join(raw, 'round2', os.path.basename(f))
-    if not os.path.exists(dst): os.symlink(f, dst)
-    with h5py.File(f) as h: n2 += len(h['reward'])
-print(f"round1 steps {total}, round2 steps {n2}")
-PY
+  $RUN python scripts/sim2sim/build_round_dataset.py ${DS}_b45000 sim2sim_combo_hard_go1_paper:45000 $COLL 2>&1 | grep -vE "Warning|absl"
   $RUN python scripts/aggregate_realworld_data.py dataset_name=${DS}_b45000 2>&1 | grep -E "Total|Error|Traceback"
   $RUN python scripts/process_data.py dataset_name=${DS}_b45000 system=go1 2>&1 | grep -E "Error|Traceback"
   echo "### [$M] finetune from $C1"
