@@ -152,6 +152,8 @@ class Go2Sim:
         self.total_step_count = 0
         self.last_action = self.zero_action.copy()
         self.total_reward = 0
+        self.run_reward = 0.0  # over all episodes of the run
+        self.num_resets = 0
         self.episode_terminated = False
         self.episode_length = 0
         self.start_pos = None
@@ -247,6 +249,8 @@ class Go2Sim:
         self.pbar.update(1)
         self.steps += 1
         self.total_step_count += 1
+        if not resetting:
+            self.run_reward += reward[0].item()
         if not self.episode_terminated:
             self.total_reward += reward[0].item()
             self.episode_length += 1
@@ -274,6 +278,7 @@ class Go2Sim:
 
     def reset(self):
         self.episode_terminated = True
+        self.num_resets += 1
         self.steps = 0
         if self.logger is not None:
             self.logger.close()
@@ -294,6 +299,10 @@ class Go2Sim:
             "total_steps": self.total_step_count,
             "episode_length": self.episode_length,
             "forward_progress": forward_progress,
+            # whole-run statistics (all episodes): reward per step and number of resets
+            # (falls and time-outs) -- the long-horizon metrics used by evaluate_long
+            "run_reward_per_step": self.run_reward / max(self.total_step_count, 1),
+            "num_resets": self.num_resets,
         }
         if self.logger is not None:
             metrics["logged_episodes"] = self.logger.num_episodes

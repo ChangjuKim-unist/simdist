@@ -47,6 +47,8 @@ EVAL_STEPS="${EVAL_STEPS:-1000}"
 TAG="${TAG:-}"            # optional suffix for checkpoint names (e.g. oracle)
 EXPERT_RUN="${EXPERT_RUN:-}"   # RL run whose exported expert policy is evaluated as a reference
 EXPERT_ITER="${EXPERT_ITER:-}"
+LONG_STEPS="${LONG_STEPS:-5000}"; LONG_SPEEDS="${LONG_SPEEDS:-0.3 0.6 0.9}"; LONG_SEEDS="${LONG_SEEDS:-11 12}"
+LONG_CONDS="${LONG_CONDS:-$COND}"; LONG_EXTRA_MODELS="${LONG_EXTRA_MODELS:-}"  # extra checkpoint names for evaluate_long
 NOMINAL_DATASET="${NOMINAL_DATASET:-2026-10-02_01-18-59}"
 TERRAIN="${TERRAIN:-plane}"
 
@@ -177,6 +179,42 @@ stage_evaluate() {
   done
 }
 
+# long-horizon evaluation: LONG_STEPS-step runs (episodes end on a fall or after
+# COLLECT_EPISODE_S) at each speed of LONG_SPEEDS; reports reward per step over the
+# whole run and the number of resets (falls) -- much less seed-sensitive than a
+# single 1000-step episode
+stage_evaluate_long() {
+  local csv="$RESULTS/eval_long.csv"
+  [ -f "$csv" ] || echo "model,condition,speed,seed,run_reward_per_step,num_resets,first_episode_length,first_episode_reward" > "$csv"
+  local models="$BASE"
+  for b in $BUDGETS; do for var in $VARIANTS; do models="$models $(ckpt_name "$var" "$b")"; done; done
+  [ -n "$EXPERT_RUN" ] && models="$models expert_${EXPERT_ITER}"
+  for m in $models $LONG_EXTRA_MODELS; do
+    local ckpt="$m" extra=""
+    if [[ "$m" == expert_* ]]; then
+      ckpt="$BASE"; extra="policy.rl_run=$EXPERT_RUN policy.iteration=$EXPERT_ITER"
+    else
+      [ -d "$REPO/checkpoints/models/$m" ] || { echo "skip $m (no checkpoint)"; continue; }
+    fi
+    for cond in $LONG_CONDS; do
+      for v in $LONG_SPEEDS; do
+        for seed in $LONG_SEEDS; do
+          if grep -q "^$m,$cond,$v,$seed," "$csv"; then continue; fi
+          echo "== evaluate_long: $m on $cond speed $v seed $seed"
+          local out; out="$(sim "$ckpt" "$cond" "$seed" "$LONG_STEPS" task.forward_vel="$v" sim.episode_length_s="$COLLECT_EPISODE_S" $extra | grep -E "^\{'total_reward" || true)"
+          local rr nr el r
+          rr="$(echo "$out" | grep -oE "'run_reward_per_step': [-0-9.e]+" | grep -oE "[-0-9.e]+$" || true)"
+          nr="$(echo "$out" | grep -oE "'num_resets': [0-9]+" | grep -oE "[0-9]+$" || true)"
+          el="$(echo "$out" | grep -oE "'episode_length': [0-9]+" | grep -oE "[0-9]+$" || true)"
+          r="$(echo "$out" | grep -oE "'total_reward': [-0-9.e]+" | grep -oE "[-0-9.e]+$" || true)"
+          [ -n "$rr" ] || echo "WARNING: no result for $m ($cond, $v, $seed)" >&2
+          echo "$m,$cond,$v,$seed,${rr:-nan},${nr:-nan},${el:-nan},${r:-nan}" | tee -a "$csv"
+        done
+      done
+    done
+  done
+}
+
 stage_forget() {
   local adapted=""
   for b in $BUDGETS; do for var in $VARIANTS; do
@@ -197,6 +235,7 @@ case "$STAGE" in
   process)   stage_process ;;
   finetune)  stage_finetune ;;
   evaluate)  stage_evaluate ;;
+  evaluate_long) stage_evaluate_long ;;
   forget)    stage_forget ;;
   summarize) stage_summarize ;;
   all)       stage_collect; stage_process; stage_finetune; stage_evaluate; stage_forget; stage_summarize ;;
