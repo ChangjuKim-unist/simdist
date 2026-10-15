@@ -53,7 +53,9 @@ TERRAIN="${TERRAIN:-plane}"
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUN="${RUN:-$HOME/simdist-docker/run.sh}"
 RESULTS="${RESULTS:-$REPO/results/sim2sim/$COND}"
-DATASET="sim2sim_${COND}_${BASE}"
+DATASET="${DATASET:-sim2sim_${COND}_${BASE}}"   # raw/processed dataset name (override for later rounds)
+COLLECT_CKPT="${COLLECT_CKPT:-$BASE}"        # model that collects the data (round k: the model adapted in round k-1)
+RESUME_CKPT="${RESUME_CKPT:-$BASE}"          # checkpoint the finetune starts from
 mkdir -p "$RESULTS"
 RESULTS="$(cd "$RESULTS" && pwd)"
 # the same directory as seen inside the container (the repo is mounted at /workspace/simdist)
@@ -106,7 +108,7 @@ stage_collect() {
     i=0
     for v in $SPEEDS; do
       i=$((i + 1))
-      sim "$BASE" "$COND" "$((1000 + 10 * r + i))" "$COLLECT_STEPS" task.forward_vel="$v" \
+      sim "$COLLECT_CKPT" "$COND" "$((1000 + 10 * r + i))" "$COLLECT_STEPS" task.forward_vel="$v" \
         sim.episode_length_s="$COLLECT_EPISODE_S" \
         logging.enabled=true logging.dataset_name="$DATASET" | grep -E "^\{'total_reward|Error|Traceback" || true
     done
@@ -135,7 +137,7 @@ stage_finetune() {
       if ls -d "$REPO/checkpoints/models/$name"/[0-9]* >/dev/null 2>&1; then echo "== finetune: $name exists, skipping"; continue; fi
       echo "== finetune: $name"
       "$RUN" python scripts/finetune_model.py data.dataset_name="${DATASET}_b${b}" system="$SYSTEM" \
-        checkpoint.resume_checkpoint="$BASE" run_name="$name" training.max_steps="$FT_STEPS" \
+        checkpoint.resume_checkpoint="$RESUME_CKPT" run_name="$name" training.max_steps="$FT_STEPS" \
         training.eval_interval="$FT_STEPS" $(variant_overrides "$var") $FT_EXTRA 2>&1 \
         | grep -E "Parameters to be optimized|Steps: |Stopping|Error|Traceback" | cut -c1-300 || true
     done
