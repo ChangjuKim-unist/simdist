@@ -101,8 +101,9 @@ class BatchedMppiController:
                 key_data=jnp.asarray(key_data),
             )
             return
-        mean = np.asarray(self.state.mean); std = np.asarray(self.state.std)
-        key_data = np.asarray(self.state.key_data)
+        # np.asarray of a jax array is read-only: copy before editing
+        mean = np.array(self.state.mean); std = np.array(self.state.std)
+        key_data = np.array(self.state.key_data)
         for i in env_ids:
             self.reset_counts[i] += 1
             mean[i] = 0.0
