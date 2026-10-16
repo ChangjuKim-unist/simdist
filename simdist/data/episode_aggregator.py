@@ -11,7 +11,7 @@ from simdist.utils import paths
 from simdist.data import REAL_DATA_KEYS
 
 # per-step keys copied when present (the controller's logger does not write them)
-_OPTIONAL_KEYS = ["reward"]
+_OPTIONAL_KEYS = ["reward", "terminated"]
 
 
 class EpisodeAggregator:
@@ -36,7 +36,8 @@ class EpisodeAggregator:
             for filename in filenames:
                 if filename.endswith(".hdf5"):
                     hdf5_paths.append(os.path.join(dirpath, filename))
-        return sorted(hdf5_paths, key=os.path.getmtime)
+        # chronological; the path breaks ties (copied files can share one mtime)
+        return sorted(hdf5_paths, key=lambda p: (os.path.getmtime(p), p))
 
     def process_all_episodes(self):
         total_steps = 0

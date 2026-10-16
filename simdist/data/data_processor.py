@@ -103,6 +103,14 @@ class DataProcessor:
             dtype=np.bool_,
         )
 
+        terminal_h5 = _H5Appender(
+            paths.get_terminal_path(processed_data_dir), DATA_KEY, 3, dtype=np.float32
+        )
+        # episodes shorter than this ended by a termination (fall) when the raw data
+        # carries no "terminated" flag; blank = never
+        terminal_max_len = self.cfg.get("terminal_max_len", None)
+        rtg_discount = float(self.cfg.get("rtg_discount", 0.99))
+
         all_ep_lens = []
         ep_rewards = []
         start = 0
@@ -170,6 +178,22 @@ class DataProcessor:
             rewards_h5.append(rewards_np)
             self.stats_trackers["rewards"].update(rewards_np)
 
+            # terminal information for value targets: steps to the episode end,
+            # discounted reward-to-go until the end, and whether the end was a fall
+            if "terminated" in episode_data.data:
+                terminated = bool(_to_valid_numpy(episode_data.data["terminated"])[-1] > 0.5)
+            else:
+                terminated = terminal_max_len is not None and ep_len < terminal_max_len
+            steps_to_end = np.arange(ep_len, 0, -1, dtype=np.float32)
+            rtg = np.zeros(ep_len, dtype=np.float32)
+            acc = 0.0
+            for i in range(ep_len - 1, -1, -1):
+                acc = float(rewards_np[i]) + rtg_discount * acc
+                rtg[i] = acc
+            terminal_h5.append(
+                np.stack([steps_to_end, rtg, np.full(ep_len, float(terminated), np.float32)], axis=1)
+            )
+
             if "value" in episode_data.data:
                 values = episode_data.data["value"]
             else:
@@ -221,6 +245,7 @@ class DataProcessor:
         acts_h5.close()
         cmd_h5.close()
         rewards_h5.close()
+        terminal_h5.close()
         values_h5.close()
         exp_pol_flags_h5.close()
 

@@ -96,11 +96,21 @@ class HDF5EpisodeLogger:
             self.datasets[key][self.step] = np.float32((extras or {}).get(key, 0.0))
         self.step += 1
 
-    def close(self) -> int:
-        """Finish the current episode; empty episodes are deleted. Returns its length."""
+    def close(self, terminated: bool = False) -> int:
+        """Finish the current episode; empty episodes are deleted. Returns its length.
+
+        ``terminated``: the episode ended because the robot fell (environment
+        reset), as opposed to the run ending or the operator stopping. Stored as a
+        per-step "terminated" array so that value targets can treat the end as a
+        terminal state.
+        """
         if self.file is None:
             return 0
         steps = self.step
+        if steps > 0:
+            self.file.create_dataset(
+                "terminated", data=np.full((steps,), float(terminated), dtype=np.float32)
+            )
         self.file.flush()
         self.file.close()
         self.file = None

@@ -281,7 +281,9 @@ class Go2Sim:
         self.num_resets += 1
         self.steps = 0
         if self.logger is not None:
-            self.logger.close()
+            # the episode ended by a fall unless it ran into the time limit
+            limit = self.env.max_episode_length
+            self.logger.close(terminated=self.episode_length < limit - 5)
         proprio_obs, height_scan = self.get_obs(self.obs_dict)
         x = self.make_controller_input(proprio_obs, height_scan, self.zero_action)
         self.controller.reset(x, self.zero_cmd)

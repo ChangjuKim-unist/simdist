@@ -10,3 +10,8 @@ beg_padding: 5
 
 # Don't include this many steps at the end of an episode in the dataset
 end_padding: 5
+
+# terminal information (value targets): episodes shorter than terminal_max_len ended by a fall
+# when the raw data has no "terminated" flag (blank = never); rtg_discount for the reward-to-go
+terminal_max_len:
+rtg_discount: 0.99

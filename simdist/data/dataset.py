@@ -122,6 +122,13 @@ class WorldModelDatasetBase(DatasetBase):
         values: np.ndarray = self._data["values"][t + 1 : t_T + 1]
         actions: np.ndarray = self._data["actions"][t:t_T]
         exp_pol_flags: np.ndarray = self._data["exp_pol_flags"][t:t_T]
+        if "terminal" in self._data:
+            term: np.ndarray = self._data["terminal"][t + 1 : t_T + 1]
+            steps_to_end, rtg, terminated = term[:, 0], term[:, 1], term[:, 2]
+        else:
+            steps_to_end = np.full((self.T,), 1e6, dtype=np.float32)
+            rtg = np.zeros((self.T,), dtype=np.float32)
+            terminated = np.zeros((self.T,), dtype=np.float32)
         labels: types.WorldModelSchema.Labels = {
             "proprio_obs": proprio_obs,
             "extero_obs": extero_obs,
@@ -129,6 +136,9 @@ class WorldModelDatasetBase(DatasetBase):
             "values": values,
             "actions": actions,
             "exp_pol_flags": exp_pol_flags,
+            "steps_to_end": steps_to_end,
+            "rtg": rtg,
+            "terminated": terminated,
         }
 
         item: DatasetItem = {
@@ -166,6 +176,9 @@ class WorldModelDatasetBase(DatasetBase):
         self._files["exp_pol_flags"] = h5py.File(
             paths.get_expert_policy_flags_path(data_dir)
         )
+        # optional (datasets processed before terminal information existed)
+        if os.path.exists(paths.get_terminal_path(data_dir)):
+            self._files["terminal"] = h5py.File(paths.get_terminal_path(data_dir))
 
     def _load_data(self) -> None:
         for key, file in self._files.items():
@@ -198,6 +211,9 @@ class WorldModelDatasetBase(DatasetBase):
             "values": rng.standard_normal((T,)),
             "actions": rng.standard_normal((T, act_dim)),
             "exp_pol_flags": np.ones((T,)),
+            "steps_to_end": np.full((T,), 1e6),
+            "rtg": np.zeros((T,)),
+            "terminated": np.zeros((T,)),
         }
 
         return {

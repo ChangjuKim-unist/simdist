@@ -9,6 +9,11 @@ bootstrap: anchor
 # reward used in the truncated return: labels (logged with the data) or model (frozen reward head; for real data)
 reward_source: labels
 
+# terminal-aware bootstrap (see docs/design_value_adaptation_ko.md, section 5)
+terminal:
+  enabled: false
+  max_steps: 50  # window end within this many steps of a fall -> bootstrap with the logged reward-to-go
+
 weights:
   latent_dynamics: 1.0
   value_adapt: 1.0

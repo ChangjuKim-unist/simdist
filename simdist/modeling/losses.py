@@ -145,6 +145,13 @@ class WorldModelValueAdaptLoss(Loss):
         #           true latents (real-world data carries no reward)
         self.reward_source = self.loss_cfg.get("reward_source", "labels")
         assert self.reward_source in ("labels", "model")
+        # terminal-aware bootstrap: when the episode ends by a fall within
+        # ``max_steps`` after the window, bootstrap with the logged discounted
+        # reward-to-go (zero after the fall) instead of the anchor, so the value
+        # targets carry the shifted failure boundary (docs/design_value_adaptation_ko.md)
+        term_cfg = self.loss_cfg.get("terminal", {}) or {}
+        self.terminal_enabled = bool(term_cfg.get("enabled", False))
+        self.terminal_max_steps = float(term_cfg.get("max_steps", 50))
 
     def compute_losses(
         self,
@@ -184,6 +191,10 @@ class WorldModelValueAdaptLoss(Loss):
         vp = scaler.get_scaler_params()["values"]
         v_mean, v_std = vp["mean"], vp["std"] + 1e-8
         v_boot = v_boot_s[:, -1] * v_std + v_mean  # (B,), raw units
+        if self.terminal_enabled and "steps_to_end" in y:
+            near_end = jnp.asarray(y["steps_to_end"])[:, -1] <= self.terminal_max_steps
+            fell = jnp.asarray(y["terminated"])[:, -1] > 0.5
+            v_boot = jnp.where(near_end & fell, jnp.asarray(y["rtg"])[:, -1], v_boot)
 
         # discounted returns G_j from step t+j (reward r_j onwards), j = 0..T-1
         if self.reward_source == "model":
