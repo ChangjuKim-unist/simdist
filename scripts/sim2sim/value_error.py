@@ -29,7 +29,7 @@ from scipy.stats import spearmanr
 from simdist.utils import model as model_utils, paths
 
 
-def load_episodes(dataset: str, discount: float, min_tail: int, stride: int, time_limit_steps: int, T: int = 25):
+def load_episodes(dataset: str, discount: float, min_tail: int, stride: int, time_limit_steps: int, T: int = 25, prefall: int = 50):
     files = sorted(glob.glob(os.path.join(paths.get_real_raw_data_dir(dataset), "*", "*.hdf5")))
     assert files, f"no raw episodes for dataset {dataset}"
     P, E, C, G, F = [], [], [], [], []
@@ -44,7 +44,10 @@ def load_episodes(dataset: str, discount: float, min_tail: int, stride: int, tim
             for t in range(n - 1, -1, -1):
                 acc = r[t] + discount * acc
                 ret[t] = acc
-            fell = n < time_limit_steps - 50
+            if "terminated" in h:
+                fell = bool(h["terminated"][-1] > 0.5)  # written by the logger / mark_terminated.py
+            else:
+                fell = n < time_limit_steps - 50
             keep = np.arange(0, n, stride)
             if not fell:
                 keep = keep[keep < n - min_tail]
@@ -60,7 +63,8 @@ def load_episodes(dataset: str, discount: float, min_tail: int, stride: int, tim
             po, ex = h["proprio_obs"][:], h["extero_obs"][:]
             idx = keep[:, None] + np.arange(T)[None, :]
             P.append(po[idx]); E.append(ex[idx]); C.append(cmd_next[idx]); G.append(ret[idx])
-            F.append(np.full(idx.shape, fell))
+            # pre-fall flag: within `prefall` steps of the end of a fall-terminated episode
+            F.append(fell & (idx >= n - prefall))
     return tuple(np.concatenate(a) for a in (P, E, C, G, F))
 
 
@@ -112,21 +116,25 @@ def main():
     ap.add_argument("--min_tail", type=int, default=300)
     ap.add_argument("--stride", type=int, default=25, help="window start stride (windows are 25 steps)")
     ap.add_argument("--time_limit_steps", type=int, default=5000)
+    ap.add_argument("--prefall", type=int, default=50, help="pre-fall subset: last N steps of fall-terminated episodes")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    P, E, C, G, F = load_episodes(args.dataset, args.discount, args.min_tail, args.stride, args.time_limit_steps)
+    P, E, C, G, F = load_episodes(args.dataset, args.discount, args.min_tail, args.stride, args.time_limit_steps, prefall=args.prefall)
     G, F = G.reshape(-1), F.reshape(-1)
-    print(f"{len(G)} states from {args.dataset} ({int(F.sum())} from episodes that ended by a fall)")
+    print(f"{len(G)} states from {args.dataset} ({int(F.sum())} within {args.prefall} steps of a fall)")
     results = {"_meta": {"dataset": args.dataset, "discount": args.discount, "n": int(len(G)), "n_fell": int(F.sum())}}
     for name in args.models:
         model, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), name))
         v = model_values(model, P, E, C)
         results[name] = stats(v, G)
-        results[name]["fallen_states"] = stats(v[F], G[F]) if F.sum() > 100 else None
+        results[name]["prefall_states"] = stats(v[F], G[F]) if F.sum() > 100 else None
         r = results[name]
         print(f"{name}: pearson {r['pearson']:.3f} spearman {r['spearman']:.3f} slope {r['slope_G_on_V']:.2f} "
               f"bias(V-G) {r['bias_V_minus_G']:+.2f} rmse {r['rmse']:.2f} (std G {r['std_G']:.2f})")
+        if r["prefall_states"]:
+            q = r["prefall_states"]
+            print(f"    pre-fall ({q['n']} states): spearman {q['spearman']:.3f} bias(V-G) {q['bias_V_minus_G']:+.2f} rmse {q['rmse']:.2f} mean V {q['mean_V']:.2f} mean G {q['mean_G']:.2f}")
     if args.out:
         os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
         existing = {}
