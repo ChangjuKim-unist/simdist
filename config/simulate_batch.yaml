@@ -1,0 +1,55 @@
+defaults:
+  - control: mppi
+  - _self_
+
+model:
+  checkpoint: "go2_2026-02-12"
+  step:  # leave blank for latest
+
+task:
+  forward_vel: 0.5
+  # gains for walking straight
+  kx: 1.0
+  ky: 1.0
+  k_heading: 1.0
+
+sim:
+  kill_on_reset: false  # stop simulation on the first termination
+  reset_steps: 25  # number of steps after a reset to apply no actions to stabilize the robot
+  total_steps: 1000  # number of steps to run the simulation
+  episode_length_s:  # episode time limit [s]; blank keeps the training value (20 s), after which the robot is reset
+  seed: 42
+  terrain: boxes  # plane, boxes, random_rough, pyramid_stairs, pyramid_stairs_inv, hf_pyramid_slope, hf_pyramid_slope_inv
+  terrain_difficulty: 0.4  # 0.0 to 1.0
+  friction: 0.8
+  restitution: 0.05
+  add_mass: 0.0
+  motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
+
+# Act with an exported RL policy instead of the planner (privileged expert, see
+# checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.
+policy:
+  rl_run:
+  iteration:
+
+wandb:
+  log: false
+  run_name:
+  entity:
+
+# Log the rollouts in the real-world data format (datasets/real/<dataset_name>/raw),
+# with the simulator reward alongside, for sim-to-sim adaptation experiments.
+logging:
+  enabled: false
+  dataset_name: sim2sim
+
+# Batched evaluation (scripts/simulate_batch.py): one robot per (speed, seed) pair,
+# all in one Isaac Sim instance. task.forward_vel is ignored; each robot walks at its
+# own speed and its MPPI uses its own seed. Results go to output.csv (appended).
+batch:
+  speeds: [0.3, 0.6, 0.9]
+  seeds: [11, 12, 13]
+output:
+  csv:            # e.g. results/sim2sim/combo_hard/eval_long.csv
+  model_name:     # model column (defaults to model.checkpoint)
+  condition:      # condition column (e.g. combo_hard)
