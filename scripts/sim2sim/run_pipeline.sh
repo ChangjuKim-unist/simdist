@@ -92,6 +92,9 @@ variant_overrides() {
     res_self_mlp) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=mlp adapt.residual_lr=1e-3" ;;
     res_anchor_tf) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
     res_anchor_term) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.terminal.enabled=true loss.weights.value_reg=0.0 adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
+    res_anchor_term_replay) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.terminal.enabled=true loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
+    full_ret)    echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.terminal.enabled=true loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 loss.weights.ret=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
+    full_bw)     echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.terminal.enabled=true loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 loss.boundary_weight=5.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
     res_anchor_replay) echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=anchor loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.value_anchor=true adapt.residual_lr=1e-3" ;;
     res_replay)  echo "loss=world_model_value_adapt heads=dynamics_value_residual loss.bootstrap=self loss.weights.value_reg=0.0 loss.weights.value_replay=1.0 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.value_residual.enabled=true adapt.value_residual.type=transformer adapt.residual_lr=1e-3" ;;
     *) echo "unknown variant: $1" >&2; exit 1 ;;
@@ -216,6 +219,33 @@ stage_evaluate_long() {
   done
 }
 
+# batched long-horizon evaluation: one Isaac Sim instance per (model, condition) with a
+# robot per (speed, seed) -> $RESULTS/eval_long_batch.csv (same columns as eval_long)
+stage_evaluate_long_batch() {
+  local csv="$RESULTS/eval_long_batch.csv"
+  local models="$BASE"
+  for b in $BUDGETS; do for var in $VARIANTS; do models="$models $(ckpt_name "$var" "$b")"; done; done
+  [ -n "$EXPERT_RUN" ] && models="$models expert_${EXPERT_ITER}"
+  local speeds seeds
+  speeds="[$(echo $LONG_SPEEDS | tr ' ' ',')]"; seeds="[$(echo $LONG_SEEDS | tr ' ' ',')]"
+  for m in $models $LONG_EXTRA_MODELS; do
+    local ckpt="$m" extra=""
+    if [[ "$m" == expert_* ]]; then
+      ckpt="$BASE"; extra="policy.rl_run=$EXPERT_RUN policy.iteration=$EXPERT_ITER"
+    else
+      [ -d "$REPO/checkpoints/models/$m" ] || { echo "skip $m (no checkpoint)"; continue; }
+    fi
+    for cond in $LONG_CONDS; do
+      if [ -f "$csv" ] && grep -q "^$m,$cond," "$csv"; then continue; fi
+      echo "== evaluate_long_batch: $m on $cond"
+      "$RUN" python scripts/simulate_batch.py model.checkpoint="$ckpt" $(condition_overrides "$cond") \
+        sim.terrain="$TERRAIN" sim.seed=42 sim.total_steps="$LONG_STEPS" sim.episode_length_s="$COLLECT_EPISODE_S" \
+        "batch.speeds=$speeds" "batch.seeds=$seeds" output.csv="/workspace/simdist/${csv#$REPO/}" \
+        output.model_name="$m" output.condition="$cond" $extra --headless 2>&1 | grep -E "^RESULT|Traceback|rror:" | cut -c1-200
+    done
+  done
+}
+
 stage_forget() {
   local adapted=""
   for b in $BUDGETS; do for var in $VARIANTS; do
@@ -237,6 +267,7 @@ case "$STAGE" in
   finetune)  stage_finetune ;;
   evaluate)  stage_evaluate ;;
   evaluate_long) stage_evaluate_long ;;
+  evaluate_long_batch) stage_evaluate_long_batch ;;
   forget)    stage_forget ;;
   summarize) stage_summarize ;;
   all)       stage_collect; stage_process; stage_finetune; stage_evaluate; stage_forget; stage_summarize ;;

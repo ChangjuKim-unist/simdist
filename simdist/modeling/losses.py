@@ -152,6 +152,13 @@ class WorldModelValueAdaptLoss(Loss):
         term_cfg = self.loss_cfg.get("terminal", {}) or {}
         self.terminal_enabled = bool(term_cfg.get("enabled", False))
         self.terminal_max_steps = float(term_cfg.get("max_steps", 50))
+        # decision-aware dynamics adaptation (docs/design_dynamics_adaptation_ko.md):
+        #   ret:             weight "ret" in weights -> return-matching term: the planner's
+        #                    return of the executed actions on predicted latents must match
+        #                    the return on the true latents (reward and value heads frozen)
+        #   boundary_weight: latent-dynamics loss of windows that end within max_steps of a
+        #                    fall is multiplied by this factor (ablation: attention only)
+        self.boundary_weight = float(self.loss_cfg.get("boundary_weight", 1.0))
 
     def compute_losses(
         self,
@@ -171,7 +178,15 @@ class WorldModelValueAdaptLoss(Loss):
         fut_latents = jax.lax.stop_gradient(
             model.encode_latent(y_s["proprio_obs"], y_s["extero_obs"], deterministic=True)
         )
-        latent_dynamics_loss = jnp.mean((y_pred["latents"] - fut_latents) ** 2)
+        per_window = jnp.mean((y_pred["latents"] - fut_latents) ** 2, axis=(1, 2))  # (B,)
+        if self.boundary_weight != 1.0 and "steps_to_end" in y:
+            is_boundary = (jnp.asarray(y["steps_to_end"])[:, -1] <= self.terminal_max_steps) & (
+                jnp.asarray(y["terminated"])[:, -1] > 0.5
+            )
+            w = jnp.where(is_boundary, self.boundary_weight, 1.0)
+            latent_dynamics_loss = jnp.sum(w * per_window) / jnp.sum(w)
+        else:
+            latent_dynamics_loss = jnp.mean(per_window)
 
         # bootstrap value of the last true latent
         fut_cmds_next = x_s["fut_cmds"][:, 1:]
@@ -234,6 +249,25 @@ class WorldModelValueAdaptLoss(Loss):
             "value_adapt": value_adapt_loss,
             "value_reg": value_reg,
         }
+
+        # return-matching: R_hat on predicted latents vs R_true on true latents (scaled
+        # units; the value scale normalizes the term). Gradients reach the dynamics (and
+        # the residual through V(z_hat)); reward / value heads are frozen by the head config.
+        if "ret" in self.weights:
+            T = fut_latents.shape[1]
+            disc = self.discount ** jnp.arange(T)
+            final = self.discount ** (T + 1)
+            rp = scaler.get_scaler_params()["rewards"]
+            r_scale = (rp["std"][0] + 1e-8) / v_std
+            r_hat = y_pred["rewards"]
+            v_hat = y_pred["values"]
+            R_hat = jnp.sum(r_hat * disc, axis=-1) * r_scale + final * v_hat[:, -1]
+            r_true = jax.lax.stop_gradient(model.reward_from_latents(x_s, fut_latents, deterministic=True))
+            v_true = jax.lax.stop_gradient(
+                model.value_from_latents(fut_latents, fut_cmds_next, deterministic=True, use_residual=True)
+            )
+            R_true = jnp.sum(r_true * disc, axis=-1) * r_scale + final * v_true[:, -1]
+            losses["ret"] = jnp.mean((R_hat - R_true) ** 2)
 
         # optional data anchor: on windows of the simulation dataset the adapted
         # value must still match the simulation critic's labels

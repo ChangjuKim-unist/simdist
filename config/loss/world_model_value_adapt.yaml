@@ -19,3 +19,7 @@ weights:
   value_adapt: 1.0
   value_reg: 0.01  # L2 on the residual value output (0 when there is no residual head)
   value_replay: 0.0  # regression to simulation value labels on replay windows (adapt.replay)
+  ret: 0.0  # return-matching of the executed action sequence on predicted vs true latents (design doc 2)
+
+# latent-dynamics loss multiplier for windows ending within terminal.max_steps of a fall (ablation)
+boundary_weight: 1.0
