@@ -1,0 +1,8 @@
+type: "policy_refresh"
+
+# discount of the imagined return (same as MPPI)
+discount: 0.99
+
+weights:
+  policy_return: 1.0  # -(imagined return of the policy's own actions under the adapted dynamics)
+  policy_anchor: 1.0  # mean squared distance to the frozen simulation policy (beta)

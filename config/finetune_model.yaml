@@ -18,6 +18,8 @@ adapt:
     type: mlp  # mlp (per-step MLP) or transformer (same architecture as the value head)
     hidden_dims: [128, 128]
   value_anchor: false
+  # prior refresh (loss=policy_refresh heads=policy_only): freeze a copy of the base policy as anchor
+  policy_anchor: false
   # learning rate for the residual head only (blank = same schedule as the rest)
   residual_lr:
   # data anchor: windows of a simulation dataset on which the adapted value is

@@ -19,6 +19,14 @@ def get_model(
     return _MODEL_REGISTRY.create(model_name, cfg, scaler_params, rngs)
 
 
+class _PolicyHead(nnx.Module):
+    """Container for a (frozen) copy of the base policy: transformer + decoder."""
+
+    def __init__(self, policy, dec):
+        self.policy = policy
+        self.dec = dec
+
+
 class _ValueHead(nnx.Module):
     """Embedding, transformer encoder and decoder of a value head (frozen anchor copy)."""
 
@@ -144,6 +152,12 @@ class WorldModelBase(ModelBase):
         if self.model_cfg.get("value_anchor", False):
             self.value_anchor = _ValueHead(*self._build_value_head(rngs))
 
+        # frozen copy of the pretrained base policy (prior refresh anchor, design doc 3);
+        # named "prior_anchor" so the heads filter "policy" does not select it
+        self.prior_anchor = None
+        if self.model_cfg.get("policy_anchor", False):
+            self.prior_anchor = _PolicyHead(nnx.clone(self.policy), nnx.clone(self.policy_dec))
+
         # policy head
         attn_cfg = self.model_cfg["policy"]["attention"]
         dec_cfg = self.model_cfg["policy"]["decoder"]
@@ -235,6 +249,45 @@ class WorldModelBase(ModelBase):
         res_cfg["enabled"] = True
         self.model_cfg["value_residual"] = res_cfg
         self.value_res = self._build_value_residual(res_cfg, rngs)
+
+    def add_policy_anchor(self) -> None:
+        """Freeze a copy of the current base policy as the prior-refresh anchor."""
+        self.model_cfg["policy_anchor"] = True
+        self.prior_anchor = _PolicyHead(nnx.clone(self.policy), nnx.clone(self.policy_dec))
+
+    def imagine_with_policy(
+        self,
+        x: types.WorldModelSchema.Inputs,
+        deterministic: bool | None = None,
+        use_anchor: bool = False,
+    ) -> dict:
+        """Roll the latent dynamics out under the base policy's own actions.
+
+        Same computation as ``__call__`` but the future actions are produced by the
+        policy head (or its frozen anchor copy) instead of being given. Returns the
+        (scaled) actions, predicted latents, rewards and values, so that the policy
+        can be optimized through the dynamics (prior refresh, design doc 3).
+        """
+        x = self.scaler.scale(x)
+        encoding = self.encoder(x, deterministic=deterministic)
+        fut_cmds_emb = self.fut_cmds_embed(x["fut_cmds"][:, :-1], deterministic=deterministic)
+        latent_enc = jnp.expand_dims(encoding["latent"], axis=1)
+        context = jnp.concatenate([encoding["history"], latent_enc], axis=1)
+        if use_anchor:
+            assert self.prior_anchor is not None, "model has no policy anchor"
+            lat = self.prior_anchor.policy(fut_cmds_emb, context, deterministic=deterministic)
+            actions = self.prior_anchor.dec(lat, deterministic=deterministic)
+        else:
+            lat = self.policy(fut_cmds_emb, context, deterministic=deterministic)
+            actions = self.policy_dec(lat, deterministic=deterministic)
+        fut_acts_emb = self.fut_acts_embed(actions, deterministic=deterministic)
+        latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+        z_t_tm1 = jnp.concatenate((encoding["latent"][:, None, :], latents[:, :-1]), axis=1)
+        rew_in = jnp.concatenate((z_t_tm1, actions, x["fut_cmds"][:, :-1]), axis=-1)
+        rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
+        rewards = self.reward_dec(self.reward(rew_in_emb, deterministic=deterministic), deterministic=deterministic).squeeze(-1)
+        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic, use_residual=True)
+        return {"actions": actions, "latents": latents, "rewards": rewards, "values": values}
 
     def add_value_anchor(self) -> None:
         """Freeze a copy of the current value head as the adaptation bootstrap target."""

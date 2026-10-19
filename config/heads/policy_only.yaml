@@ -1,0 +1,2 @@
+# base policy heads only (policy, policy_dec); the anchor is named prior_anchor and stays frozen
+- policy

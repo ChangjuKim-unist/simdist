@@ -286,3 +286,34 @@ class WorldModelValueAdaptLoss(Loss):
             else:
                 losses["value_replay"] = jnp.zeros(())
         return losses, {}
+
+
+@register_loss("policy_refresh")
+class PolicyRefreshLoss(Loss):
+    """Re-optimize the base policy (planner prior) in imagination with the adapted dynamics.
+
+    For each window the policy produces an action sequence from the real history; the
+    (adapted) latent dynamics rolls it out; the frozen reward and value heads score it:
+        R_hat = sum_k gamma^k r_k + gamma^(T+1) V(z_T)   (scaled by the value std)
+    The loss maximizes R_hat (term "policy_return" = -R_hat) and keeps the policy close
+    to its frozen simulation copy (term "policy_anchor" = mean squared action
+    difference, in scaled action units). Only the policy heads should be trainable
+    (heads=policy_only). See docs/design_prior_refresh_ko.md, section 4.
+    """
+
+    def __init__(self, cfg: dict):
+        super().__init__(cfg)
+        self.discount = float(self.loss_cfg.get("discount", 0.99))
+
+    def compute_losses(self, model, x, y, deterministic: bool, **kwargs):
+        out = model.imagine_with_policy(x, deterministic=deterministic)
+        scaler = model.get_scaler()
+        sp = scaler.get_scaler_params()
+        v_std = sp["values"]["std"][0] + 1e-8
+        r_scale = (sp["rewards"]["std"][0] + 1e-8) / v_std
+        T = out["latents"].shape[1]
+        disc = self.discount ** jnp.arange(T)
+        R_hat = jnp.sum(out["rewards"] * disc, axis=-1) * r_scale + (self.discount ** (T + 1)) * out["values"][:, -1]
+        a_sim = jax.lax.stop_gradient(model.imagine_with_policy(x, deterministic=True, use_anchor=True)["actions"])
+        anchor = jnp.mean((out["actions"] - a_sim) ** 2)
+        return {"policy_return": -jnp.mean(R_hat), "policy_anchor": anchor}, {}
