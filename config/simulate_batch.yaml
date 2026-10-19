@@ -31,6 +31,7 @@ sim:
 policy:
   rl_run:
   iteration:
+  use_as: act  # act | init (expert action initializes the MPPI mean; set control.init_mode=external)
 
 wandb:
   log: false

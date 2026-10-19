@@ -41,6 +41,7 @@ import csv
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import numpy as np
+import jax.numpy as jnp
 import torch
 from tqdm import tqdm
 from isaaclab.envs import ManagerBasedRLEnv
@@ -70,6 +71,10 @@ class BatchSim:
         )
         self.rl_policy = None
         pol_cfg = cfg.get("policy", {}) or {}
+        # use_as: "act" = the expert acts instead of the planner; "init" = the expert's
+        # current action (repeated over the horizon) initializes the MPPI mean each step
+        # (oracle test M4 of design doc 3; needs control.init_mode=external)
+        self.expert_use = str(pol_cfg.get("use_as", "act"))
         if pol_cfg.get("rl_run"):
             from simdist.utils.torch import get_actor_critic_from_iteration
 
@@ -183,10 +188,15 @@ class BatchSim:
         self.controller.set_fut_cmd(cmd)
         proprio, extero = self.get_obs()
         self.controller.update(proprio, extero, self.last_action)
-        if self.rl_policy is not None:
+        if self.rl_policy is not None and self.expert_use == "act":
             with torch.no_grad():
                 action = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy()
         else:
+            if self.rl_policy is not None and self.expert_use == "init":
+                with torch.no_grad():
+                    a_exp = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy().astype(np.float32)
+                mean = np.repeat(a_exp[:, None, :], self.controller.T, axis=1)
+                self.controller.state = self.controller.state.replace(mean=jnp.asarray(mean))
             action = self.controller.run_control()[:, 0]
         action = np.where(resetting[:, None], 0.0, action).astype(np.float32)
         self.last_action = action

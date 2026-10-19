@@ -10,3 +10,4 @@ temperature: 0.25
 momentum: 0.0
 discount: 0.99
 seed: 42
+init_mode: shift  # sampling-mean initialization: shift (warm start) | zero | prior | external (batched planner only)

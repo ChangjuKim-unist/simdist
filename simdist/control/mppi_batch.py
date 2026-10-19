@@ -49,8 +49,14 @@ class BatchedMppiController:
         self.extero_dim = config.extero_obs_dim_from_sys_config(sys_cfg)
         self.cmd_dim = config.cmd_dim_from_sys_config(sys_cfg)
         self.S = int(controller_cfg["num_samples"])
-        self.B = int(controller_cfg["num_samples"] * controller_cfg["mixture_coef"])
-        assert self.B > 0
+        self.B = int(controller_cfg["num_samples"] * controller_cfg["mixture_coef"])  # may be 0 (no prior samples)
+        # how the sampling mean is initialized every step (design doc 3, section 3):
+        #   shift    - previous plan shifted by `delay` (SimDist default, warm start)
+        #   zero     - zeros (no warm start)
+        #   prior    - the base policy's action sequence
+        #   external - whatever state.mean holds (set by the caller, e.g. expert action)
+        self.init_mode = str(controller_cfg.get("init_mode", "shift"))
+        assert self.init_mode in ("shift", "zero", "prior", "external")
         self.shift = int(controller_cfg["delay"])
         self.discounts = controller_cfg["discount"] ** jnp.arange(self.T)
         self.final_discount = controller_cfg["discount"] ** (self.T + 1)
@@ -146,8 +152,15 @@ class BatchedMppiController:
         base_noise = jax.vmap(lambda k: jax.random.normal(k, (B, T, A)))(k_base) * self.ctrl_cfg["base_act_std"]
         noised_base = base_actions[:, None] + base_noise  # (N, B, T, A)
 
-        mean = jnp.roll(state.mean, shift=self.shift, axis=1)
-        mean = mean.at[:, self.shift :].set(0.0)
+        if self.init_mode == "shift":
+            mean = jnp.roll(state.mean, shift=self.shift, axis=1)
+            mean = mean.at[:, self.shift :].set(0.0)
+        elif self.init_mode == "zero":
+            mean = jnp.zeros_like(state.mean)
+        elif self.init_mode == "prior":
+            mean = base_actions
+        else:  # external
+            mean = state.mean
         std = jnp.full((N, T, A), self.ctrl_cfg["init_std"])
 
         # every env's inputs repeated for its S + B candidates
@@ -157,7 +170,7 @@ class BatchedMppiController:
             mean, std, keys = carry
             keys, k_act = split(keys)
             noise = jax.vmap(lambda k: jax.random.normal(k, (S, T, A)))(k_act) * std[:, None]
-            acts = jnp.concatenate([mean[:, None] + noise, noised_base], axis=1)  # (N, S+B, T, A)
+            acts = mean[:, None] + noise if B == 0 else jnp.concatenate([mean[:, None] + noise, noised_base], axis=1)  # (N, S+B, T, A)
             xx = dict(x_rep)
             xx["fut_acts"] = acts.reshape(N * (S + B), T, A)
             y = self.model.inference(xx)
