@@ -152,11 +152,6 @@ class WorldModelBase(ModelBase):
         if self.model_cfg.get("value_anchor", False):
             self.value_anchor = _ValueHead(*self._build_value_head(rngs))
 
-        # frozen copy of the pretrained base policy (prior refresh anchor, design doc 3);
-        # named "prior_anchor" so the heads filter "policy" does not select it
-        self.prior_anchor = None
-        if self.model_cfg.get("policy_anchor", False):
-            self.prior_anchor = _PolicyHead(nnx.clone(self.policy), nnx.clone(self.policy_dec))
 
         # policy head
         attn_cfg = self.model_cfg["policy"]["attention"]
@@ -178,6 +173,12 @@ class WorldModelBase(ModelBase):
             output_dim=self.action_dim,
             rngs=rngs,
         )
+
+        # frozen copy of the pretrained base policy (prior refresh anchor, design doc 3);
+        # named "prior_anchor" so the heads filter "policy" does not select it
+        self.prior_anchor = None
+        if self.model_cfg.get("policy_anchor", False):
+            self.prior_anchor = _PolicyHead(nnx.clone(self.policy), nnx.clone(self.policy_dec))
 
     def _build_value_head(self, rngs: nnx.Rngs):
         T = self.model_cfg["dataset"]["prediction_length"]
