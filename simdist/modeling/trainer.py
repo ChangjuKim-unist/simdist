@@ -146,11 +146,11 @@ def train(cfg: dict):
             if adapt_cfg.get("value_anchor", False) and model.value_anchor is None:
                 model.add_value_anchor()
                 cfg["model"]["value_anchor"] = True
+                print("Froze a copy of the pretrained value head as the bootstrap anchor")
             if adapt_cfg.get("policy_anchor", False) and model.prior_anchor is None:
                 model.add_policy_anchor()
                 cfg["model"]["policy_anchor"] = True
                 print("Froze a copy of the pretrained base policy as the prior-refresh anchor")
-                print("Froze a copy of the pretrained value head as the bootstrap anchor")
     elif finetuning:
         raise ValueError("checkpoint.resume_checkpoint must be given when finetuning.")
     else:
