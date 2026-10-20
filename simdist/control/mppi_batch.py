@@ -69,6 +69,10 @@ class BatchedMppiController:
         self.fut_cmds = np.zeros((self.N, self.T + 1, self.cmd_dim), np.float32)
         self.reset_counts = np.zeros(self.N, np.int64)
         self.state = None
+        # optional external prior (e.g. a history-conditioned student, design doc 4):
+        # callable raw planner inputs -> raw action sequences (N, T, A); replaces the
+        # world model's policy head as the source of the prior samples
+        self.external_prior = None
 
     # ---- buffers -------------------------------------------------------------
     def fill(self, env_ids, proprio_obs, extero_obs, prev_action):
@@ -131,7 +135,10 @@ class BatchedMppiController:
     def run_control(self) -> np.ndarray:
         """Returns the planned action sequences, shape (N, T, A)."""
         x = self._model_inputs()
-        base_actions = self._base_policy_actions(x)
+        if self.external_prior is not None:
+            base_actions = jnp.asarray(self.external_prior(x), jnp.float32)
+        else:
+            base_actions = self._base_policy_actions(x)
         self.state = self._mppi_step(self.state, base_actions, x)
         return np.asarray(self.state.mean)
 

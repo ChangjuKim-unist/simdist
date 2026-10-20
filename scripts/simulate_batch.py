@@ -69,6 +69,16 @@ class BatchSim:
         self.controller = BatchedMppiController(
             model, model_cfg, cfg["control"], self.N, [s for _, s in self.pairs]
         )
+        # optional student prior (design doc 4): replaces the policy-head prior samples, or
+        # acts alone when policy.use_as == "student_act"
+        self.student = None
+        st_cfg = cfg.get("prior", {}) or {}
+        if st_cfg.get("student"):
+            from simdist.control.student_prior import StudentPrior
+
+            self.student = StudentPrior(st_cfg["student"])
+            self.controller.external_prior = self.student
+            print(f"Prior samples from student {st_cfg['student']}")
         self.rl_policy = None
         pol_cfg = cfg.get("policy", {}) or {}
         # use_as: "act" = the expert acts instead of the planner; "init" = the expert's
@@ -191,6 +201,9 @@ class BatchSim:
         if self.rl_policy is not None and self.expert_use == "act":
             with torch.no_grad():
                 action = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy()
+        elif self.student is not None and self.expert_use == "student_act":
+            # the student alone: first step of its action sequence, receding horizon
+            action = np.asarray(self.student(self.controller._model_inputs()))[:, 0]
         else:
             if self.rl_policy is not None and self.expert_use == "init":
                 with torch.no_grad():

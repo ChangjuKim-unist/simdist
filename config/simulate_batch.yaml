@@ -31,7 +31,7 @@ sim:
 policy:
   rl_run:
   iteration:
-  use_as: act  # act | init (expert action initializes the MPPI mean; set control.init_mode=external)
+  use_as: act  # act | init | student_act (expert action initializes the MPPI mean; set control.init_mode=external)
 
 wandb:
   log: false
@@ -50,6 +50,11 @@ logging:
 batch:
   speeds: [0.3, 0.6, 0.9]
   seeds: [11, 12, 13]
+# student prior (checkpoints/students/<name>): prior samples come from it; with
+# policy.use_as=student_act it acts alone (no planner)
+prior:
+  student:
+
 output:
   csv:            # e.g. results/sim2sim/combo_hard/eval_long.csv
   model_name:     # model column (defaults to model.checkpoint)
