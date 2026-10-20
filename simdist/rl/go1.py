@@ -6,7 +6,10 @@ are swapped out: the robot asset, the base body name (``trunk`` instead of
 ``base``) and the actuator limits.
 """
 
+import torch
+
 from isaaclab.actuators import DCMotorCfg
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab_assets.robots.unitree import UNITREE_GO1_CFG
 
@@ -90,3 +93,51 @@ class Go1SimEnvCfg(Go2SimEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         _apply_go1(self)
+
+
+# ---- motor-strength domain randomization (design doc 4) --------------------------
+# SimDist's quadruped DR randomizes mass, friction, stiffness/damping and joint friction
+# but not the motor torque limit. The real Go1 and our sim-to-sim "weak motor" conditions
+# live outside that range, so neither the expert nor the cloned planner prior has seen them.
+def randomize_motor_strength(env, env_ids, strength_range, actuator_name="base_legs"):
+    """Scale the per-environment torque limit of the leg actuators by U(strength_range)."""
+    act = env.scene["robot"].actuators[actuator_name]
+    if not hasattr(act, "_nominal_effort_limit"):
+        act._nominal_effort_limit = act.effort_limit.clone()
+    if env_ids is None:
+        env_ids = torch.arange(act.effort_limit.shape[0], device=act.effort_limit.device)
+    scale = torch.empty(len(env_ids), 1, device=act.effort_limit.device).uniform_(*strength_range)
+    act.effort_limit[env_ids] = act._nominal_effort_limit[env_ids] * scale
+
+
+MOTOR_STRENGTH_RANGE = (0.3, 1.1)
+
+
+def _add_motor_dr(cfg, strength_range=MOTOR_STRENGTH_RANGE):
+    cfg.events.motor_strength = EventTerm(
+        func=randomize_motor_strength,
+        mode="reset",
+        params={"strength_range": strength_range},
+    )
+
+
+class Go1DREnvCfg(Go1EnvCfg):
+    """Go1 RL environment with motor-strength randomization (broad expert)."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        _add_motor_dr(self)
+
+
+class Go1DRPlayEnvCfg(Go1PlayEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        _add_motor_dr(self)
+
+
+class Go1DRRecordEnvCfg(Go1RecordEnvCfg):
+    """Data generation with the broad expert under motor-strength randomization."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        _add_motor_dr(self)
