@@ -11,7 +11,7 @@ already tells).
     python scripts/sim2sim/visibility_probe.py --dataset <sim dataset> --system go1dr --out results/stage0/visibility_broad.json
     python scripts/sim2sim/visibility_probe.py --dataset <sim dataset> --system go1 --history 5   # shorter history
 """
-import argparse, json, os, time
+import argparse, json, os, pickle, time
 import h5py, numpy as np, jax, jax.numpy as jnp, optax
 from flax import nnx
 
@@ -24,6 +24,8 @@ ap.add_argument("--history", type=int, default=25, help="history steps used as p
 ap.add_argument("--num_windows", type=int, default=600_000); ap.add_argument("--steps", type=int, default=6000)
 ap.add_argument("--batch", type=int, default=1024); ap.add_argument("--hidden", type=int, nargs="+", default=[512, 512])
 ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default=None)
+ap.add_argument("--save", default=None, help="directory to save the history -> xi probe (params, scaler, config) for scripts/sim2sim/visibility_apply.py")
+ap.add_argument("--horizon", type=int, default=25, help="action-sensitivity target: the expert's next `horizon` actions (the student's output); 1 = next action only, which is almost fully determined by the last action")
 args = ap.parse_args()
 AXES = ["motor", "friction", "mass"]
 
@@ -40,7 +42,7 @@ Pm, Am, Cm, Xm, sel, split = [], [], [], [], [], []
 off = 0
 for b in range(blocks):
     i0 = int(rng.integers(0, max(1, len(starts) - per))); blk = starts[i0:i0 + per]
-    lo, hi = int(blk.min()), int(blk.max()) + 2 * H + 2
+    lo, hi = int(blk.min()), int(blk.max()) + 2 * H + args.horizon + 2
     Pm.append(P[lo:hi]); Am.append(A[lo:hi]); Cm.append(C[lo:hi]); Xm.append(X[lo:hi])
     sel.append(blk - lo + off); split.append(np.full(len(blk), b >= blocks - 4)); off += hi - lo
 Pm, Am, Cm, Xm = (np.concatenate(z).astype(np.float32) for z in (Pm, Am, Cm, Xm)); sel = np.concatenate(sel); test = np.concatenate(split)
@@ -52,9 +54,10 @@ def feats(idx):
     tH = sel[idx]; t = tH + H
     p = scale(Pm[(t - Hp)[:, None] + np.arange(Hp + 1)[None, :]], "proprio_obs")   # last Hp+1 obs
     a = scale(Am[(t - Hp)[:, None] + np.arange(Hp)[None, :]], "actions")           # last Hp actions
-    c = scale(Cm[t[:, None] + np.arange(2)[None, :]], "commands")                     # current + next command
+    c = scale(Cm[t[:, None] + np.arange(args.horizon + 1)[None, :]], "commands")       # commands over the horizon
     B = len(idx)
-    return np.concatenate([p.reshape(B, -1), a.reshape(B, -1), c.reshape(B, -1)], -1), Xm[t], scale(Am[t], "actions")
+    y = scale(Am[t[:, None] + np.arange(args.horizon)[None, :]], "actions").reshape(B, -1)   # next `horizon` expert actions
+    return np.concatenate([p.reshape(B, -1), a.reshape(B, -1), c.reshape(B, -1)], -1), Xm[t], y
 xmean, xstd = Xm.mean(0), Xm.std(0) + 1e-8
 
 def train_probe(target_fn, in_dim, out_dim, name):
@@ -76,26 +79,36 @@ def train_probe(target_fn, in_dim, out_dim, name):
     pr, yy = np.concatenate(preds), np.concatenate(ys)
     r2 = 1 - ((pr - yy) ** 2).sum(0) / (((yy - yy.mean(0)) ** 2).sum(0) + 1e-8)
     print(f"  {name}: R2 per dim {np.round(r2, 3).tolist()[:6]}{'...' if len(r2) > 6 else ''} ({time.time()-t0:.0f}s)", flush=True)
-    return r2
+    return r2, model
 
 print("--- visibility: history -> xi", flush=True)
 def tgt_xi(idx):
     f, x, _ = feats(idx); return f, (x - xmean) / xstd
 in_dim = feats(np.array([0]))[0].shape[1]
-V = train_probe(tgt_xi, in_dim, 3, "V_j (history -> xi)")
+V, probe = train_probe(tgt_xi, in_dim, 3, "V_j (history -> xi)")
+if args.save:
+    os.makedirs(args.save, exist_ok=True)
+    pickle.dump(nnx.split(probe)[1].to_pure_dict(), open(os.path.join(args.save, "params.pkl"), "wb"))
+    json.dump(sc, open(os.path.join(args.save, "scaler_params.json"), "w"))
+    json.dump({"in_dim": in_dim, "hidden": args.hidden, "history": Hp, "horizon": args.horizon, "axes": AXES, "xi_mean": xmean.tolist(), "xi_std": xstd.tolist(),
+               "dataset": args.dataset, "system": args.system}, open(os.path.join(args.save, "config.json"), "w"), indent=2)
+    print(f"saved probe to {args.save}", flush=True)
 
 print("--- action sensitivity proxy: next expert action from history (+ xi_j)", flush=True)
 def tgt_act(idx, axes=()):
     f, x, a = feats(idx)
     if axes: f = np.concatenate([f, ((x - xmean) / xstd)[:, list(axes)]], -1)
     return f, a
-base = train_probe(lambda i: tgt_act(i), in_dim, 12, "action | history").mean()
+A_dim = Am.shape[1] * args.horizon
+def seq_r2(r2):   # mean over the sequence and over the last step (where the history helps least)
+    return float(r2.mean()), float(r2[-Am.shape[1]:].mean())
+base = seq_r2(train_probe(lambda i: tgt_act(i), in_dim, A_dim, "action | history")[0])
 S = {}
 for j, ax in enumerate(AXES):
-    r2 = train_probe(lambda i, j=j: tgt_act(i, (j,)), in_dim + 1, 12, f"action | history + {ax}").mean()
-    S[ax] = float(r2 - base)
+    r2 = seq_r2(train_probe(lambda i, j=j: tgt_act(i, (j,)), in_dim + 1, A_dim, f"action | history + {ax}")[0])
+    S[ax] = {"mean": r2[0] - base[0], "last_step": r2[1] - base[1]}
 res = {"dataset": args.dataset, "system": args.system, "history": Hp, "visibility_R2": {a: float(V[i]) for i, a in enumerate(AXES)},
-       "action_R2_history": float(base), "action_R2_gain_from_axis": S,
+       "horizon": args.horizon, "action_R2_history": {"mean": base[0], "last_step": base[1]}, "action_R2_gain_from_axis": S,
        "physics_std": {a: float(xstd[i]) for i, a in enumerate(AXES)}, "n_train": int((~test).sum()), "n_test": int(test.sum())}
 print(json.dumps(res, indent=2))
 if args.out:
