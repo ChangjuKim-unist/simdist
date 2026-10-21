@@ -6,6 +6,7 @@ are swapped out: the robot asset, the base body name (``trunk`` instead of
 ``base``) and the actuator limits.
 """
 
+import os
 import torch
 
 from isaaclab.actuators import DCMotorCfg
@@ -113,7 +114,18 @@ def randomize_motor_strength(env, env_ids, strength_range, actuator_name="base_l
 MOTOR_STRENGTH_RANGE = (0.3, 1.1)
 
 
-def _add_motor_dr(cfg, strength_range=MOTOR_STRENGTH_RANGE):
+def motor_strength_range():
+    """Motor-strength DR range: GO1_MOTOR_DR="lo,hi" overrides the default (width sweep, design doc 6)."""
+    v = os.environ.get("GO1_MOTOR_DR")
+    if v:
+        lo, hi = (float(x) for x in v.split(","))
+        print(f"[go1] motor-strength DR range from GO1_MOTOR_DR: ({lo}, {hi})")
+        return (lo, hi)
+    return MOTOR_STRENGTH_RANGE
+
+
+def _add_motor_dr(cfg, strength_range=None):
+    strength_range = strength_range or motor_strength_range()
     cfg.events.motor_strength = EventTerm(
         func=randomize_motor_strength,
         mode="reset",

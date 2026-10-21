@@ -580,8 +580,15 @@ class PhysicsParamsRecorder(RecorderTerm):
         act = asset.actuators["base_legs"]
         nominal = getattr(act, "_nominal_effort_limit", None)
         motor = act.effort_limit[:, 0] / (nominal[:, 0] if nominal is not None else act.effort_limit[:, 0])
-        mats = asset.root_physx_view.get_material_properties().to(self._env.device)  # (N, shapes, 3)
-        friction = mats[:, :, 0].mean(dim=1)
+        # foot static friction as assigned by the (startup) material event; the mean over all
+        # shapes used before 2026-10-21 was an affine dilution of it (only the feet are randomized)
+        friction = None
+        for term in self._env.event_manager._mode_term_cfgs.get("startup", []):
+            if hasattr(term.func, "assigned_material"):
+                friction = term.func.assigned_material[:, 0].to(self._env.device); break
+        if friction is None:
+            mats = asset.root_physx_view.get_material_properties().to(self._env.device)  # (N, shapes, 3)
+            friction = mats[:, :, 0].mean(dim=1)
         if not hasattr(self, "_base_id"):
             self._base_id = asset.find_bodies(self._env.cfg.scene.height_scanner.prim_path.split("/")[-1])[0][0]
         masses = asset.root_physx_view.get_masses().to(self._env.device)
