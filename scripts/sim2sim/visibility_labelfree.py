@@ -33,6 +33,7 @@ ap.add_argument("--steps", type=int, default=5000); ap.add_argument("--batch", t
 ap.add_argument("--hidden", type=int, nargs="+", default=[512, 512]); ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--mix", default=None, help="reference (nominal) dataset to mix 50/50 with; sim dataset unless --mix_real")
 ap.add_argument("--mix_real", action="store_true"); ap.add_argument("--mix_system", default="go1")
+ap.add_argument("--probe", default="both", choices=["mlp", "ridge", "both"], help="MLP (early-stopped on a validation split) and/or closed-form ridge regression")
 ap.add_argument("--out", default=None)
 args = ap.parse_args()
 
@@ -51,7 +52,8 @@ def load(dataset, real, system, num_windows):
     for b in range(blocks):
         i0 = int(rng.integers(0, max(1, len(starts) - per))); blk = starts[i0:i0 + per]
         lo, hi = int(blk.min()), int(blk.max()) + 2 * H + 2
-        Pm.append(P[lo:hi]); Am.append(A[lo:hi]); sel.append(blk - lo + off); split.append(np.full(len(blk), b >= blocks - 4)); off += hi - lo
+        Pm.append(P[lo:hi]); Am.append(A[lo:hi]); sel.append(blk - lo + off)
+        split.append(np.full(len(blk), 2 if b >= blocks - 4 else (1 if b >= blocks - 7 else 0))); off += hi - lo   # 0 train / 1 val / 2 test blocks
     Pm, Am = (np.concatenate(z).astype(np.float32) for z in (Pm, Am)); sel = np.concatenate(sel); test = np.concatenate(split)
     return Pm, Am, sel, test, json.load(open(os.path.join(d, "scaler_params.json")))
 
@@ -80,16 +82,40 @@ def fit(hist, name):
     def step(model, opt, x, y):
         def loss_fn(m): return jnp.mean((m(x) - y) ** 2)
         l, g = nnx.value_and_grad(loss_fn)(model); opt.update(g); return l
-    tr, te = np.where(~test)[0], np.where(test)[0]; t0 = time.time()
+    tr, va, te = np.where(test == 0)[0], np.where(test == 1)[0], np.where(test == 2)[0]; t0 = time.time()
+    def mse_on(idx):
+        se = []
+        for i in range(0, len(idx), 4096):
+            x, y = feats(idx[i:i + 4096], hist); se.append(np.asarray((model(jnp.asarray(x)) - y) ** 2))
+        return float(np.concatenate(se).mean())
+    best, best_it, best_test = np.inf, 0, np.nan
     for it in range(args.steps):
         x, y = feats(tr[rng.integers(0, len(tr), args.batch)], hist); step(model, opt, jnp.asarray(x), jnp.asarray(y))
-    se = []
-    for i in range(0, len(te), 4096):
-        x, y = feats(te[i:i + 4096], hist); se.append(np.asarray((model(jnp.asarray(x)) - y) ** 2))
-    mse = float(np.concatenate(se).mean()); print(f"  {name}: held-out MSE {mse:.4f} ({time.time()-t0:.0f}s)", flush=True); return mse
-print(f"windows {len(sel)} (test {int(test.sum())}), history {Hp}", flush=True)
-m_blind = fit(False, "blind (o_t, a_t)"); m_hist = fit(True, f"history ({Hp} steps)")
-res = {"dataset": args.dataset, "mix": args.mix, "history": Hp, "mse_blind": m_blind, "mse_history": m_hist, "visibility_gap": (m_blind - m_hist) / m_blind}
+        if (it + 1) % 250 == 0:            # early stopping on the validation blocks (never on the test blocks)
+            v = mse_on(va)
+            if v < best: best, best_it, best_test = v, it + 1, mse_on(te)
+    print(f"  {name}: MLP held-out MSE {best_test:.4f} (best val {best:.4f} at step {best_it}; {time.time()-t0:.0f}s)", flush=True); return best_test
+
+def fit_ridge(hist, name):
+    """Closed-form ridge regression; lambda chosen on the validation blocks. Linear, so it cannot overfit the way the MLP does."""
+    tr, va, te = np.where(test == 0)[0], np.where(test == 1)[0], np.where(test == 2)[0]; t0 = time.time()
+    X, Y = feats(tr, hist); Xv, Yv = feats(va, hist); Xt, Yt = feats(te, hist)
+    mu, sd = X.mean(0), X.std(0) + 1e-6; X, Xv, Xt = (X - mu) / sd, (Xv - mu) / sd, (Xt - mu) / sd
+    ym = Y.mean(0); G = X.T @ X; XY = X.T @ (Y - ym)
+    best = (np.inf, None)
+    for lam in [1e-2, 1e-1, 1, 10, 100, 1000]:
+        W = np.linalg.solve(G + lam * len(X) * np.eye(len(G), dtype=G.dtype), XY)
+        v = float(((Xv @ W + ym - Yv) ** 2).mean())
+        if v < best[0]: best = (v, lam, float(((Xt @ W + ym - Yt) ** 2).mean()))
+    print(f"  {name}: ridge held-out MSE {best[2]:.4f} (lambda {best[1]}; {time.time()-t0:.0f}s)", flush=True); return best[2]
+print(f"windows {len(sel)} (train {int((test==0).sum())} / val {int((test==1).sum())} / test {int((test==2).sum())}), history {Hp}", flush=True)
+res = {"dataset": args.dataset, "mix": args.mix, "history": Hp}
+if args.probe in ("ridge", "both"):
+    rb, rh = fit_ridge(False, "blind (o_t, a_t)"), fit_ridge(True, f"history ({Hp} steps)")
+    res.update(ridge_mse_blind=rb, ridge_mse_history=rh, ridge_visibility_gap=(rb - rh) / rb)
+if args.probe in ("mlp", "both"):
+    m_blind = fit(False, "blind (o_t, a_t)"); m_hist = fit(True, f"history ({Hp} steps)")
+    res.update(mse_blind=m_blind, mse_history=m_hist, visibility_gap=(m_blind - m_hist) / m_blind)
 
 def regime_auc(hist, name):
     """AUC of a shifted-vs-reference classifier from the history or from the instantaneous state."""
@@ -101,7 +127,7 @@ def regime_auc(hist, name):
         def loss_fn(m):
             logit = m(x)[:, 0]; return jnp.mean(jnp.maximum(logit, 0) - logit * y + jnp.log1p(jnp.exp(-jnp.abs(logit))))
         l, g = nnx.value_and_grad(loss_fn)(model); opt.update(g); return l
-    tr, te = np.where(~test)[0], np.where(test)[0]
+    tr, te = np.where(test == 0)[0], np.where(test == 2)[0]
     for it in range(args.steps):
         idx = tr[rng.integers(0, len(tr), args.batch)]; x, _ = feats(idx, hist); step(model, opt, jnp.asarray(x), jnp.asarray(regime[idx]))
     sc_, y_ = [], []
