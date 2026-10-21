@@ -56,6 +56,12 @@ class Go2Sim:
             ckpt_dir, self.cfg["model"]["step"]
         )
         self.controller = MppiController(model, model_cfg, self.cfg["control"])
+        student = self.cfg.get("prior", {}).get("student")
+        if student:  # external student prior for the planner's prior samples (design docs 4/6)
+            from simdist.control.student_prior import StudentPrior
+
+            self.controller.external_prior = StudentPrior(student)
+            print(f"Planner prior: student '{student}'")
 
         # optional: act with an exported RL policy (privileged expert) instead of
         # the planner, e.g. as an upper bound / zero-shot baseline in a perturbed

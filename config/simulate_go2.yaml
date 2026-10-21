@@ -32,6 +32,10 @@ policy:
   rl_run:
   iteration:
 
+# External student prior (checkpoints/students/<name>) for the planner's prior samples; blank = world-model policy head.
+prior:
+  student:
+
 wandb:
   log: false
   run_name:

@@ -58,7 +58,12 @@ class MppiController(ControllerBase):
 
     def run_control(self) -> ControllerOutput:
         model_inputs = self._make_model_inputs(self.dummy_actions)
-        base_policy_actions = self._get_base_policy_actions(model_inputs)
+        if getattr(self, "external_prior", None) is not None:
+            # history-conditioned student prior (design docs 4/6) in place of the world model's policy head
+            x = {k: model_inputs[k][None] for k in ("proprio_obs_hist", "acts_hist", "fut_cmds")}
+            base_policy_actions = jnp.asarray(self.external_prior(x), jnp.float32)[0]
+        else:
+            base_policy_actions = self._get_base_policy_actions(model_inputs)
         self.mppi_state = self._mppi_step(
             self.mppi_state, base_policy_actions, model_inputs
         )

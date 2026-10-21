@@ -57,6 +57,7 @@ RUN="${RUN:-$HOME/simdist-docker/run.sh}"
 RESULTS="${RESULTS:-$REPO/results/sim2sim/$COND}"
 DATASET="${DATASET:-sim2sim_${COND}_${BASE}}"   # raw/processed dataset name (override for later rounds)
 COLLECT_CKPT="${COLLECT_CKPT:-$BASE}"        # model that collects the data (round k: the model adapted in round k-1)
+PRIOR_STUDENT="${PRIOR_STUDENT:-}"           # student prior used by the collecting planner (design doc 6, prior-first adaptation)
 RESUME_CKPT="${RESUME_CKPT:-$BASE}"          # checkpoint the finetune starts from
 mkdir -p "$RESULTS"
 RESULTS="$(cd "$RESULTS" && pwd)"
@@ -104,7 +105,7 @@ variant_overrides() {
 sim() {  # sim <checkpoint> <condition> <seed> <steps> [extra overrides...]
   local ckpt="$1" cond="$2" seed="$3" steps="$4"; shift 4
   "$RUN" python scripts/simulate_go2.py model.checkpoint="$ckpt" $(condition_overrides "$cond") \
-    sim.terrain="$TERRAIN" sim.seed="$seed" control.seed="$seed" sim.total_steps="$steps" --headless "$@" 2>&1
+    sim.terrain="$TERRAIN" sim.seed="$seed" control.seed="$seed" sim.total_steps="$steps" ${PRIOR_STUDENT:+prior.student=$PRIOR_STUDENT} --headless "$@" 2>&1
 }
 
 stage_collect() {
