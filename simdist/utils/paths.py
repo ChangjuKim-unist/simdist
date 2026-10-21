@@ -24,6 +24,7 @@ _FILENAMES = {
     "REWARDS_FILE_NAME": "rewards.hdf5",
     "VALUES_FILE_NAME": "values.hdf5",
     "TERMINAL_FILE_NAME": "terminal.hdf5",
+    "PHYSICS_FILE_NAME": "physics.hdf5",
     "EXPERT_POLICY_FLAG_FILE_NAME": "expert_policy_flag.hdf5",
     "SCALER_PARAMS_FILE_NAME": "scaler_params.json",
     "MODEL_CONFIG_FILE_NAME": "model_config.yaml",
@@ -189,6 +190,11 @@ def get_commands_path(processed_data_dir: str):
 def get_rewards_path(processed_data_dir: str):
     """Get the path for the rewards file."""
     return os.path.join(processed_data_dir, _FILENAMES["REWARDS_FILE_NAME"])
+
+
+def get_physics_path(processed_data_dir: str):
+    """Per-step physics condition [motor scale, static friction, added mass] (zeros if unknown)."""
+    return os.path.join(processed_data_dir, _FILENAMES["PHYSICS_FILE_NAME"])
 
 
 def get_terminal_path(processed_data_dir: str):

@@ -568,6 +568,27 @@ class ValueRecorder(RecorderTerm):
             return "value", self._env.critic(self._env.obs_buf["policy"]).squeeze()
 
 
+class PhysicsParamsRecorder(RecorderTerm):
+    """Per-environment physics condition xi = [motor strength scale, static friction, added base mass].
+
+    Recorded every step (constant within an episode) so that the visibility of each axis
+    from the robot's history can be measured (docs/research_plan_ko.md, stage 0).
+    """
+
+    def record_pre_step(self):
+        asset = self._env.scene["robot"]
+        act = asset.actuators["base_legs"]
+        nominal = getattr(act, "_nominal_effort_limit", None)
+        motor = act.effort_limit[:, 0] / (nominal[:, 0] if nominal is not None else act.effort_limit[:, 0])
+        mats = asset.root_physx_view.get_material_properties().to(self._env.device)  # (N, shapes, 3)
+        friction = mats[:, :, 0].mean(dim=1)
+        if not hasattr(self, "_base_id"):
+            self._base_id = asset.find_bodies(self._env.cfg.scene.height_scanner.prim_path.split("/")[-1])[0][0]
+        masses = asset.root_physx_view.get_masses().to(self._env.device)
+        added = masses[:, self._base_id] - asset.data.default_mass[:, self._base_id].to(self._env.device)
+        return "physics", torch.stack([motor, friction, added], dim=-1)
+
+
 class ExpertPolicyFlagRecorder(RecorderTerm):
     def record_pre_step(self):
         with torch.no_grad():
@@ -577,6 +598,11 @@ class ExpertPolicyFlagRecorder(RecorderTerm):
 @configclass
 class TransformerObservationsRecorderCfg(RecorderTermCfg):
     class_type: type[RecorderTerm] = TransformerObservationsRecorder
+
+
+@configclass
+class PhysicsParamsRecorderCfg(RecorderTermCfg):
+    class_type: type[RecorderTerm] = PhysicsParamsRecorder
 
 
 @configclass
@@ -608,6 +634,7 @@ class TransformerRecorderManagerCfg(RecorderManagerBaseCfg):
     record_pre_step_commands = PreStepCommandsRecorderCfg()
     record_post_step_reward = PostStepRewardRecorderCfg()
     record_pre_step_value = PreStepValueRecorderCfg()
+    record_pre_step_physics = PhysicsParamsRecorderCfg()
 
 
 class Go2RecordEnvCfg(Go2EnvCfg):

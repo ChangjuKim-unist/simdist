@@ -106,6 +106,9 @@ class DataProcessor:
         terminal_h5 = _H5Appender(
             paths.get_terminal_path(processed_data_dir), DATA_KEY, 3, dtype=np.float32
         )
+        physics_h5 = _H5Appender(
+            paths.get_physics_path(processed_data_dir), DATA_KEY, 3, dtype=np.float32
+        )
         # episodes shorter than this ended by a termination (fall) when the raw data
         # carries no "terminated" flag; blank = never
         terminal_max_len = self.cfg.get("terminal_max_len", None)
@@ -178,6 +181,13 @@ class DataProcessor:
             rewards_h5.append(rewards_np)
             self.stats_trackers["rewards"].update(rewards_np)
 
+            # per-step physics condition (simulation data generated with the physics recorder)
+            if "physics" in episode_data.data:
+                physics_np = _to_valid_numpy(episode_data.data["physics"]).reshape(ep_len, -1)[:, :3]
+            else:
+                physics_np = np.zeros((ep_len, 3), np.float32)
+            physics_h5.append(physics_np.astype(np.float32))
+
             # terminal information for value targets: steps to the episode end,
             # discounted reward-to-go until the end, and whether the end was a fall
             if "terminated" in episode_data.data:
@@ -246,6 +256,7 @@ class DataProcessor:
         cmd_h5.close()
         rewards_h5.close()
         terminal_h5.close()
+        physics_h5.close()
         values_h5.close()
         exp_pol_flags_h5.close()
 
