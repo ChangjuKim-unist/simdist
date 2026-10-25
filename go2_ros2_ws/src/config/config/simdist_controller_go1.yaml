@@ -7,7 +7,13 @@ model:
   checkpoint: go1_finetuned_r3  # set on 2026-10-14 (previous: go1_finetuned_r2); round 3 = 29.5 min real Go1 data, dynamics only
   step:  # leave blank for latest
 
+# Planner prior (design doc 6 hardware stage). student: name under checkpoints/students (blank = world-model
+# policy head, i.e. SimDist). mppi.prior_only: true executes the student's plan without planning (student alone).
+prior:
+  student:
+
 mppi:
+  prior_only: false
   num_samples: 200  # RTX 3060: 450 x 8 iterations took 48 ms per step; 200 x 3 fits the 20 ms budget (~10 ms)
   iterations: 3 # number of MPPI iterations before taking a step
   delay: 1  # the number of anticipated steps the controller takes to run

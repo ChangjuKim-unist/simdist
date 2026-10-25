@@ -111,7 +111,9 @@ class HDF5EpisodeLogger:
 
             self.step += 1
 
-    def close(self):
+    def close(self, terminated: bool = False):
+        """``terminated``: the episode ended with a fall (bridge /fallen event); stored as a
+        per-step "terminated" array like the simulator logger (simdist/data/episode_logger.py)."""
         data_dict = {}
 
         with self.write_lock:
@@ -119,6 +121,10 @@ class HDF5EpisodeLogger:
                 # Retrieve data
                 for key, dataset in self.datasets.items():
                     data_dict[key] = dataset[:]
+                if self.step > 0:
+                    self.file.create_dataset(
+                        "terminated", data=np.full((self.step,), float(terminated), dtype=np.float32)
+                    )
 
                 # Close file and reset state
                 self.file.close()

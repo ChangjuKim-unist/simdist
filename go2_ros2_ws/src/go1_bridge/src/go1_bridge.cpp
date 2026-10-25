@@ -23,6 +23,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <unitree_go/msg/low_cmd.hpp>
 #include <unitree_go/msg/low_state.hpp>
@@ -74,6 +75,12 @@ public:
     declare_parameter<std::string>("topics.robot_state", "/robot_state");
     // seconds to wait, after printing the low-level-mode warning, before the first packet
     declare_parameter<double>("go1.start_delay", 5.0);
+    // Software motor weakening (design doc 6, hardware stage): below 1.0 the PD law of each
+    // /lowcmd is evaluated on the host and the torque is clamped to +-torque_scale*torque_limit,
+    // then sent as a pure torque command -- the same saturation as the simulator's effort limit.
+    declare_parameter<double>("go1.torque_scale", 1.0);
+    declare_parameter<double>("go1.torque_limit", 23.7);  // [Nm] simulator EFFORT_LIMIT (simdist/rl/go1.py)
+    declare_parameter<std::string>("topics.fallen", "/fallen");
 
     const auto lowstate_topic = get_parameter("topics.lowstate").as_string();
     const auto lowcmd_topic = get_parameter("topics.lowcmd").as_string();
@@ -92,6 +99,12 @@ public:
     battery_warn_ = get_parameter("go1.battery_warn").as_double();
     abort_roll_pitch_ = get_parameter("go1.abort_roll_pitch").as_double();
     start_delay_ = get_parameter("go1.start_delay").as_double();
+    torque_scale_ = std::clamp(get_parameter("go1.torque_scale").as_double(), 0.3, 1.0);
+    torque_limit_ = get_parameter("go1.torque_limit").as_double();
+    if (torque_scale_ < 1.0) {
+      RCLCPP_WARN(get_logger(), "TORQUE CAP: host-side PD with |tau| <= %.1f%% of %.1f Nm (software motor weakening)",
+                  100.0 * torque_scale_, torque_limit_);
+    }
     robot_state_sub_ = create_subscription<std_msgs::msg::String>(
         get_parameter("topics.robot_state").as_string(), 1,
         [this](const std_msgs::msg::String::SharedPtr msg) {
@@ -103,6 +116,7 @@ public:
     }
 
     lowstate_pub_ = create_publisher<unitree_go::msg::LowState>(lowstate_topic, 10);
+    fallen_pub_ = create_publisher<std_msgs::msg::Bool>(get_parameter("topics.fallen").as_string(), 10);
     wireless_pub_ = create_publisher<unitree_go::msg::WirelessController>(wireless_topic, 10);
     if (publish_clock_) {
       clock_pub_ = create_publisher<rosgraph_msgs::msg::Clock>("/clock", 10);
@@ -175,6 +189,30 @@ private:
     return static_cast<float>(std::clamp(static_cast<double>(q), kJointMin[j], kJointMax[j]));
   }
 
+  // Host-side PD with torque saturation: tau = Kp (q_des - q) + Kd (dq_des - dq) + tau_ff,
+  // clamped to +-torque_scale*torque_limit and sent as a torque-only command (Kp = Kd = 0).
+  // Evaluated at the SDK rate (500 Hz) on the state just received.
+  void apply_torque_cap(sdk::LowCmd &cmd) const {
+    const double limit = torque_scale_ * torque_limit_;
+    for (int i = 0; i < kNumJoints; ++i) {
+      auto &c = cmd.motorCmd[i];
+      const auto &m = sdk_state_.motorState[i];
+      double tau = c.tau;
+      if (c.q < sdk::PosStopF * 0.5) {
+        tau += static_cast<double>(c.Kp) * (static_cast<double>(c.q) - static_cast<double>(m.q));
+      }
+      const double dq_des = (c.dq < sdk::VelStopF * 0.5) ? static_cast<double>(c.dq) : 0.0;
+      tau += static_cast<double>(c.Kd) * (dq_des - static_cast<double>(m.dq));
+      tau = std::clamp(tau, -limit, limit);
+      c.mode = kServoMode;
+      c.q = sdk::PosStopF;
+      c.dq = sdk::VelStopF;
+      c.Kp = 0.0f;
+      c.Kd = 0.0f;
+      c.tau = static_cast<float>(tau);
+    }
+  }
+
   void set_damping(sdk::LowCmd &cmd) const {
     for (int i = 0; i < kNumJoints; ++i) {
       auto &c = cmd.motorCmd[i];
@@ -228,6 +266,8 @@ private:
       }
       if (overheated) {
         set_damping(cmd);
+      } else if (torque_scale_ < 1.0) {
+        apply_torque_cap(cmd);
       }
       const int protect = safety_->PowerProtect(cmd, sdk_state_, power_protect_level_);
       if (protect < 0) {
@@ -294,6 +334,9 @@ private:
       RCLCPP_ERROR(get_logger(), "Roll %.2f / pitch %.2f rad beyond %.2f in %s: damping mode until the state machine is OFF or PRONE",
                    roll, pitch, abort_roll_pitch_, state.c_str());
       fallen_ = true;
+      std_msgs::msg::Bool ev;
+      ev.data = true;
+      fallen_pub_->publish(ev);  // termination event for the controller's episode log
     } else if (fallen_ && !tilted) {
       if (resting) {
         RCLCPP_WARN(get_logger(), "Upright again and state machine in %s: commands accepted again", state.c_str());
@@ -423,6 +466,9 @@ private:
   int power_protect_level_;
   double cmd_timeout_;
   double damping_kd_;
+  double torque_scale_{1.0};
+  double torque_limit_{23.7};
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr fallen_pub_;
   bool publish_clock_;
   bool send_commands_;
   double motor_temp_warn_;

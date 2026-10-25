@@ -32,6 +32,8 @@
       motor_temp_stop: 70.0  # [C] hold the motors in damping mode above this, until back below motor_temp_warn
       battery_warn: 20.0  # [%] warn below this state of charge
       abort_roll_pitch: 0.7  # [rad] fallen: damping until the state machine is back in prone
+      torque_scale: 1.0  # software motor weakening: < 1.0 = host-side PD with |tau| <= torque_scale * torque_limit (0.6 / 0.4 in the hardware experiments)
+      torque_limit: 23.7  # [Nm] simulator effort limit (simdist/rl/go1.py)
 
     leg_odometry:
       rate: 100.0

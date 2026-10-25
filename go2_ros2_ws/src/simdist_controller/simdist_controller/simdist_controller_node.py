@@ -16,7 +16,7 @@ from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from ament_index_python.packages import get_package_share_directory
-from std_msgs.msg import Float32MultiArray, String
+from std_msgs.msg import Bool, Float32MultiArray, String
 from geometry_msgs.msg import Twist
 
 from simdist.control.controller_base import ControllerInput
@@ -91,6 +91,17 @@ class SimdistControllerNode(Node):
             ckpt_dir, cfg["model"]["step"]
         )
         self.controller = MppiController(model, model_cfg, mppi_cfg)
+        # history-conditioned student prior for the planner's prior samples (design doc 6);
+        # with mppi.prior_only the student's own plan is executed (student alone)
+        student = (cfg.get("prior") or {}).get("student")
+        if student:
+            from simdist.control.student_prior import StudentPrior
+
+            self.controller.external_prior = StudentPrior(student)
+            self.get_logger().info(
+                f"Planner prior: student '{student}'" + (" (prior only, no planning)" if mppi_cfg.get("prior_only") else "")
+            )
+        self.fell = False  # set by the bridge's /fallen event; written to the episode log on close
 
         # Data storage
         self.robot_state = None
@@ -116,6 +127,7 @@ class SimdistControllerNode(Node):
         self.control_group = MutuallyExclusiveCallbackGroup()
 
         # Subscribers
+        self.fallen_sub = self.create_subscription(Bool, "/fallen", self.fallen_callback, 10)
         self.robot_state_sub = self.create_subscription(
             String,
             self.robot_state_topic,
@@ -248,11 +260,18 @@ class SimdistControllerNode(Node):
             # start logging when the robot starts walking
             if self.robot_state == "WALKING" and self.controller.is_initialized:
                 self.first_action_taken = False
+                self.fell = False
                 self.logger.open()
                 self.loop_timer.enable_print()
             else:
-                self.logger.close()
+                self.logger.close(terminated=self.fell)
+                self.fell = False
                 self.loop_timer.disable_print()
+
+    def fallen_callback(self, msg):
+        if msg.data:
+            self.fell = True
+            self.get_logger().warn("Fall event from the bridge: episode will be logged as terminated")
 
     def observation_callback(self, msg: Float32MultiArray):
         with self.obs_lock:

@@ -64,10 +64,14 @@ class MppiController(ControllerBase):
             base_policy_actions = jnp.asarray(self.external_prior(x), jnp.float32)[0]
         else:
             base_policy_actions = self._get_base_policy_actions(model_inputs)
-        self.mppi_state = self._mppi_step(
-            self.mppi_state, base_policy_actions, model_inputs
-        )
-        actions = self.mppi_state.mean
+        if self.ctrl_cfg.get("prior_only", False):
+            # execute the prior's own plan (student alone, receding horizon): no planning
+            actions = base_policy_actions
+        else:
+            self.mppi_state = self._mppi_step(
+                self.mppi_state, base_policy_actions, model_inputs
+            )
+            actions = self.mppi_state.mean
         output: ControllerOutput = {"actions": np.array(actions)}
         return output
 
