@@ -16,15 +16,15 @@
 \newcommand{\res}{\delta}
 
 \pdfinfo{
-   /Title  (Selective Value Adaptation for Simulation-Pretrained World Models)
+   /Title  (Prior First: Coverage, Planning and the Order of Real-World Adaptation for Simulation-Pretrained World-Model Planners)
 }
 
 \begin{document}
 
-\title{Selective Value Adaptation: Correcting Simulation-Pretrained Value Functions from Minutes of Real-Robot Data without Forgetting}
+\title{Prior First: Coverage, Planning, and the Order of Real-World Adaptation\\for Simulation-Pretrained World-Model Planners}
 % alternative titles
-% - What to Freeze and What to Adapt: Residual Value Correction for Sim-to-Real World Models
-% - Adapting the Value, Not Just the Dynamics: Residual Value Heads for Real-World World-Model Adaptation
+% - Cover Before You Adapt: What Real-Robot Data Can and Cannot Fix in a Simulation-Pretrained World-Model Planner
+% - The Prior Sets the Coverage: Robust Priors, Planner Recovery and Prior-First Adaptation
 
 \author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
 
@@ -32,168 +32,101 @@
 
 % =====================================================================
 \begin{abstract}
-Latent world models pretrained in simulation can be adapted to a real robot from a few minutes of data by finetuning only their latent dynamics, while the encoder, reward and value heads stay frozen; unfreezing the value head has been reported to cause catastrophic forgetting. We show that this negative result rests on a single update rule rather than on a property of value functions: under a dynamics shift the simulation value is mostly wrong in \emph{scale and offset} while its \emph{ranking} of states is largely preserved, so a small correction suffices and a full re-estimation is unnecessary and harmful. We propose selective value adaptation, which keeps the simulation value frozen and learns a zero-initialized residual on top of it from truncated $n$-step returns of the real rollouts, bootstrapped with a frozen anchor copy of the simulation value and regularized by replay of simulation windows. The planner consumes the corrected value without any change. On a sim-to-sim benchmark with perturbed physics (friction, payload, motor strength) and real data budgets of 5--30 minutes, selective value adaptation improves the return in the target condition over dynamics-only adaptation by \prelim{$3\times$} while keeping nominal-condition performance and the value error on the pretraining distribution \prelim{six times} lower than full value finetuning. On a Unitree Go1 quadruped, \todo{real-robot headline}. We also introduce a value-forgetting metric that separates value drift from behavioral forgetting. \todo{trim to 200 words}
+Simulation-pretrained latent world models with sampling-based planners can be adapted to a real legged robot from
+minutes of data by finetuning only the latent dynamics. We ask what this adaptation can and cannot fix. On a
+Unitree Go1 and a matched simulation-to-simulation benchmark (perturbed actuation, payload and friction), we find
+three things. (1) \emph{Coverage is set by the planner's prior alone}: under a 60\,\% weaker actuator, neither
+planning on the pretrained model nor dynamics adaptation from 45k real-format steps reduces falls when the prior
+(the cloned policy) was not trained to cover that regime (\prelim{10 falls per 1000 steps for every prior whose
+randomization stops above $0.7\times$ nominal torque}), while widening the prior's randomization to cover it
+cuts falls fourfold with no real data. The covering prior does not identify the actuator regime from its
+history (probe $R^2\approx0$); it is a single robust gait. (2) \emph{Planning recovers the prior's imperfection
+inside its coverage}: on top of every prior the planner halves to quarters the falls of the cloned policy and
+raises reward, with the largest gains for the least accurate priors. (3) \emph{Adaptation data is coupled to the
+prior that collected it}: dynamics adapted on data from the narrow prior make the planner with the broad prior
+\prelim{2.2$\times$} worse than the pretrained model, whereas data collected by the deployed prior never hurt
+and improve the nominal condition. These results give a simple recipe --- cover the target regime in simulation
+first, plan on top of the covering prior, and collect adaptation data with that prior --- which we validate on
+the Go1 under software torque caps and a payload. \todo{hardware numbers}
 \end{abstract}
 
 % =====================================================================
 \section{Introduction}
-% P1 -- the asymmetry: simulation data is unlimited, real data is minutes.
-\todo{P1: Learned world models + sampling-based planning transfer to real robots when pretrained at scale in simulation and adapted from minutes of real data~\citep{levy2026simdist}. The recipe that works today adapts only the latent dynamics.}
+\todo{Motivation: SimDist-style pipelines (frozen encoder/reward/value, adapted dynamics, MPPI) and the implicit
+claim that real-data adaptation plus planning handles new conditions. Our question: which failures of the
+deployed planner are fixable by adaptation, which by planning, and which only by the pretraining prior.}
 
-% P2 -- the open question, stated as the paper's claim.
-\todo{P2: But a dynamics shift changes the value of every state: a weaker motor or a slippery floor changes how much reward is reachable from a state. The planner then optimizes a horizon of 25 steps against a terminal value that belongs to another robot. SimDist reports that unfreezing the value causes catastrophic forgetting and leaves ``selectively updating value functions'' as future work. That evidence comes from one update rule: full TD regression of the whole head on real data, with no anchor and no replay.}
-
-% P3 -- what we find (mechanism) and what we do (method).
-\todo{P3: We first measure how the simulation value is wrong under a dynamics shift (Fig.~\ref{fig:value_error}): the error is dominated by an offset (the simulation value over-estimates the return by \prelim{$2.3\,\sigma_G$}) while the ranking of states is preserved (Spearman \prelim{0.6}). This suggests a correction that is small, smooth and anchored. We propose \emph{selective value adaptation}: ...}
-
-% P4 -- contributions
-Our contributions are:
-\begin{enumerate}
-  \item A diagnosis of value-function error under dynamics shift for a simulation-pretrained planning world model (offset vs.\ ranking), and a \emph{value-forgetting} metric that measures drift of the value on the pretraining distribution independently of behavior.
-  \item Selective value adaptation: a zero-initialized residual value head trained from truncated returns with a frozen anchor and simulation replay, which plugs into the SimDist pipeline without changing the planner.
-  \item A sim-to-sim benchmark (perturbed friction, payload, motor strength; 5/15/30-minute budgets; oracle and expert references) and a hardware study on a Unitree Go1 showing \todo{headline}.
-\end{enumerate}
+\todo{Contributions C1--C3 as in the abstract; the recipe; the sim-to-sim benchmark and tools; hardware
+validation with a software torque cap that reproduces the simulator's effort limit.}
 
 % =====================================================================
 \section{Related Work}
-\paragraph{Real-world adaptation of simulation-pretrained models.}
-\todo{SimDist~\citep{levy2026simdist} (dynamics only, encoder/reward/value frozen); FOWM~\citep{feng2023fowm} finetunes all heads with 50/50 offline-online batches and an uncertainty penalty; TD-MPC2~\citep{hansen2024tdmpc2}, DreamerV3~\citep{hafner2023dreamerv3}, DayDreamer~\citep{wu2022daydreamer}; residual/low-rank adapters on world-model dynamics: Sandwich-Residuals~\citep{soni2026sandwich}, CLAW~\citep{palafox2026claw}; model-free sim-to-real finetuning: A Walk in the Park~\citep{smith2023walk}, APRL~\citep{smith2024aprl}, TRANSIC~\citep{jiang2024transic}, ASAP~\citep{he2025asap}; semi-structured models~\citep{levy2024ssrl}. One sentence each: what is frozen, what is adapted, how much real data.}
+\todo{World-model planners with sim pretraining (SimDist, TD-MPC2 real-world, DreamerV3 sim-to-real); residual
+and selective adaptation; domain randomization and privileged distillation (RMA, HIM, ADAPT, DrEureka): robust
+vs.\ adaptive policies; prior staleness in model-based RL (ProxPI); data collection policies for adaptation.
+Position: we do not propose a new model or planner; we measure where the value of each component lies and
+derive the order of adaptation.}
 
-\paragraph{Transferring and correcting value functions.}
-\todo{SGFT~\citep{yin2025sgft} uses a frozen simulation value as a potential and as a truncated-horizon bootstrap but never updates it; SAMG~\citep{zhang2024samg} keeps a frozen offline critic inside the TD target of a fully updated critic (offline-to-online, 1-step); RQL~\citep{li2023rql} and ReLA~\citep{sikchi2025rela} learn residual critics on a frozen prior for reward customization, with random initialization and self-bootstrapping (ReLA reports early forgetting); Residual-MPPI~\citep{wang2025residualmppi} lists a residual terminal value as future work; blending MPC with a learned value~\citep{bhardwaj2021blending}. Position: our residual is zero-initialized, bootstrapped only by the frozen anchor, and corrects a planner's terminal value under a \emph{dynamics} gap, not a reward change.}
+% =====================================================================
+\section{Preliminaries}
+\todo{Latent world model $(E, C, f, R, V, \pi)$, MPPI with prior samples from $\pi$, SimDist adaptation (dynamics
+only, 45k steps). History-conditioned student prior $\pi_w$ cloned from an expert trained under motor-strength
+randomization $\mathcal{U}(w, 1.1)$; receding-horizon execution of $\pi_w$ alone; planner with $\pi_w$ replacing
+the policy head. Notation for conditions $\xi$ (motor scale, payload, friction).}
 
-\paragraph{Forgetting during fine-tuning.}
-\todo{Wołczyk et al.~\citep{wolczyk2024forgetting}: fine-tuning RL models is a forgetting problem; data anchors (replay/BC) beat parameter anchors (EWC); the critic is left unregularized. Cal-QL~\citep{nakamoto2023calql}, WSRL~\citep{zhou2024wsrl}, RL's Razor~\citep{shenfeld2025razor}. The 2025--26 offline-to-online trend discards the pretrained critic (PORL~\citep{xiao2025porl}, critic-free pretraining~\citep{li2026criticfree}, \citep{dong2026pretrainq}) because it is the critic of \emph{another policy}; a planner's terminal value is the value of the planner itself, which is why it is worth keeping and correcting. Surgical fine-tuning~\citep{lee2023surgical} on which layers to tune under which shift. Residual RL from demonstrations~\citep{alakuijala2021residual}: a randomly initialized critic destroys pretrained features.}
+% =====================================================================
+\section{What Sets Coverage: The Prior, Not the Model}
+\todo{E1 width sweep (Table~\ref{tab:width}): student alone (D) and student + planner on pretrained dynamics (B0)
+across five randomization widths at nominal, $0.6\times$ and $0.4\times$ torque. Falls at $0.4\times$ stay at
+$\approx$10/1000 until the randomization reaches the regime; the planner cannot extend coverage (ratio 1.0--1.14).
+Adaptation on the narrow prior: 3.8 $\to$ 3.2 only. Probe: the covering expert's actions do not depend on the
+motor scale given the history; visibility $R^2\approx0$: robustness, not identification.}
 
-\begin{table}[t]
-\centering\small
-\caption{Closest prior work, by component. \todo{fill: what is frozen / adapted, anchor, forgetting measured, real robot}}
-\label{tab:related}
-\resizebox{\columnwidth}{!}{%
-\begin{tabular}{@{}lllll@{}}
-\toprule
-Method & Adapted & Anchor & Forgetting & Real robot \\
-\midrule
-SimDist~\citep{levy2026simdist} & dynamics & -- & reported, not measured & Go2, arm \\
-SGFT~\citep{yin2025sgft} & policy (model-free) & frozen $\vsim$ & -- & arm \\
-SAMG~\citep{zhang2024samg} & full critic & frozen $Q^{\mathrm{off}}$ in target & -- & -- \\
-ReLA~\citep{sikchi2025rela} & residual critic (rand.\ init) & none & observed & -- \\
-FOWM~\citep{feng2023fowm} & all heads & 50/50 replay & -- & arm \\
-\textbf{Ours} & dynamics + zero-init residual value & frozen $\vsim$ + sim replay & measured & Go1 \\
-\bottomrule
-\end{tabular}}
+\begin{table}[t]\centering\caption{Width sweep (falls / 1000 steps $\cdot$ reward / step; 18 robots $\times$ 100\,s).}
+\label{tab:width}
+\todo{table from results/stage1/eval\_width.csv}
 \end{table}
 
 % =====================================================================
-\section{Preliminaries: Simulation-Pretrained World Models with Planning}
-\label{sec:prelim}
-\todo{Notation following SimDist. Observation $o_t$ (proprioception, height scan), command $c_t$, action $a_t$. Encoder $z_t = E(o_t)$; history encoder $h_t = C(o_{t-H:t-1}, a_{t-H:t-1})$; latent dynamics $\hat z_{t+1:t+T} = f(z_t, a_{t:t+T-1}, h_t)$; reward head $R(z, a, c)$; value head $\vsim(z, c)$; base policy $\pi$. Pretraining: privileged RL expert with injected action noise, $\sim$100M transitions; value labels from the expert's critic. Planning: MPPI over $T=25$ steps at 50\,Hz with objective $\sum_{k} \gamma^k R(\hat z_{t+k}, a_{t+k}) + \gamma^T \vsim(\hat z_{t+T})$. Real-world adaptation (Algorithm 1 of SimDist): collect on-policy rollouts, aggregate $\mathcal{D}_{\mathrm{real}}$, update $f$ only.}
+\section{What Planning Recovers: The Prior's Imperfection}
+\todo{Paired ratios B0/D at nominal and $0.6\times$ for every width (0.22--0.51), reward gains; smallest for the
+broad student. Interpretation: the planner corrects compounding error of the cloned prior with the world model;
+it does not substitute for coverage. Hardware prediction: larger gains on the real robot (less accurate prior).}
 
 % =====================================================================
-\section{When and How the Simulation Value Is Wrong}
-\label{sec:diagnosis}
-\todo{Setup: perturbed simulator stands in for the real robot. For every logged state compute $\vsim(z_t)$ and the discounted Monte-Carlo return $G_t$ of the planner's own rollout. Report Pearson/Spearman correlation (ranking), least-squares slope and mean bias (scale/offset), RMSE, calibration curve. Finding (motor at 40\%, preliminary): bias \prelim{$+2.65$} with $\sigma_G = 1.16$, Spearman \prelim{0.59}; i.e.\ the value over-estimates what the weaker robot can achieve, but mostly keeps the order of states. Same analysis in the nominal condition as control. Fig.~\ref{fig:value_error}.}
+\section{What Real Data Fixes: Prior-First Adaptation}
+\todo{E2 (Table~\ref{tab:pf}): B (adapted on narrow-prior data) vs.\ B0 vs.\ B$'$ (adapted on data collected by
+the deployed prior) at $0.4\times$ torque and nominal. Coupling: B is 2.15$\times$ [1.64, 2.78] worse than B0;
+B$'$ = B0 at $0.4\times$, B$'$ better than B0 at nominal (falls $\times$0.74, reward +5\,\%). Concentrability
+argument (short).}
 
-\begin{figure}[t]
-\centering
-\todo{Fig: scatter / calibration of $\vsim$ vs.\ $G$ in nominal and target conditions; before and after adaptation (dynamics-only, full, ours).}
-\caption{How the simulation value is wrong under a dynamics shift. \todo{caption}}
-\label{fig:value_error}
-\end{figure}
-
-% =====================================================================
-\section{Selective Value Adaptation}
-\label{sec:method}
-\subsection{Residual value head}
-We keep the pretrained value head frozen and add a residual $\res_\phi(z, c)$ with the same sequence architecture as the value head and a zero-initialized output layer, so that at the start of adaptation
-\begin{equation}
-V_\phi(z, c) = \vsim(z, c) + \res_\phi(z, c), \qquad \res_\phi \equiv 0 .
-\end{equation}
-The planner reads $V_\phi$ in place of $\vsim$; nothing else in the pipeline changes.
-
-\subsection{Truncated-return targets with a frozen anchor}
-For a window of real data $(z_t, a_t, c_t, r_t)_{t=0}^{T}$ with latents $z$ obtained by encoding the \emph{true} observations (so the value update does not depend on the accuracy of the adapted dynamics), the target of the state at step $k$ is the truncated return
-\begin{equation}
-G_k = \sum_{j=k}^{T-1} \gamma^{\,j-k} r_j + \gamma^{\,T-k}\, \bar V(z_T, c_T),
-\label{eq:target}
-\end{equation}
-where $\bar V$ is a frozen copy of $\vsim$ (the \emph{anchor}). Bootstrapping only through the anchor keeps the target in the scale of the simulation value and prevents the residual from chasing its own estimates. \todo{On a real robot $r_j$ is replaced by the frozen reward head evaluated on the true latents; state and justify.}
-\begin{equation}
-\mathcal{L}_{\mathrm{value}} = \frac{1}{T}\sum_{k=1}^{T} \big( V_\phi(z_k, c_k) - G_k \big)^2 .
-\end{equation}
-
-\subsection{Simulation replay as a data anchor}
-Following the evidence that data-level anchors beat parameter-level anchors against forgetting~\citep{wolczyk2024forgetting}, every update also draws a batch of windows from the simulation pretraining set and regresses $V_\phi$ on the true simulation latents to the simulation critic's labels $v^{\mathrm{sim}}$:
-\begin{equation}
-\mathcal{L}_{\mathrm{replay}} = \frac{1}{T}\sum_{k} \big( V_\phi(z^{\mathrm{sim}}_k, c^{\mathrm{sim}}_k) - v^{\mathrm{sim}}_k \big)^2 .
-\end{equation}
-
-\subsection{Full objective}
-\begin{equation}
-\mathcal{L} = \mathcal{L}_{\mathrm{dyn}} + \lambda_v \mathcal{L}_{\mathrm{value}} + \lambda_r \mathcal{L}_{\mathrm{replay}},
-\end{equation}
-with $\mathcal{L}_{\mathrm{dyn}}$ the latent-dynamics loss of SimDist. Trainable: $f$ and $\res_\phi$ (residual learning rate \todo{$10^{-3}$}); frozen: $E$, $C$, $R$, $\vsim$, $\pi$. \todo{Algorithm box: iterative rounds (collect with current model, aggregate, update $f$ and $\res$).}
-
-\subsection{Measuring value forgetting}
-\todo{Define: on windows of the nominal pretraining data, RMSE between adapted and pretrained values and correlation with the simulation critic labels; plus nominal-condition deployment return. Distinguish value drift from behavioral forgetting.}
-
-% =====================================================================
-\section{Experimental Setup}
-\label{sec:setup}
-\paragraph{Platform.} Unitree Go1 EDU (12\,kg, \todo{torque}) in simulation (Isaac Lab) and hardware; pretraining at the scale of SimDist (\todo{1024 envs, 102M transitions, 369k gradient steps}); MPPI at 50\,Hz with \todo{200 samples $\times$ 3 iterations on an RTX 3060 (paper setting 450 $\times$ 8 reproduced in Sec.~\ref{sec:sensitivity})}.
-
-\paragraph{Sim-to-sim benchmark.} Target conditions: friction 0.3, payload $+3$\,kg, motor torque limit $\times 0.6$ (\texttt{combo}), motor $\times 0.4$ (stress), \todo{low friction, payload alone}. ``Real'' data is collected by the pretrained planner in the target condition at three commanded speeds and logged in the real-data format; budgets of 5, 15 and 30 minutes (15k/45k/90k steps at 50\,Hz). Oracle: the same recipe with 60 minutes and $3\times$ the gradient steps. Expert reference: the privileged RL expert acting directly (observes friction and mass, blind to motor strength).
-
-\paragraph{Recipes compared.} dynamics-only (SimDist); full value finetuning (SimDist's forgetting ablation); full + replay (FOWM-style); residual + anchor; residual + replay; residual + anchor + replay (ours); ablations: random-init residual, no anchor (ReLA-style self-bootstrap), MLP residual. All start from the same checkpoint and train for the same number of steps on the same windows.
-
-\paragraph{Metrics.} Target-condition return over 1000 steps and fraction of episodes without a fall (\todo{10 seeds}); nominal-condition return (behavioral forgetting, 5 seeds); value-forgetting metric (Sec.~\ref{sec:method}); value error vs.\ Monte-Carlo return (Sec.~\ref{sec:diagnosis}).
-
-\paragraph{Hardware protocol.} \todo{Flat floor and foam mat (\todo{third condition}); models: pretrained, dynamics-only (round $k$), ours; identical command script per trial (straight 0.3\,m/s out-and-back, turn left/right, side-step); $\ge 5$ trials per cell; metrics: velocity-tracking error, falls, forward progress; data budgets 5/15/30\,min on one condition.}
-
-% =====================================================================
-\section{Results}
-\subsection{Sim-to-sim: adaptation gain and forgetting}
-\begin{table}[t]
-\centering\small
-\caption{Motor torque $\times 0.4$ (stress condition), 5/15/30-minute budgets pooled, 5 seeds each (\prelim{preliminary}). Return in the target condition, episodes without a fall, nominal-condition return, value-forgetting RMSE.}
-\label{tab:sim_weak}
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Recipe & Target return & No-fall & Nominal & Value RMSE \\
-\midrule
-Pretrained & \prelim{3.9} & \prelim{0/5} & \prelim{41.1} & 0 \\
-Dynamics only & \prelim{5.8} & \prelim{0/15} & \prelim{42.4} & 0 \\
-Full value & \prelim{4.2} & \prelim{0/15} & \prelim{42.0} & \prelim{0.76} \\
-Full value + replay & \prelim{8.8} & \prelim{0/15} & \prelim{42.0} & \prelim{0.14} \\
-Residual + anchor & \prelim{10.3} & \prelim{1/15} & \prelim{41.9} & \prelim{0.25} \\
-Residual + replay & \prelim{12.1} & \prelim{2/15} & \prelim{41.9} & \prelim{0.13} \\
-Residual, no anchor & \prelim{6.4} & \prelim{1/15} & \prelim{41.9} & \prelim{1.66} \\
-\bottomrule
-\end{tabular}
+\begin{table}[t]\centering\caption{Prior-first adaptation.}\label{tab:pf}
+\todo{table from results/stage1/eval\_priorfirst.csv}
 \end{table}
-\todo{Table for the moderate condition (combo) with oracle and expert rows; data-budget curves (Fig.: x = minutes of real data, y = fraction of the oracle gap closed, one line per recipe).}
 
-\subsection{Ablations}
-\todo{zero-init vs random init; anchor vs self-bootstrap; replay on/off; residual architecture; training seeds.}
-
-\subsection{Iterative rounds}
-\todo{Does the gain compound over Algorithm-1 rounds in simulation?}
-
-\subsection{Hardware}
-\todo{Go1 results table; sim-vs-hardware ranking agreement.}
-
-\subsection{Sensitivity}
-\label{sec:sensitivity}
-\todo{MPPI 450$\times$8 vs 200$\times$3; residual learning rate; $\lambda_r$.}
+% =====================================================================
+\section{Hardware Validation}
+\todo{Go1, software torque cap in the bridge (host-side PD saturated at $s\times 23.7$\,Nm), conditions nominal /
+60\,\% / 40\,\% / +3\,kg; models M1 SimDist (narrow prior, 29.5 min adapted), M2 broad student alone, M3 student +
+planner (pretrained), M4 M3 + prior-first adaptation (10 min), M5 broad student + dynamics adapted on the
+narrow-prior real data. Pre-registered predictions H1--H4 (design doc 6 \S9) and outcomes.}
 
 % =====================================================================
 \section{Limitations}
-\todo{Required section. One robot and one task family (locomotion); Go1 rather than Go2, so numbers are not directly comparable to SimDist; reduced MPPI budget on hardware; real rollouts carry no reward, so targets use the frozen reward head; the residual corrects a planner's terminal value, not a policy critic, and we do not claim the result for actor-critic fine-tuning; a broken foot-force sensor is handled in the velocity estimator; preemption / concurrent work.}
+Inside the covered regime the planner on a broad prior matches the broad policy alone; the value of planning
+lies in recovering imperfect priors and, untested here, in new objectives and constraints. Adaptation gave no
+gain at $0.4\times$ torque because the pretrained dynamics were already adequate around the robust prior. Single
+embodiment; one expert seed per width (\todo{update with seeds}); falls and reward as the only metrics;
+sim-to-sim shifts are physically simple (actuation, payload, friction). The label-free diagnostic of coverage
+we attempted (history visibility) failed; the practical test remains ``does the prior walk there in simulation''.
 
 % =====================================================================
 \section{Conclusion}
-\todo{One paragraph.}
+\todo{Recipe restated; what it changes in SimDist-style pipelines (randomize the actuator in the prior's
+expert, collect adaptation data with the deployed prior); future work: outcome-based candidate filters,
+concentrability of dynamics data, second embodiment.}
 
-\bibliographystyle{plainnat}
+\bibliographystyle{IEEEtranN}
 \bibliography{references}
+
 \end{document}
