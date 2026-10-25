@@ -65,6 +65,14 @@ def _apply_go1(cfg: Go2EnvCfg):
         cfg.observations.policy.base_mass.params["asset_cfg"] = SceneEntityCfg(
             "robot", body_names=BASE_BODY, preserve_order=True
         )
+    # optional wider foot-friction randomization (design doc 6, second axis): GO1_FRICTION_DR="lo,hi"
+    fr = os.environ.get("GO1_FRICTION_DR")
+    if fr:
+        lo, hi = (float(x) for x in fr.split(","))
+        cfg.events.physics_material.params["static_friction_range"] = (lo, hi)
+        cfg.events.physics_material.params["dynamic_friction_range"] = (lo, hi)
+        print(f"[go1] foot-friction DR range from GO1_FRICTION_DR: ({lo}, {hi})")
+
     # the Go1 has no head bodies
     cfg.terminations.base_contact.params["sensor_cfg"].body_names = [
         BASE_BODY,

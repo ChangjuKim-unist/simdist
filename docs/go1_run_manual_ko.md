@@ -126,3 +126,19 @@ PREV=go1_finetuned_r2 NEW=go1_finetuned_r2_value RECIPE=res scripts/go1_round.sh
 - 2026-10-11: 첫 보행 성공. MPPI 450×8은 이 GPU에서 48 ms → 200×3(32 elites)로 변경(시뮬 성능 동일), 서 있는 동안 계획기 예열 추가. 조종기 수집 9 에피소드 6.4분(최장 109 s) → `go1_finetuned`(동역학 파인튜닝, 테스트 loss 0.019→0.0064). 다음 세션: 컨트롤러 체크포인트 `go1_finetuned`로 적응 전/후 비교, 라운드 2 수집. 배터리 86→21 %(40분), 모터 최고 60 °C.
 - 2026-10-11 (저녁): 라운드 2 — `go1_finetuned`로 11 에피소드 13.4분 수집(옆걸음·회전·후진 포함), 누적 19.8분 → `go1_finetuned_r2`(40 epoch 이어서 학습). 라운드 1 모델은 처음 보는 데이터 예측 오차 3배 개선, 속도 추종 −18 %, 흔들림 −17 %, 체감은 비슷. 모터 59 °C·배터리 41 %에서 종료. 다음: 컨트롤러 `go1_finetuned_r2`, 푹신한 매트(폼) 조건에서 적응 전/후 비교.
 - 2026-10-12: 라운드 3 — `go1_finetuned_r2`로 평지 6 에피소드 9.7분(누적 29.5분). **실수**: 시뮬 실험이 GPU를 쓰는 중(19:24까지)에 컨트롤러를 켜서 제어 루프가 26~49 Hz(중앙값 30 Hz)로 돌았고 그 구간에서 넘어짐 2회·타이밍 지연 행 8 %. 이후 에피소드는 정상(1 %). 대책: control 창 명령 앞에 `gpu_check.sh` 추가(GPU 사용 중이면 시작 거부). 배터리 20 %에서 시작해 바로 경고, 모터 11번 60 °C. 세션 후 `scripts/go1_round.sh`로 `go1_finetuned_r3` 생성(테스트 loss 0.0035, 시뮬 평지 39.7 보상·1000/1000 스텝). 라운드 스크립트의 시뮬 확인이 `--headless` 없이 돌아 41시간 멈춰 있던 버그 수정. 다음: 완충 배터리로 폼 매트 조건 비교(r3 vs go1_paper), 각 조건 같은 조작 순서.
+
+## 하드웨어 실험 절차 (설계 문서 6 §9, 2026-10-25 준비)
+
+**새 스위치**
+- 브리지 토크 상한: `ros2 launch bringup launch_go1.py torque_scale:=0.6` (0.4). 1.0이면 꺼짐. 켜지면 브리지가 PD를 직접 계산해 |τ| ≤ 비율 × 23.7 N·m로 자르고 토크 명령만 보낸다(시뮬의 effort limit과 같은 포화). 시작 로그에 `TORQUE CAP` 경고가 떠야 한다. **처음 켤 때는 반드시 끈을 걸고 서기(STAND)부터 확인.**
+- 넘어짐 이벤트: 브리지가 넘어짐 잠금 시 `/fallen`(Bool)을 발행하고 컨트롤러가 그 에피소드 로그에 `terminated`를 기록한다. 이전처럼 OFF/PRONE으로 돌려야 잠금이 풀린다.
+- 컨트롤러 모델 선택 (`config/config/hw_*.yaml`): M1 `simdist_controller_go1.yaml`(SimDist r3), M2 `hw_M2_student.yaml`(넓은 학생 단독), M3 `hw_M3_student_planner.yaml`(학생 + 계획기 + 사전학습), M4 `hw_M4_priorfirst.yaml`(M3로 모은 10분 데이터로 적응, 세션 2 이후), M5 `hw_M5_r3data.yaml`(r3 데이터로 적응한 동역학 + 학생).
+- 실행마다 데이터셋 이름: `ros2 launch bringup launch_control.py controller_config:=hw_M3_student_planner.yaml dataset_name:=hw_M3_torque60`. 이름 규칙 **`hw_<모델>_<조건>`** (조건: nominal / torque60 / torque40 / payload3). 분석은 `python scripts/analyze_hardware_runs.py`.
+
+**세션 계획 (조건당 모델당 10회 × 30 s, 속도 0.3·0.6 m/s 번갈아; 조작 순서는 조건 안에서 모델을 섞어서)**
+1. 세션 1 (정상 + 토크 60 %): M1·M2·M3·M5. 토크 60 %는 M2로 먼저 서기·걷기 확인. M3 정상 조건 끝에 **M3로 10분 추가 수집** (`dataset_name:=hw_M3_collect`, 정상 5분 + 토크 60 % 5분) → 세션 후 `PREV=go1_paper DATASET=hw_M3_collect NEW=go1_paper_hw_priorfirst_dyn scripts/go1_round.sh`로 M4 생성.
+2. 세션 2 (토크 40 %): M1·M2·M3·M4·M5. M2가 40 %에서 못 걸으면 50 %로 조정해 1회 재시도(설계 문서 6 관문).
+3. 세션 3 (적재 3 kg, 정상 토크): M1·M2·M3·M4.
+4. 세션 4: 부족한 회차 보충, 예측 대조표 작성.
+
+**안전**: 토크 상한 조건은 끈 필수(넘어짐이 예상되는 조건). `gpu_check.sh`가 GPU 사용 중이면 컨트롤러 시작을 막는다 — 세션 전 `results/prehw_chain.log`가 `### prehw chain done`인지 확인. 배터리 50 % 이상에서 시작, 모터 60 °C 경고 시 휴식.

@@ -33,6 +33,7 @@ def generate_launch_description():
         parameters=[
             common_config,
             {"controller_config": LaunchConfiguration("controller_config")},
+            {"dataset_name": LaunchConfiguration("dataset_name")},
         ],
     )
 
@@ -47,6 +48,11 @@ def generate_launch_description():
                 "controller_config",
                 default_value="simdist_controller.yaml",
                 description="Controller config file in the config package (e.g. simdist_controller_go1.yaml)",
+            ),
+            DeclareLaunchArgument(
+                "dataset_name",
+                default_value="",
+                description="Overrides logging.dataset_name of the controller config (hardware runs: hw_<model>_<condition>)",
             ),
             cmd_vel_pub,
             controller,

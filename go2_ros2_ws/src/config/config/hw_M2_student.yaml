@@ -1,0 +1,35 @@
+# Hardware experiment model M2_student (design doc 6 §9). Pass dataset_name:=hw_M2_student_<condition> at launch.
+rate: 50.0
+action_scale: 0.25
+height_scan_offset: 0.3
+
+model:
+  # Either enter an absolute path to the model checkpoint, or the name of the checkpoint in checkpoints dir
+  checkpoint: go1_paper  # pretrained world model (unused for acting): broad student alone, receding horizon
+  step:  # leave blank for latest
+
+# Planner prior (design doc 6 hardware stage). student: name under checkpoints/students (blank = world-model
+# policy head, i.e. SimDist). mppi.prior_only: true executes the student's plan without planning (student alone).
+prior:
+  student: student_broad
+
+mppi:
+  prior_only: true
+  num_samples: 200  # RTX 3060: 450 x 8 iterations took 48 ms per step; 200 x 3 fits the 20 ms budget (~10 ms)
+  iterations: 3 # number of MPPI iterations before taking a step
+  delay: 1  # the number of anticipated steps the controller takes to run
+  mixture_coef: 0.05
+  min_std: 0.05
+  base_act_std: 0.05
+  init_std: 2.0
+  num_elites: 32  # keeps the elite fraction close to the original 64/450
+  temperature: 0.25
+  momentum: 0.0
+  discount: 0.99
+  seed: 42
+
+logging:
+  # log to the below dataset
+  enabled: true
+  # same of the dataset in the datasets/real directory to store data
+  dataset_name: hw_M2

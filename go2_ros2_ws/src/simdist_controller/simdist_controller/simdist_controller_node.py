@@ -72,6 +72,11 @@ class SimdistControllerNode(Node):
         with open(yaml_path, "r") as file:
             cfg = yaml.safe_load(file)
             self.get_logger().info(f"Config: {cfg}")
+        self.declare_parameter("dataset_name", "")
+        ds_override = self.get_parameter("dataset_name").get_parameter_value().string_value
+        if ds_override:  # per-run dataset (hardware experiments: hw_<model>_<condition>)
+            cfg.setdefault("logging", {})["dataset_name"] = ds_override
+            self.get_logger().info(f"Logging dataset overridden: {ds_override}")
         self.height_scan_offset = cfg["height_scan_offset"]
         self.action_scale = cfg["action_scale"]
         self.rate = cfg["rate"]

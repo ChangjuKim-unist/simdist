@@ -13,7 +13,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration
 from launch.launch_description_sources import AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 
@@ -36,7 +37,12 @@ def generate_launch_description():
         executable="go1_bridge",
         name="go1_bridge",
         output="screen",
-        parameters=[common_config, go1_config],
+        parameters=[
+            common_config,
+            go1_config,
+            # software motor weakening for the hardware experiments (design doc 6 §9): 1.0 = off
+            {"go1.torque_scale": LaunchConfiguration("torque_scale")},
+        ],
     )
     repub_body_imu = Node(
         package="measurement",
@@ -84,6 +90,11 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            DeclareLaunchArgument(
+                "torque_scale",
+                default_value="1.0",
+                description="Bridge torque cap as a fraction of 23.7 Nm (host-side PD with saturation); 1.0 = off",
+            ),
             tf_launch,
             go1_bridge,
             repub_body_imu,
