@@ -12,3 +12,12 @@ discount: 0.99
 seed: 42
 init_mode: shift  # sampling-mean initialization: shift (warm start) | zero | prior | external (batched planner only)
 prior_only: false  # true = execute the (external) prior's own plan without planning (student alone)
+# design doc 7 planner options
+noise_schedule:
+  enabled: false
+  iter_decay: 1.0     # sampling std x exp(-iter_decay * i/(I-1)) over MPPI iterations
+  horizon_decay: 1.0  # sampling std x exp(-horizon_decay * (T-1-t)/(T-1)): less noise near the current step
+consistency_gate:
+  enabled: false
+  factor: 3.0   # gate when ||z_actual - z_predicted|| > factor x running per-robot median
+  window: 200   # steps of distance history for the median

@@ -73,6 +73,16 @@ class BatchedMppiController:
         # callable raw planner inputs -> raw action sequences (N, T, A); replaces the
         # world model's policy head as the source of the prior samples
         self.external_prior = None
+        # design doc 7 planner options (both default off):
+        #  noise_schedule: DIAL-MPC-style two-axis annealing of the sampling noise (shrinks over
+        #    iterations and toward the near end of the horizon); zero extra compute
+        #  consistency_gate: if the latent predicted for this step by the previous plan is far
+        #    from the encoded actual latent (> factor x running median), execute the prior's plan
+        self.noise_schedule = dict(controller_cfg.get("noise_schedule", {}) or {})
+        self.gate_cfg = dict(controller_cfg.get("consistency_gate", {}) or {})
+        self.pred_next = None  # (N, latent) predicted latent for the next control step
+        self.dist_hist = []  # list of (N,) distances (most recent `window`)
+        self.gate_steps = 0; self.gated_steps = 0
 
     # ---- buffers -------------------------------------------------------------
     def fill(self, env_ids, proprio_obs, extero_obs, prev_action):
@@ -114,6 +124,10 @@ class BatchedMppiController:
         # np.asarray of a jax array is read-only: copy before editing
         mean = np.array(self.state.mean); std = np.array(self.state.std)
         key_data = np.array(self.state.key_data)
+        if self.pred_next is not None:
+            pn = np.array(self.pred_next)
+            for i in env_ids: pn[i] = np.nan  # no prediction across a reset
+            self.pred_next = jnp.asarray(pn)
         for i in env_ids:
             self.reset_counts[i] += 1
             mean[i] = 0.0
@@ -140,7 +154,32 @@ class BatchedMppiController:
         else:
             base_actions = self._base_policy_actions(x)
         self.state = self._mppi_step(self.state, base_actions, x)
-        return np.asarray(self.state.mean)
+        actions = self.state.mean
+        if self.gate_cfg.get("enabled", False):
+            z_now = self._encode_now(x)
+            if self.pred_next is not None:
+                d = np.asarray(jnp.linalg.norm(z_now - self.pred_next, axis=-1))
+                self.dist_hist.append(d); self.dist_hist = self.dist_hist[-int(self.gate_cfg.get("window", 200)):]
+                if len(self.dist_hist) >= 20:
+                    med = np.nanmedian(np.stack(self.dist_hist), axis=0)  # per-env running median (NaN after a reset)
+                    gate = d > float(self.gate_cfg.get("factor", 3.0)) * med
+                    self.gate_steps += 1; self.gated_steps += int(gate.sum()) / self.N
+                    if gate.any():
+                        g = jnp.asarray(gate)[:, None, None]
+                        actions = jnp.where(g, base_actions, actions)
+                        self.state = BatchedMppiState(actions.astype(jnp.float32), self.state.std, self.state.key_data)
+            self.pred_next = self._predict_next(x, actions)
+        return np.asarray(actions)
+
+    @functools.partial(nnx.jit, static_argnames=["self"])
+    def _encode_now(self, x):
+        xs = self.model.scaler.scale(x)
+        return self.model.encode_latent(xs["proprio_obs_hist"][:, -1], xs["extero_obs"], deterministic=True)
+
+    @functools.partial(nnx.jit, static_argnames=["self"])
+    def _predict_next(self, x, actions):
+        xx = dict(x); xx["fut_acts"] = actions
+        return self.model.inference(xx)["latents"][:, 0]
 
     @functools.partial(nnx.jit, static_argnames=["self"])
     def _base_policy_actions(self, x):
@@ -173,10 +212,18 @@ class BatchedMppiController:
         # every env's inputs repeated for its S + B candidates
         x_rep = jax.tree.map(lambda a: jnp.repeat(a, S + B, axis=0), x)
 
-        def f(carry, _):
+        I = int(self.ctrl_cfg["iterations"])
+        if self.noise_schedule.get("enabled", False):
+            it_f = jnp.exp(-float(self.noise_schedule.get("iter_decay", 1.0)) * jnp.arange(I) / max(I - 1, 1))  # (I,)
+            h_f = jnp.exp(-float(self.noise_schedule.get("horizon_decay", 1.0)) * (T - 1 - jnp.arange(T)) / max(T - 1, 1))  # (T,) less noise near t
+            sched = it_f[:, None, None] * h_f[None, :, None]  # (I, T, 1)
+        else:
+            sched = jnp.ones((I, T, 1))
+
+        def f(carry, i):
             mean, std, keys = carry
             keys, k_act = split(keys)
-            noise = jax.vmap(lambda k: jax.random.normal(k, (S, T, A)))(k_act) * std[:, None]
+            noise = jax.vmap(lambda k: jax.random.normal(k, (S, T, A)))(k_act) * (std * sched[i])[:, None]
             acts = mean[:, None] + noise if B == 0 else jnp.concatenate([mean[:, None] + noise, noised_base], axis=1)  # (N, S+B, T, A)
             xx = dict(x_rep)
             xx["fut_acts"] = acts.reshape(N * (S + B), T, A)
@@ -194,5 +241,5 @@ class BatchedMppiController:
             std = jnp.clip(new_std, min=self.ctrl_cfg["min_std"])
             return (mean, std, keys), None
 
-        (mean, std, keys), _ = jax.lax.scan(f, (mean, std, keys), jnp.arange(self.ctrl_cfg["iterations"]))
+        (mean, std, keys), _ = jax.lax.scan(f, (mean, std, keys), jnp.arange(I))
         return BatchedMppiState(mean.astype(jnp.float32), std.astype(jnp.float32), jax.random.key_data(keys))
