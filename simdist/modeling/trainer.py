@@ -143,6 +143,11 @@ def train(cfg: dict):
                 model.add_value_residual(res_cfg, nnx.Rngs(cfg["training"]["seed"]))
                 cfg["model"]["value_residual"] = dict(model.model_cfg["value_residual"])
                 print("Added a zero-initialized residual value head")
+            dres_cfg = adapt_cfg.get("dynamics_residual", {}) or {}
+            if dres_cfg.get("enabled", False) and model.dyn_res is None:
+                model.add_dynamics_residual(dres_cfg, nnx.Rngs(cfg["training"]["seed"]))
+                cfg["model"]["dynamics_residual"] = dict(model.model_cfg["dynamics_residual"])
+                print("Added a zero-initialized residual dynamics head")
             if adapt_cfg.get("value_anchor", False) and model.value_anchor is None:
                 model.add_value_anchor()
                 cfg["model"]["value_anchor"] = True

@@ -141,6 +141,12 @@ class WorldModelBase(ModelBase):
 
         # optional residual value head, V_real = V_sim + delta, zero-initialized so
         # adaptation starts exactly at the simulation value (see losses.WorldModelValueAdaptLoss)
+        # residual latent dynamics on top of the frozen pretrained dynamics (design doc 7):
+        # f'(z, a) = f(z, a) + g(f(z, a), a_emb), g zero-initialized; trained with heads=dynamics_residual_only
+        self.dyn_res = None
+        dyn_res_cfg = self.model_cfg.get("dynamics_residual", {})
+        if dyn_res_cfg and dyn_res_cfg.get("enabled", False):
+            self.dyn_res = self._build_dynamics_residual(dyn_res_cfg, rngs)
         self.value_res = None
         res_cfg = self.model_cfg.get("value_residual", {})
         if res_cfg.get("enabled", False):
@@ -213,6 +219,35 @@ class WorldModelBase(ModelBase):
 
         return value_emb, value, value_dec
 
+    def _build_dynamics_residual(self, res_cfg: dict, rngs: nnx.Rngs):
+        """Per-step residual g(z_hat, a_emb) -> delta z with a zero-initialized output layer."""
+        head = modules.MLP(
+            input_dim=2 * self.latent_dim,
+            hidden_dims=list(res_cfg.get("hidden_dims", [128, 128])),
+            output_dim=self.latent_dim,
+            rngs=rngs,
+            dropout_rate=self.mlp_dropout_rate,
+        )
+        head.output_layer.kernel.value = jnp.zeros_like(head.output_layer.kernel.value)
+        head.output_layer.bias.value = jnp.zeros_like(head.output_layer.bias.value)
+        return head
+
+    def add_dynamics_residual(self, res_cfg: dict, rngs: nnx.Rngs) -> None:
+        """Attach a zero-initialized residual dynamics head to a pretrained model."""
+        res_cfg = dict(res_cfg)
+        res_cfg["enabled"] = True
+        self.model_cfg["dynamics_residual"] = res_cfg
+        self.dyn_res = self._build_dynamics_residual(res_cfg, rngs)
+
+    def _latent_dynamics(self, fut_acts_emb, context, deterministic=None):
+        """Pretrained latent dynamics plus the residual correction, if attached."""
+        latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+        if self.dyn_res is not None:
+            latents = latents + self.dyn_res(
+                jnp.concatenate((latents, fut_acts_emb), axis=-1), deterministic=deterministic
+            )
+        return latents
+
     def _build_value_residual(self, res_cfg: dict, rngs: nnx.Rngs):
         """Residual value head delta(z, cmd) with a zero-initialized output layer.
 
@@ -282,7 +317,7 @@ class WorldModelBase(ModelBase):
             lat = self.policy(fut_cmds_emb, context, deterministic=deterministic)
             actions = self.policy_dec(lat, deterministic=deterministic)
         fut_acts_emb = self.fut_acts_embed(actions, deterministic=deterministic)
-        latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic)
         z_t_tm1 = jnp.concatenate((encoding["latent"][:, None, :], latents[:, :-1]), axis=1)
         rew_in = jnp.concatenate((z_t_tm1, actions, x["fut_cmds"][:, :-1]), axis=-1)
         rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
@@ -368,8 +403,8 @@ class WorldModelBase(ModelBase):
         latent_enc = jnp.expand_dims(encoding["latent"], axis=1)
         context = jnp.concatenate([encoding["history"], latent_enc], axis=1)
 
-        # dynamics
-        latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+        # dynamics (+ residual, design doc 7)
+        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic)
 
         # reward head
         # concatenate last latent with latent prediction

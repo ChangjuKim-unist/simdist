@@ -13,6 +13,10 @@ run_name:
 #   value_anchor:   keep a frozen copy of the pretrained value head as the bootstrap
 #                   target (otherwise the head being trained bootstraps itself)
 adapt:
+  # residual latent dynamics on the frozen pretrained dynamics (design doc 7); train with heads=dynamics_residual_only
+  dynamics_residual:
+    enabled: false
+    hidden_dims: [128, 128]
   value_residual:
     enabled: false
     type: mlp  # mlp (per-step MLP) or transformer (same architecture as the value head)
