@@ -221,8 +221,9 @@ class WorldModelBase(ModelBase):
 
     def _build_dynamics_residual(self, res_cfg: dict, rngs: nnx.Rngs):
         """Per-step residual g(z_hat, a_emb) -> delta z with a zero-initialized output layer."""
+        self._dyn_res_action_input = bool(res_cfg.get("action_input", True))
         head = modules.MLP(
-            input_dim=2 * self.latent_dim,
+            input_dim=2 * self.latent_dim if self._dyn_res_action_input else self.latent_dim,
             hidden_dims=list(res_cfg.get("hidden_dims", [128, 128])),
             output_dim=self.latent_dim,
             rngs=rngs,
@@ -243,9 +244,8 @@ class WorldModelBase(ModelBase):
         """Pretrained latent dynamics plus the residual correction, if attached."""
         latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
         if self.dyn_res is not None:
-            latents = latents + self.dyn_res(
-                jnp.concatenate((latents, fut_acts_emb), axis=-1), deterministic=deterministic
-            )
+            inp = jnp.concatenate((latents, fut_acts_emb), axis=-1) if self._dyn_res_action_input else latents
+            latents = latents + self.dyn_res(inp, deterministic=deterministic)
         return latents
 
     def _build_value_residual(self, res_cfg: dict, rngs: nnx.Rngs):

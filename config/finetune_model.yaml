@@ -17,6 +17,7 @@ adapt:
   dynamics_residual:
     enabled: false
     hidden_dims: [128, 128]
+    action_input: true  # false = g(z_hat) only (no direct action channel; less exploitable by the planner)
   value_residual:
     enabled: false
     type: mlp  # mlp (per-step MLP) or transformer (same architecture as the value head)
