@@ -256,6 +256,8 @@ class BatchSim:
             }
             rows.append(row)
             print("RESULT", row, flush=True)
+        if getattr(self.controller, "gate_steps", 0):
+            print(f"consistency gate rate: {self.controller.gated_steps / self.controller.gate_steps:.4f} (design doc 7)")
         if out.get("csv"):
             path = out["csv"]
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
