@@ -79,6 +79,10 @@ class BatchSim:
             self.student = StudentPrior(st_cfg["student"])
             self.controller.external_prior = self.student
             print(f"Prior samples from student {st_cfg['student']}")
+        if st_cfg.get("head_from"):  # policy head of another checkpoint as the prior (design doc 8, broad head on adapted dynamics)
+            head_model, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), st_cfg["head_from"]))
+            self.controller.external_prior = lambda x, _m=head_model: _m.inference(x)["actions"]
+            print(f"Prior samples from the policy head of {st_cfg['head_from']}")
         self.rl_policy = None
         pol_cfg = cfg.get("policy", {}) or {}
         # use_as: "act" = the expert acts instead of the planner; "init" = the expert's

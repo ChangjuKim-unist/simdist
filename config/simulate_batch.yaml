@@ -54,6 +54,7 @@ batch:
 # policy.use_as=student_act it acts alone (no planner)
 prior:
   student:
+  head_from:  # checkpoint whose policy head supplies the prior samples (blank = the model's own head)
 
 output:
   csv:            # e.g. results/sim2sim/combo_hard/eval_long.csv

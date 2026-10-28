@@ -153,7 +153,11 @@ class BatchedMppiController:
             base_actions = jnp.asarray(self.external_prior(x), jnp.float32)
         else:
             base_actions = self._base_policy_actions(x)
-        self.state = self._mppi_step(self.state, base_actions, x)
+        if self.ctrl_cfg.get("prior_only", False):
+            # execute the prior's own plan (policy head or external prior), no planning
+            self.state = BatchedMppiState(base_actions.astype(jnp.float32), self.state.std, self.state.key_data)
+        else:
+            self.state = self._mppi_step(self.state, base_actions, x)
         actions = self.state.mean
         if self.gate_cfg.get("enabled", False):
             z_now = self._encode_now(x)
