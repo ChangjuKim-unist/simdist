@@ -22,6 +22,7 @@ ap.add_argument("--H", type=int, default=25); ap.add_argument("--T", type=int, d
 ap.add_argument("--hidden", type=int, nargs="+", default=[1024, 1024, 512])
 ap.add_argument("--num_windows", type=int, default=2_000_000); ap.add_argument("--steps", type=int, default=20000)
 ap.add_argument("--batch", type=int, default=1024); ap.add_argument("--lr", type=float, default=3e-4); ap.add_argument("--seed", type=int, default=0)
+ap.add_argument("--weights", default=None, help="npz from scripts/density_ratio_weights.py: windows are sampled in proportion to these weights (design doc 9)")
 args = ap.parse_args()
 
 d = paths.get_processed_data_dir(args.dataset, args.system, args.H, args.T)
@@ -37,13 +38,21 @@ per_block = max(1, min(args.num_windows, len(starts)) // blocks)
 P, A, C, FL = f["proprio"], f["acts"], f["cmds"], f["flags"]
 Pm, Am, Cm, Fm, sel0 = [], [], [], [], []
 offset = 0
+block_i0s = []
 for b in range(blocks):
-    i0 = int(rng.integers(0, max(1, len(starts) - per_block)))
+    i0 = int(rng.integers(0, max(1, len(starts) - per_block))); block_i0s.append(i0)
     blk = starts[i0:i0 + per_block]
     lo, hi = int(blk.min()), int(blk.max()) + H + T + 2
     Pm.append(P[lo:hi].astype(np.float32)); Am.append(A[lo:hi].astype(np.float32)); Cm.append(C[lo:hi].astype(np.float32)); Fm.append(FL[lo:hi].astype(np.float32))
     sel0.append(blk - lo + offset); offset += hi - lo
 Pm, Am, Cm, Fm = (np.concatenate(z) for z in (Pm, Am, Cm, Fm)); sel0 = np.concatenate(sel0)
+# optional deployment-matched sampling weights, keyed by the window's start index in the dataset
+sample_p = None
+if args.weights:
+    wz = np.load(args.weights); wmap = dict(zip(wz["start_idxs"].tolist(), wz["weights"].tolist()))
+    blk_starts = np.concatenate([starts[int(i0):int(i0) + per_block] for i0 in block_i0s])
+    wv = np.array([wmap.get(int(s), 1.0) for s in blk_starts], np.float32); sample_p = wv / wv.sum()
+    print(f"weighted sampling: effective sample fraction {wv.sum()**2/(len(wv)*(wv**2).sum()):.3f}", flush=True)
 print(f"{len(sel0)} windows in {blocks} blocks ({Pm.shape[0]} steps in memory)", flush=True)
 def gather(idx):
     tH = sel0[idx]; t = tH + H; tT = t + T
@@ -75,7 +84,7 @@ def step(model, opt, p, a, c, y, fl):
 
 t0 = time.time(); n = len(sel0); ema = None
 for it in range(args.steps):
-    idx = rng.integers(0, n, size=args.batch)
+    idx = rng.integers(0, n, size=args.batch) if sample_p is None else rng.choice(n, size=args.batch, p=sample_p)
     p, a, c, y, fl = gather(idx)
     loss = float(step(model, opt, jnp.asarray(p), jnp.asarray(a), jnp.asarray(c), jnp.asarray(y), jnp.asarray(fl)))
     ema = loss if ema is None else 0.99 * ema + 0.01 * loss
@@ -85,5 +94,5 @@ out = os.path.join(students_dir(), args.name); os.makedirs(out, exist_ok=True)
 _, state = nnx.split(model)
 pickle.dump(state.to_pure_dict(), open(os.path.join(out, "params.pkl"), "wb"))
 json.dump(sc, open(os.path.join(out, "scaler_params.json"), "w"))
-json.dump({"H": H, "T": T, "act_dim": Adim, "in_dim": in_dim, "hidden": args.hidden, "dataset": args.dataset, "system": args.system, "steps": args.steps, "num_windows": int(n)}, open(os.path.join(out, "config.json"), "w"), indent=2)
+json.dump({"H": H, "T": T, "act_dim": Adim, "in_dim": in_dim, "hidden": args.hidden, "dataset": args.dataset, "system": args.system, "steps": args.steps, "num_windows": int(n), "weights": args.weights}, open(os.path.join(out, "config.json"), "w"), indent=2)
 print("saved", out)

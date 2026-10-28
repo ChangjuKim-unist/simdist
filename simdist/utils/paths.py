@@ -197,6 +197,11 @@ def get_physics_path(processed_data_dir: str):
     return os.path.join(processed_data_dir, _FILENAMES["PHYSICS_FILE_NAME"])
 
 
+def get_prior_weight_path(processed_data_dir: str):
+    """Per-step prior-consistency weight of the logged action under the deployed prior (design doc 9)."""
+    return os.path.join(processed_data_dir, "prior_weight.hdf5")
+
+
 def get_terminal_path(processed_data_dir: str):
     """Per-step [steps to episode end, discounted reward-to-go, episode ended by termination]."""
     return os.path.join(processed_data_dir, _FILENAMES["TERMINAL_FILE_NAME"])

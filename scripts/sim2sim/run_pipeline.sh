@@ -82,6 +82,7 @@ condition_overrides() {
 variant_overrides() {
   case "$1" in
     dyn)         echo "loss=world_model_dynamics_only heads=world_model_dynamics_only" ;;
+    dyn_pw)      echo "loss=world_model_dynamics_only heads=world_model_dynamics_only loss.prior_weight=true" ;;
     dynres)      echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true" ;;
     dynres_na)   echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true adapt.dynamics_residual.action_input=false" ;;
     res)         echo "loss=world_model_value_adapt heads=dynamics_value_residual adapt.value_residual.enabled=true adapt.value_anchor=false" ;;

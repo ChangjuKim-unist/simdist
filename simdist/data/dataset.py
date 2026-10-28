@@ -129,7 +129,12 @@ class WorldModelDatasetBase(DatasetBase):
             steps_to_end = np.full((self.T,), 1e6, dtype=np.float32)
             rtg = np.zeros((self.T,), dtype=np.float32)
             terminated = np.zeros((self.T,), dtype=np.float32)
+        if "prior_weight" in self._data:
+            prior_weight = np.float32(np.mean(self._data["prior_weight"][t:t_T]))  # window weight
+        else:
+            prior_weight = np.float32(1.0)
         labels: types.WorldModelSchema.Labels = {
+            "prior_weight": prior_weight,
             "proprio_obs": proprio_obs,
             "extero_obs": extero_obs,
             "rewards": rewards,
@@ -179,6 +184,9 @@ class WorldModelDatasetBase(DatasetBase):
         # optional (datasets processed before terminal information existed)
         if os.path.exists(paths.get_terminal_path(data_dir)):
             self._files["terminal"] = h5py.File(paths.get_terminal_path(data_dir))
+        # optional per-step prior-consistency weights (scripts/prior_consistency_weights.py, design doc 9)
+        if os.path.exists(paths.get_prior_weight_path(data_dir)):
+            self._files["prior_weight"] = h5py.File(paths.get_prior_weight_path(data_dir))
 
     def _load_data(self) -> None:
         for key, file in self._files.items():

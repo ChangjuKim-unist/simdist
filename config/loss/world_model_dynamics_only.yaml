@@ -5,3 +5,6 @@ weights:
   reward: 0.0
   value: 0.0
   action: 0.0
+
+# design doc 9: weight each window by the prior-consistency of its logged actions (prior_weight.hdf5)
+prior_weight: false

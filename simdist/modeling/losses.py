@@ -87,7 +87,14 @@ class WorldModelLoss(Loss):
         )
 
         latents_error = y_pred["latents"] - fut_latents
-        latent_dynamics_loss = jnp.mean(latents_error**2)
+        if self.loss_cfg.get("prior_weight", False) and "prior_weight" in y:
+            # prior-consistent adaptation (design doc 9): windows whose logged actions the deployed
+            # prior would not take are down-weighted, so they cannot overwrite the pretrained model
+            pw = jnp.asarray(y["prior_weight"]).reshape(-1)  # (B,)
+            per_window = jnp.mean(latents_error**2, axis=(1, 2))
+            latent_dynamics_loss = jnp.sum(pw * per_window) / (jnp.sum(pw) + 1e-8)
+        else:
+            latent_dynamics_loss = jnp.mean(latents_error**2)
 
         reward_error = y_pred["rewards"] - y["rewards"]
         reward_loss = jnp.mean(reward_error**2)
