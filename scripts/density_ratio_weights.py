@@ -19,13 +19,20 @@ from simdist.utils import paths
 ap = argparse.ArgumentParser()
 ap.add_argument("--sim", required=True); ap.add_argument("--sim_system", default="go1dr"); ap.add_argument("--real", required=True, nargs="+"); ap.add_argument("--real_system", default="go1")
 ap.add_argument("--num_sim", type=int, default=400_000); ap.add_argument("--steps", type=int, default=4000); ap.add_argument("--batch", type=int, default=1024)
-ap.add_argument("--hidden", type=int, nargs="+", default=[256, 256]); ap.add_argument("--clip", type=float, default=20.0); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", required=True)
+ap.add_argument("--hidden", type=int, nargs="+", default=[64]); ap.add_argument("--clip", type=float, default=20.0); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", required=True)
+ap.add_argument("--features", default="stats", choices=["all", "proprio", "stats"], help="all = the student's inputs (actions included: separates *behaviour*, degenerate); proprio = observation history only; stats = per-window summary statistics of the observations (policy-invariant, coarse)")
+ap.add_argument("--alpha", type=float, default=0.5, help="tempering of the density ratio, w = r^alpha")
 args = ap.parse_args(); H = T = 25; rng = np.random.default_rng(args.seed)
 sd = paths.get_processed_data_dir(args.sim, args.sim_system, H, T); sc = json.load(open(os.path.join(sd, "scaler_params.json")))
 def scale(x, k): return (x - np.asarray(sc[k]["mean"], np.float32)) / (np.asarray(sc[k]["std"], np.float32) + 1e-8)
 def feats_from(P, A, C, tH):
     t = tH + H; B = len(tH)
-    p = scale(np.stack([P[s:s + H + 1] for s in tH]), "proprio_obs"); a = scale(np.stack([A[s:s + H] for s in tH]), "actions"); c = scale(np.stack([C[s:s + T + 1] for s in t]), "commands")
+    p = scale(np.stack([P[s:s + H + 1] for s in tH]), "proprio_obs")
+    if args.features == "stats":  # mean / std / first-last difference of each observation dim over the window
+        return np.concatenate([p.mean(1), p.std(1), p[:, -1] - p[:, 0]], -1).astype(np.float32)
+    if args.features == "proprio":
+        return p.reshape(B, -1).astype(np.float32)
+    a = scale(np.stack([A[s:s + H] for s in tH]), "actions"); c = scale(np.stack([C[s:s + T + 1] for s in t]), "commands")
     return np.concatenate([p.reshape(B, -1), a.reshape(B, -1), c.reshape(B, -1)], -1).astype(np.float32)
 # sim windows (all start indices; features for a random subset for training, weights for all)
 Ps, As, Cs = (h5py.File(os.path.join(sd, f))["data"] for f in ("proprio_obs.hdf5", "acts.hdf5", "cmds.hdf5")); starts_s = h5py.File(os.path.join(sd, "start_idxs.hdf5"))["data"][:]
@@ -55,8 +62,8 @@ def logits(X): return np.concatenate([np.asarray(model(jnp.asarray(X[i:i + 8192]
 lr, ls = logits(Xr_te), logits(Xs_te); auc = float((lr[:, None] > ls[None, :]).mean())
 print(f"classifier AUC (held-out) {auc:.3f}; real windows with p(real)>0.95: {float((1/(1+np.exp(-lr)) > 0.95).mean()):.3f} (no sim support -> widen DR)  ({time.time()-t0:.0f}s)", flush=True)
 # density-ratio weights for every sim window (balanced-batch logit = log density ratio)
-Xall = np.concatenate([feats_from(Ps, As, Cs, starts_s[i:i + 4096]) for i in range(0, len(starts_s), 4096)])
-r = np.exp(np.clip(logits(Xall), -args.clip, np.log(args.clip))); w = r / r.mean()
+lg = np.concatenate([logits(feats_from(Ps, As, Cs, starts_s[i:i + 8192])) for i in range(0, len(starts_s), 8192)])  # chunked: 1.8M windows
+r = np.exp(np.clip(lg, -args.clip, np.log(args.clip))) ** args.alpha; w = r / r.mean()
 print(f"sim weights: mean 1, median {np.median(w):.3f}, max {w.max():.1f}, effective sample fraction {w.sum()**2/(len(w)*(w**2).sum()):.3f}, top-10% windows carry {np.sort(w)[-len(w)//10:].sum()/w.sum():.2f} of the mass", flush=True)
-os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True); np.savez(args.out, start_idxs=starts_s, weights=w.astype(np.float32), auc=auc)
+os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True); np.savez(args.out, start_idxs=starts_s, weights=w.astype(np.float32), auc=auc, features=args.features, alpha=args.alpha)
 print("saved", args.out)
