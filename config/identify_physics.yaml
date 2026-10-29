@@ -2,10 +2,17 @@ dataset: sim2sim_very_weak_motor_priorfirst_b45000   # real-format processed dat
 system: go1
 grid: {lo: 0.2, hi: 1.2, n: 21}   # candidate motor-strength scales
 replicas: 18       # robots per candidate (parallel segments)
-seg_len: 10        # replayed steps per segment (0.2 s)
-skip: 2            # steps after the reset not scored (transient)
-rounds: 40         # segments per robot
+seg_len: 20        # replayed steps per segment (0.4 s)
+skip: 4            # steps after the reset not scored (transient)
+rounds: 60         # segments per robot
 friction: 0.8
 add_mass: 0.0
 seed: 0
 out:
+# scoring (design doc 10 §4): weight steps by the logged PD torque demand relative to the nominal limit, joint-space error only
+demand_weight: true
+joint_only: true
+kp: 25.0
+kd: 0.5
+tau_nominal: 23.7
+action_scale: 0.25

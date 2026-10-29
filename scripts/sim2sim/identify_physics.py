@@ -85,14 +85,23 @@ def main(cfg):
         robot.write_root_velocity_to_sim(torch.as_tensor(np.concatenate([v_w, w_w], -1), device=dev, dtype=torch.float32), ids)
         robot.write_joint_state_to_sim(torch.as_tensor(q, device=dev, dtype=torch.float32), torch.as_tensor(dq, device=dev, dtype=torch.float32), env_ids=ids)
         env.scene.write_data_to_sim()
-        seg_err = np.zeros(N); alive = np.ones(N, bool)
+        seg_err = np.zeros(N); seg_w = np.zeros(N); alive = np.ones(N, bool)
         for k in range(K):
-            obs, _, term, trunc = env.step(torch.as_tensor(A[s + k], device=dev, dtype=torch.float32))[0:4]
+            a_k = A[s + k]
+            obs, _, term, trunc = env.step(torch.as_tensor(a_k, device=dev, dtype=torch.float32))[0:4]
             alive &= ~(term | trunc).cpu().numpy()
             pred = np.concatenate([obs["obs"][n].cpu().numpy() for n in names], -1)
-            e = ((pred - P[s + k + 1]) / std)[:, :33]  # exclude the phase clock
-            if k >= int(cfg.skip): seg_err += np.mean(e ** 2, -1)
-        err_sum += np.where(alive, seg_err / max(K - int(cfg.skip), 1), 0); err_cnt += alive
+            tgt = P[s + k + 1]
+            # torque demand of the logged PD command (Kp (q_des - q) - Kd dq); the motor cap only matters where it binds,
+            # so steps are weighted by how close the demand comes to the nominal limit
+            q_des = default_q[None] + float(cfg.action_scale) * a_k; q_log = default_q[None] + P[s + k][:, 9:21]
+            tau = float(cfg.kp) * (q_des - q_log) - float(cfg.kd) * P[s + k][:, 21:33]
+            w_k = np.clip(np.abs(tau).max(-1) / float(cfg.tau_nominal), 0.0, 1.0) ** 2 if cfg.demand_weight else np.ones(N)
+            dims = slice(9, 33) if cfg.joint_only else slice(0, 33)
+            e = ((pred - tgt) / std)[:, dims]
+            if k >= int(cfg.skip): seg_err += w_k * np.mean(e ** 2, -1); seg_w += w_k
+        ok = alive & (seg_w > 0)
+        err_sum += np.where(ok, seg_err / np.maximum(seg_w, 1e-8), 0); err_cnt += ok
         if rnd % 5 == 0: print(f"round {rnd}: alive {alive.mean():.2f}, mean err {np.nanmean(err_sum[err_cnt > 0] / err_cnt[err_cnt > 0]):.3f} ({time.time()-t0:.0f}s)", flush=True)
     per_env = err_sum / np.maximum(err_cnt, 1); per_cand = per_env.reshape(G, R).mean(1); cnt = err_cnt.reshape(G, R).sum(1)
     eps = np.median(per_cand); post = np.exp(-(per_cand - per_cand.min()) / (2 * (0.1 * eps) ** 2)); post /= post.sum()
