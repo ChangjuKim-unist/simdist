@@ -54,8 +54,11 @@ def main(cfg):
     P = h5py.File(os.path.join(d, "proprio_obs.hdf5"))["data"][:]; A = h5py.File(os.path.join(d, "acts.hdf5"))["data"][:]
     starts = h5py.File(os.path.join(d, "start_idxs.hdf5"))["data"][:]; sc = json.load(open(os.path.join(d, "scaler_params.json")))
     std = np.asarray(sc["proprio_obs"]["std"], np.float32) + 1e-6
-    grid = np.linspace(cfg.grid.lo, cfg.grid.hi, cfg.grid.n); G, R, K = len(grid), int(cfg.replicas), int(cfg.seg_len); N = G * R
-    scale_per_env = np.repeat(grid, R)
+    grid_m = np.linspace(cfg.grid.lo, cfg.grid.hi, cfg.grid.n)
+    grid_f = np.array(list(cfg.friction_grid) if cfg.get("friction_grid") else [cfg.friction], np.float64)
+    grid_k = np.array(list(cfg.mass_grid) if cfg.get("mass_grid") else [cfg.add_mass], np.float64)
+    cand = np.array([(m, f, k) for m in grid_m for f in grid_f for k in grid_k]); G, R, K = len(cand), int(cfg.replicas), int(cfg.seg_len); N = G * R
+    cand_env = np.repeat(cand, R, axis=0); scale_per_env = cand_env[:, 0]
     env_cfg = get_sim_env_cfg(cfg.system); env_cfg.scene.num_envs = N; env_cfg.episode_length_s = 1000.0
     tg = env_cfg.scene.terrain.terrain_generator; tg.curriculum = False; tg.size = (15.0, 15.0); tg.num_rows = 1; tg.num_cols = 1; tg.difficulty_range = (0.0, 0.0)
     tg.sub_terrains = {"plane": tg.sub_terrains["plane"]}
@@ -65,6 +68,17 @@ def main(cfg):
     robot = env.scene["robot"]; dev = env.device
     act = robot.actuators["base_legs"]; nominal = act.effort_limit.clone()
     act.effort_limit[:] = nominal * torch.as_tensor(scale_per_env, device=dev, dtype=nominal.dtype)[:, None]
+    if len(grid_f) > 1:  # per-env foot friction through the material event's shape bookkeeping
+        ev = [t for t in env.event_manager._mode_term_cfgs["startup"] if hasattr(t.func, "num_shapes_per_body")][0].func
+        mats = robot.root_physx_view.get_material_properties(); fr = torch.as_tensor(cand_env[:, 1], dtype=mats.dtype)
+        for body_id in ev.asset_cfg.body_ids:
+            a = sum(ev.num_shapes_per_body[:body_id]); b = a + ev.num_shapes_per_body[body_id]
+            mats[:, a:b, 0] = fr[:, None]; mats[:, a:b, 1] = fr[:, None]
+        robot.root_physx_view.set_material_properties(mats, torch.arange(N))
+    if len(grid_k) > 1:  # per-env added base mass
+        masses = robot.root_physx_view.get_masses(); base_id = robot.find_bodies("trunk")[0][0] if "trunk" in robot.body_names else robot.find_bodies("base")[0][0]
+        masses[:, base_id] = robot.data.default_mass[:, base_id].cpu() + torch.as_tensor(cand_env[:, 2], dtype=masses.dtype)
+        robot.root_physx_view.set_masses(masses, torch.arange(N))
     names = ["base_lin_vel", "base_ang_vel", "projected_gravity", "joint_pos", "joint_vel", "cos_sin_phase"]  # go1 proprio layout (35 dims)
     jn = robot.joint_names; default_q = robot.data.default_joint_pos[0].cpu().numpy()
     leg_idx = [[jn.index(f"{l}_{p}_joint") for p in ("hip", "thigh", "calf")] for l in JOINT_ORDER]  # (4,3) indices into the 12 joints
@@ -105,10 +119,15 @@ def main(cfg):
         if rnd % 5 == 0: print(f"round {rnd}: alive {alive.mean():.2f}, mean err {np.nanmean(err_sum[err_cnt > 0] / err_cnt[err_cnt > 0]):.3f} ({time.time()-t0:.0f}s)", flush=True)
     per_env = err_sum / np.maximum(err_cnt, 1); per_cand = per_env.reshape(G, R).mean(1); cnt = err_cnt.reshape(G, R).sum(1)
     eps = np.median(per_cand); post = np.exp(-(per_cand - per_cand.min()) / (2 * (0.1 * eps) ** 2)); post /= post.sum()
-    res = {"dataset": cfg.dataset, "grid": grid.tolist(), "error": per_cand.tolist(), "segments": cnt.tolist(), "posterior": post.tolist(),
-           "map": float(grid[int(np.argmin(per_cand))]), "mean": float((grid * post).sum()), "seg_len": K, "rounds": int(cfg.rounds)}
-    print("error per candidate:", " ".join(f"{g:.2f}:{e:.3f}" for g, e in zip(grid, per_cand)))
-    print(f"MAP motor scale {res['map']:.2f}, posterior mean {res['mean']:.2f}")
+    best = cand[int(np.argmin(per_cand))]; mean = (cand * post[:, None]).sum(0)
+    res = {"dataset": cfg.dataset, "candidates": cand.tolist(), "error": per_cand.tolist(), "segments": cnt.tolist(), "posterior": post.tolist(),
+           "map": best.tolist(), "mean": mean.tolist(), "seg_len": K, "rounds": int(cfg.rounds), "axes": ["motor", "friction", "mass"]}
+    if len(grid_f) == 1 and len(grid_k) == 1:
+        print("error per candidate:", " ".join(f"{g:.2f}:{e:.3f}" for g, e in zip(grid_m, per_cand)))
+    else:  # marginal posteriors per axis
+        for j, (ax, g) in enumerate(zip(["motor", "friction", "mass"], [grid_m, grid_f, grid_k])):
+            marg = np.array([post[cand[:, j] == v].sum() for v in g]); print(f"{ax:9s} marginal: " + " ".join(f"{v:.2f}:{m_:.2f}" for v, m_ in zip(g, marg)))
+    print(f"MAP (motor, friction, mass) = {best.round(2).tolist()}, posterior mean = {mean.round(2).tolist()}")
     if cfg.out: os.makedirs(os.path.dirname(os.path.abspath(cfg.out)), exist_ok=True); json.dump(res, open(cfg.out, "w"), indent=2)
     env.close()
 
