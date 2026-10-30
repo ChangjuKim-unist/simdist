@@ -13,7 +13,8 @@ seed: 0
 out:
 # scoring (design doc 10 §4): weight steps by the logged PD torque demand relative to the nominal limit, joint-space error only
 demand_weight: true
-joint_only: true
+joint_only: true   # (kept for reference; scoring now uses two channels)
+base_channel: true  # add the base-velocity channel (friction / mass)
 kp: 25.0
 kd: 0.5
 tau_nominal: 23.7

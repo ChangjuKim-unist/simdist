@@ -83,7 +83,7 @@ def main(cfg):
     jn = robot.joint_names; default_q = robot.data.default_joint_pos[0].cpu().numpy()
     leg_idx = [[jn.index(f"{l}_{p}_joint") for p in ("hip", "thigh", "calf")] for l in JOINT_ORDER]  # (4,3) indices into the 12 joints
     origins = env.scene.env_origins.cpu().numpy()
-    rng = np.random.default_rng(int(cfg.seed)); err_sum = np.zeros(N); err_cnt = np.zeros(N); t0 = time.time()
+    rng = np.random.default_rng(int(cfg.seed)); err_sum = np.zeros(N); err_sum_b = np.zeros(N); err_cnt = np.zeros(N); t0 = time.time()
     # segments: steps s..s+K inside a window (so inside one episode)
     for rnd in range(int(cfg.rounds)):
         s = rng.choice(starts, N) + rng.integers(0, 25 - K, N) if K < 25 else rng.choice(starts, N)
@@ -99,7 +99,7 @@ def main(cfg):
         robot.write_root_velocity_to_sim(torch.as_tensor(np.concatenate([v_w, w_w], -1), device=dev, dtype=torch.float32), ids)
         robot.write_joint_state_to_sim(torch.as_tensor(q, device=dev, dtype=torch.float32), torch.as_tensor(dq, device=dev, dtype=torch.float32), env_ids=ids)
         env.scene.write_data_to_sim()
-        seg_err = np.zeros(N); seg_w = np.zeros(N); alive = np.ones(N, bool)
+        seg_err = np.zeros(N); seg_err_b = np.zeros(N); seg_w = np.zeros(N); alive = np.ones(N, bool)
         for k in range(K):
             a_k = A[s + k]
             obs, _, term, trunc = env.step(torch.as_tensor(a_k, device=dev, dtype=torch.float32))[0:4]
@@ -111,15 +111,21 @@ def main(cfg):
             q_des = default_q[None] + float(cfg.action_scale) * a_k; q_log = default_q[None] + P[s + k][:, 9:21]
             tau = float(cfg.kp) * (q_des - q_log) - float(cfg.kd) * P[s + k][:, 21:33]
             w_k = np.clip(np.abs(tau).max(-1) / float(cfg.tau_nominal), 0.0, 1.0) ** 2 if cfg.demand_weight else np.ones(N)
-            dims = slice(9, 33) if cfg.joint_only else slice(0, 33)
-            e = ((pred - tgt) / std)[:, dims]
-            if k >= int(cfg.skip): seg_err += w_k * np.mean(e ** 2, -1); seg_w += w_k
+            e = (pred - tgt) / std
+            if k >= int(cfg.skip):
+                seg_err += w_k * np.mean(e[:, 9:33] ** 2, -1); seg_w += w_k           # joint channel (motor): demand-weighted
+                seg_err_b += np.mean(e[:, 0:6] ** 2, -1)                               # base-velocity channel (friction / mass): unweighted
         ok = alive & (seg_w > 0)
         err_sum += np.where(ok, seg_err / np.maximum(seg_w, 1e-8), 0); err_cnt += ok
+        err_sum_b += np.where(alive, seg_err_b / max(K - int(cfg.skip), 1), 0)
         if rnd % 5 == 0: print(f"round {rnd}: alive {alive.mean():.2f}, mean err {np.nanmean(err_sum[err_cnt > 0] / err_cnt[err_cnt > 0]):.3f} ({time.time()-t0:.0f}s)", flush=True)
     per_env = err_sum / np.maximum(err_cnt, 1); per_cand = per_env.reshape(G, R).mean(1); cnt = err_cnt.reshape(G, R).sum(1)
-    eps = np.median(per_cand); post = np.exp(-(per_cand - per_cand.min()) / (2 * (0.1 * eps) ** 2)); post /= post.sum()
-    best = cand[int(np.argmin(per_cand))]; mean = (cand * post[:, None]).sum(0)
+    per_cand_b = (err_sum_b / np.maximum(err_cnt, 1)).reshape(G, R).mean(1)
+    # two channels, each standardized by its median, combined as a product of Gaussian likelihoods
+    def logp(e): eps = np.median(e); return -(e - e.min()) / (2 * (0.1 * eps) ** 2)
+    lp = logp(per_cand) + (logp(per_cand_b) if cfg.base_channel else 0.0)
+    post = np.exp(lp - lp.max()); post /= post.sum(); per_cand = per_cand + (per_cand_b if cfg.base_channel else 0.0)
+    best = cand[int(np.argmax(post))]; mean = (cand * post[:, None]).sum(0)
     res = {"dataset": cfg.dataset, "candidates": cand.tolist(), "error": per_cand.tolist(), "segments": cnt.tolist(), "posterior": post.tolist(),
            "map": best.tolist(), "mean": mean.tolist(), "seg_len": K, "rounds": int(cfg.rounds), "axes": ["motor", "friction", "mass"]}
     if len(grid_f) == 1 and len(grid_k) == 1:
