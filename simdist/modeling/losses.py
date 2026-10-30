@@ -87,12 +87,18 @@ class WorldModelLoss(Loss):
         )
 
         latents_error = y_pred["latents"] - fut_latents
-        if self.loss_cfg.get("prior_weight", False) and "prior_weight" in y:
-            # prior-consistent adaptation (design doc 9): windows whose logged actions the deployed
-            # prior would not take are down-weighted, so they cannot overwrite the pretrained model
-            pw = jnp.asarray(y["prior_weight"]).reshape(-1)  # (B,)
+        bw = float(self.loss_cfg.get("boundary_weight", 1.0))
+        if (self.loss_cfg.get("prior_weight", False) and "prior_weight" in y) or (bw != 1.0 and "steps_to_end" in y):
+            # per-window weights: prior-consistency (design doc 9) and/or fall-boundary weight (design doc 10 §7:
+            # boundary_weight=0 drops windows that end within 25 steps of a fall)
             per_window = jnp.mean(latents_error**2, axis=(1, 2))
-            latent_dynamics_loss = jnp.sum(pw * per_window) / (jnp.sum(pw) + 1e-8)
+            w = jnp.ones_like(per_window)
+            if self.loss_cfg.get("prior_weight", False) and "prior_weight" in y:
+                w = w * jnp.asarray(y["prior_weight"]).reshape(-1)
+            if bw != 1.0 and "steps_to_end" in y:
+                is_boundary = (jnp.asarray(y["steps_to_end"])[:, -1] <= 25) & (jnp.asarray(y["terminated"])[:, -1] > 0.5)
+                w = w * jnp.where(is_boundary, bw, 1.0)
+            latent_dynamics_loss = jnp.sum(w * per_window) / (jnp.sum(w) + 1e-8)
         else:
             latent_dynamics_loss = jnp.mean(latents_error**2)
 

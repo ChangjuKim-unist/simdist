@@ -8,3 +8,4 @@ weights:
 
 # design doc 9: weight each window by the prior-consistency of its logged actions (prior_weight.hdf5)
 prior_weight: false
+boundary_weight: 1.0  # weight of windows ending within 25 steps of a fall (0 = exclude)
