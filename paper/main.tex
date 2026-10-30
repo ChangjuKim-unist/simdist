@@ -1,6 +1,5 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{times}
-\usepackage[T1]{fontenc}
 \usepackage[numbers]{natbib}
 \usepackage{multicol}
 \usepackage[bookmarks=true]{hyperref}
@@ -8,125 +7,79 @@
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
-
-% ---- draft helpers (remove before submission) ----
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
-\newcommand{\prelim}[1]{\textcolor{blue}{#1}}   % numbers from preliminary runs
-\newcommand{\vsim}{V_{\mathrm{sim}}}
-\newcommand{\res}{\delta}
+\newcommand{\prelim}[1]{\textcolor{blue}{#1}}
 
 \pdfinfo{
-   /Title  (Prior First: Coverage, Planning and the Order of Real-World Adaptation for Simulation-Pretrained World-Model Planners)
+   /Title  (Identify, Then Cover: Where Coverage Comes From in Simulation-Pretrained World-Model Planners)
 }
 
 \begin{document}
 
-\title{Prior First: Coverage, Planning, and the Order of Real-World Adaptation\\for Simulation-Pretrained World-Model Planners}
-% alternative titles
-% - Cover Before You Adapt: What Real-Robot Data Can and Cannot Fix in a Simulation-Pretrained World-Model Planner
-% - The Prior Sets the Coverage: Robust Priors, Planner Recovery and Prior-First Adaptation
+\title{Identify, Then Cover: Where Coverage Comes From\\in Simulation-Pretrained World-Model Planners}
 
 \author{Author Names Omitted for Anonymous Review. Paper-ID [add your ID here]}
 
 \maketitle
 
-% =====================================================================
 \begin{abstract}
-Simulation-pretrained latent world models with sampling-based planners can be adapted to a real legged robot from
-minutes of data by finetuning only the latent dynamics. We ask what this adaptation can and cannot fix. On a
-Unitree Go1 and a matched simulation-to-simulation benchmark (perturbed actuation, payload and friction), we find
-three things. (1) \emph{Coverage is set by the planner's prior alone}: under a 60\,\% weaker actuator, neither
-planning on the pretrained model nor dynamics adaptation from 45k real-format steps reduces falls when the prior
-(the cloned policy) was not trained to cover that regime (\prelim{10 falls per 1000 steps for every prior whose
-randomization stops above $0.7\times$ nominal torque}), while widening the prior's randomization to cover it
-cuts falls fourfold with no real data. The covering prior does not identify the actuator regime from its
-history (probe $R^2\approx0$); it is a single robust gait. (2) \emph{Planning recovers the prior's imperfection
-inside its coverage}: on top of every prior the planner halves to quarters the falls of the cloned policy and
-raises reward, with the largest gains for the least accurate priors. (3) \emph{Adaptation data is coupled to the
-prior that collected it}: dynamics adapted on data from the narrow prior make the planner with the broad prior
-\prelim{2.2$\times$} worse than the pretrained model, whereas data collected by the deployed prior never hurt
-and improve the nominal condition. These results give a simple recipe --- cover the target regime in simulation
-first, plan on top of the covering prior, and collect adaptation data with that prior --- which we validate on
-the Go1 under software torque caps and a payload. \todo{hardware numbers}
+Latent world models pretrained in simulation and deployed with a sampling-based planner can be adapted to a real legged robot from minutes of data by finetuning only the latent dynamics. We ask what this real-data adaptation can and cannot fix. In a controlled simulation-to-simulation benchmark on a Unitree Go1 (perturbed actuator strength, payload and friction, 18 robots $\times$ 100\,s per condition, paired bootstrap intervals), we find that (i) the ability to operate under a new dynamics regime is set entirely by the planner's sampling prior: when the prior's domain randomization does not reach the regime, neither planning on the pretrained model nor dynamics adaptation from 45k real-format steps reduces falls (10 per 1000 steps for every prior whose randomization stops above $0.7\times$ nominal torque), whereas a prior that covers it cuts falls fourfold with no real data; (ii) the planner recovers the prior's compounding error inside its coverage (falls $\times$0.2--0.5) but cannot extend it; and (iii) real-data updates of either the dynamics or the prior are coupled to the policy that collected the data: data from a different prior makes the adapted model 2.2$\times$ and the updated prior 2.8$\times$ worse than no update. We then show that the covering prior does not identify the actuator regime from its history (probe $R^2\approx0$), yet the regime is identified, independently of the collecting policy, by replaying the logged transitions in the simulator ($0.45$--$0.50$ for a true scale of $0.40$). This motivates a recipe that moves real data from model fitting to physics identification: identify the actuator axis from one minute of logs, train the prior in simulation to cover the identified regime, plan on top of it, and adapt the model only on on-policy data generated in the identified simulator. We report the simulation evidence and \prelim{preliminary} hardware results under software torque caps with known ground truth.
 \end{abstract}
 
-% =====================================================================
 \section{Introduction}
-\todo{Motivation: SimDist-style pipelines (frozen encoder/reward/value, adapted dynamics, MPPI) and the implicit
-claim that real-data adaptation plus planning handles new conditions. Our question: which failures of the
-deployed planner are fixable by adaptation, which by planning, and which only by the pretraining prior.}
+Sim-to-real pipelines for world-model planners pretrain a latent model $(E,C,f,R,V,\pi)$ in simulation and, on the robot, finetune only the latent dynamics $f$ from a few minutes of data while the encoder, reward, value and policy prior stay frozen~\cite{levy2026simdist}. The implicit promise is that real-data adaptation plus planning handles conditions the simulation did not cover. This paper tests that promise component by component. Using the public SimDist pipeline on a Unitree Go1 and a simulation-to-simulation benchmark in which the ``real'' robot is a perturbed copy of the training simulator, we measure, for each component, what it can fix.
 
-\todo{Contributions C1--C3 as in the abstract; the recipe; the sim-to-sim benchmark and tools; hardware
-validation with a software torque cap that reproduces the simulator's effort limit.}
+Our findings reverse the usual order of effort. Real-data adaptation of $f$ and planning on top of it leave falls under a weak actuator unchanged unless the prior $\pi$ was trained to cover that regime; coverage is a property of pretraining, not of adaptation. Planning is valuable, but for a different reason than usually stated: it corrects the compounding error of the behavior-cloned prior inside the prior's coverage. And real data is dangerous in a specific way: any supervised update, of the model or of the prior, degrades the deployed system if the data were collected by a different prior, in line with the concentrability term of batch system identification~\cite{ross2012agnostic}.
 
-% =====================================================================
+These three measurements point to one recipe. Because the regime that matters (actuator strength) is invisible to the prior's history but identifiable by replaying logged transitions through the simulator, real data should be used to \emph{identify} the physics, the prior should then be trained in simulation to \emph{cover} the identified regime, the planner should run on top of it, and model adaptation, if any, should use on-policy data generated in the identified simulator rather than fall-heavy real logs. Our contributions are (1) the component-wise measurement of what adaptation, planning and the prior can fix, with pre-registered predictions; (2) the coupling result for model and prior updates; (3) a policy-independent replay identifier for the actuator axis and the identify-then-cover recipe; (4) a hardware protocol with ground-truth actuator weakening (software torque caps) on the Go1, with \prelim{preliminary results}.
+
 \section{Related Work}
-\todo{World-model planners with sim pretraining (SimDist, TD-MPC2 real-world, DreamerV3 sim-to-real); residual
-and selective adaptation; domain randomization and privileged distillation (RMA, HIM, ADAPT, DrEureka): robust
-vs.\ adaptive policies; prior staleness in model-based RL (ProxPI); data collection policies for adaptation.
-Position: we do not propose a new model or planner; we measure where the value of each component lies and
-derive the order of adaptation.}
+\textbf{Sim-pretrained world-model planners.} SimDist~\cite{levy2026simdist} and related real-world model-based systems~\cite{wu2022daydreamer,hansen2024tdmpc2,hafner2023dreamerv3,feng2023fowm} adapt a latent model from minutes of data; none studies how the pretraining randomization of the planner's prior bounds what adaptation can fix. \textbf{Robust and adaptive locomotion.} Privileged distillation with domain randomization~\cite{kumar2021rma,long2024him,smith2023walk,ma2024dreureka} yields policies that either identify the regime from history or are robust to it; we measure which of the two a motor-randomized prior does and find robustness. \textbf{Policy-dependent model error.} Batch system identification carries a concentrability factor between the deploying and collecting policies~\cite{ross2012agnostic}; model-based RL analyses~\cite{janner2019mbpo,rajeswaran2020game,wang2023pdml,lambert2020objective} reach the same conclusion. We provide the first hardware-relevant measurement of this coupling for a latent world model. \textbf{Identification from real data.} Offline domain-randomization fitting~\cite{tiboni2023dropo,tiboni2024doraemon}, active system identification~\cite{memmel2024asid,sobanbabu2025spiactive} and residual world models~\cite{lanier2025redraw} are our building blocks; we use replay identification as the carrier of real information into a world-model planner.
 
-% =====================================================================
-\section{Preliminaries}
-\todo{Latent world model $(E, C, f, R, V, \pi)$, MPPI with prior samples from $\pi$, SimDist adaptation (dynamics
-only, 45k steps). History-conditioned student prior $\pi_w$ cloned from an expert trained under motor-strength
-randomization $\mathcal{U}(w, 1.1)$; receding-horizon execution of $\pi_w$ alone; planner with $\pi_w$ replacing
-the policy head. Notation for conditions $\xi$ (motor scale, payload, friction).}
+\section{Setting and Measurements}
+\textbf{System.} We use SimDist's Go1 pipeline: a latent world model with history encoder, latent dynamics, reward, value and a behavior-cloned policy head $\pi$; MPPI with 200 samples $\times$ 3 iterations at 50\,Hz, 5\,\% of the samples drawn from the prior; real-data adaptation finetunes $f$ only. The sim-to-sim benchmark perturbs the simulator (motor-strength scale $s$ applied to the torque limit, payload, foot friction); 45k real-format steps are collected with the deployed planner and used for adaptation exactly as on the robot. Performance is measured on 18 robots $\times$ 100\,s per condition (falls per 1000 steps, reward per step) with paired bootstrap 95\,\% intervals.
 
-% =====================================================================
-\section{What Sets Coverage: The Prior, Not the Model}
-\todo{E1 width sweep (Table~\ref{tab:width}): student alone (D) and student + planner on pretrained dynamics (B0)
-across five randomization widths at nominal, $0.6\times$ and $0.4\times$ torque. Falls at $0.4\times$ stay at
-$\approx$10/1000 until the randomization reaches the regime; the planner cannot extend coverage (ratio 1.0--1.14).
-Adaptation on the narrow prior: 3.8 $\to$ 3.2 only. Probe: the covering expert's actions do not depend on the
-motor scale given the history; visibility $R^2\approx0$: robustness, not identification.}
+\textbf{Priors.} Besides SimDist's narrow prior (nominal-condition expert), we train experts with motor-strength randomization $\mathcal{U}(w, 1.1)$ for $w\in\{0.9,0.7,0.5,0.3\}$ and clone them into history-conditioned priors with an identical recipe (1.5M windows, 20k steps); for a fair comparison with SimDist's own prior we also retrain only the world model's policy head on pretraining-style data from the broad ($w=0.3$) expert (``broad head'').
 
-\begin{table}[t]\centering\caption{Width sweep (falls / 1000 steps $\cdot$ reward / step; 18 robots $\times$ 100\,s).}
-\label{tab:width}
-\todo{table from results/stage1/eval\_width.csv}
-\end{table}
+\subsection{Coverage is set by the prior}
+\begin{table}[t]\centering\caption{Falls per 1000 steps at $0.4\times$ torque (18 robots $\times$ 100\,s). D: prior alone; B0: prior + planner on the pretrained model. $w$: lower bound of the prior's motor randomization.}\label{tab:cov}
+\small\begin{tabular}{lccccc}\toprule
+$w$ & none & 0.9 & 0.7 & 0.5 & 0.3\\\midrule
+D (prior alone) & 10.2 & 11.4 & 9.6 & 4.3 & 2.3\\
+B0 (prior + planner) & 10.3 & 12.9 & 10.9 & 3.6 & 2.2\\
+B0/D [95\,\% CI] & 1.02 [0.99, 1.05] & 1.13 & 1.14 & 0.83 [0.74, 0.93] & 0.96 [0.66, 1.36]\\\bottomrule
+\end{tabular}\end{table}
+Table~\ref{tab:cov} sweeps the prior's randomization width at a true scale of $0.4$. Falls stay at $\approx$10 per 1000 steps until the randomization reaches the regime and drop to $2.3$ when it does; the planner on the pretrained model does not change this curve. Real-data adaptation with the narrow prior moves falls only from $3.8$ to $3.2$ (SimDist's own recipe, 45k steps), while widening the prior moves them from $3.2$ to $0.9$ with no real data. With SimDist's own policy head the same picture holds: SimDist $4.1$ vs.\ the broad head $1.5$ at $0.4\times$ torque. Widening is not free for a well-trained head: nominal reward drops 22\,\% and falls at friction $0.15$ double ($1.0\to2.2$); the prior buys the axis it was randomized on.
 
-% =====================================================================
-\section{What Planning Recovers: The Prior's Imperfection}
-\todo{Paired ratios B0/D at nominal and $0.6\times$ for every width (0.22--0.51), reward gains; smallest for the
-broad student. Interpretation: the planner corrects compounding error of the cloned prior with the world model;
-it does not substitute for coverage. Hardware prediction: larger gains on the real robot (less accurate prior).}
+\subsection{Planning recovers the prior's imperfection}
+Inside the coverage, the planner lowers the falls of every cloned prior at nominal and $0.6\times$ torque (ratios $0.22$--$0.51$, all intervals excluding 1), with the largest gains for the least accurate priors and almost none for the broad prior ($0.85$ [0.70, 1.05]). Outside the coverage it changes nothing (Table~\ref{tab:cov}). Planner-side modifications we pre-registered (annealed sampling noise, an execution-consistency gate that falls back to the prior when the predicted latent diverges) gave no gain.
 
-% =====================================================================
-\section{What Real Data Fixes: Prior-First Adaptation}
-\todo{E2 (Table~\ref{tab:pf}): B (adapted on narrow-prior data) vs.\ B0 vs.\ B$'$ (adapted on data collected by
-the deployed prior) at $0.4\times$ torque and nominal. Coupling: B is 2.15$\times$ [1.64, 2.78] worse than B0;
-B$'$ = B0 at $0.4\times$, B$'$ better than B0 at nominal (falls $\times$0.74, reward +5\,\%). Concentrability
-argument (short).}
+\subsection{Real-data updates are coupled to the collecting prior}
+\begin{table}[t]\centering\caption{Coupling. Falls per 1000 at $0.4\times$ torque with the broad prior + planner; ratio to the un-updated system [95\,\% CI].}\label{tab:coupling}
+\small\begin{tabular}{llc}\toprule
+update & data collected by & ratio\\\midrule
+dynamics $f$ & narrow prior (SimDist's) & 2.15 [1.64, 2.78]\\
+dynamics $f$ & the deployed (broad) prior & 1.00 [0.84, 1.19]\\
+prior $\pi$ (BC on executed actions) & narrow prior & 2.83 [2.30, 3.57]\\
+prior $\pi$ & the deployed prior & 1.12 [0.88, 1.43]\\\bottomrule
+\end{tabular}\end{table}
+Table~\ref{tab:coupling} adapts the dynamics, and separately the prior, on 45k steps collected either by SimDist's narrow prior or by the deployed broad prior. Data from the other prior degrade both updates by more than $2\times$ relative to no update; data from the deployed prior never hurt and improve the nominal condition (falls $\times0.74$ [0.55, 0.98]). Re-weighting the foreign data by prior consistency, or weighting the prior's training data by a real-vs-sim density ratio, reduced but did not remove the harm (ratios $1.4$--$1.7$), and a residual-on-frozen dynamics removed it at $0.4\times$ torque but not at nominal; the supports overlap too little for re-weighting to help.
 
-\begin{table}[t]\centering\caption{Prior-first adaptation.}\label{tab:pf}
-\todo{table from results/stage1/eval\_priorfirst.csv}
-\end{table}
+\subsection{The regime is invisible to the prior but identifiable by replay}
+A probe regressing the motor scale from the prior's 25-step history reaches $R^2=0.004$ on the broad expert's data, and the expert's actions do not depend on the scale given the history: the covering prior walks with one robust gait rather than identifying the regime. Replaying logged transitions in the simulator identifies it nonetheless. Each simulated robot is reset to a logged state, applies the logged actions open-loop for 0.4\,s under a candidate scale, and is scored by the joint-space error on steps where the logged PD torque demand approaches the limit. From logs collected at a true scale of $0.40$ the estimate is $0.50$ (deployed prior's logs) and $0.45$ (narrow prior's logs); from nominal logs it is $1.03$. The same replay identifies added payload ($3.0$\,kg for a true $3.0$) but not foot friction, which does not express itself in a 0.4\,s open-loop replay.
 
-% =====================================================================
-\section{Hardware Validation}
-\todo{Go1, software torque cap in the bridge (host-side PD saturated at $s\times 23.7$\,Nm), conditions nominal /
-60\,\% / 40\,\% / +3\,kg; models M1 SimDist (narrow prior, 29.5 min adapted), M2 broad student alone, M3 student +
-planner (pretrained), M4 M3 + prior-first adaptation (10 min), M5 broad student + dynamics adapted on the
-narrow-prior real data. Pre-registered predictions H1--H4 (design doc 6 \S9) and outcomes.}
+\section{Identify, Then Cover}
+The recipe follows from the measurements. (1) \emph{Identify:} from one minute of logs under the target condition, collected by whatever prior is deployed, estimate the actuator scale by replay. (2) \emph{Cover:} train the expert in simulation with randomization that contains the identified scale with margin, and clone it into the policy head of the pretrained world model (encoder, dynamics, reward and value frozen). (3) \emph{Plan} with the unchanged MPPI on the pretrained model. (4) \emph{Adapt only on identified-simulator data:} if the latent dynamics is adapted at all, generate on-policy data with the deployed prior in the identified simulator rather than using real logs. In our benchmark, adapting the broad head on 45k on-policy steps from the identified simulator ($s=0.5$) reduced falls at the true $0.4$ from $1.49$ to $1.24$ ([0.62, 1.11]), whereas adapting it on on-policy data from the true condition raised them to $2.74$ ([1.25, 2.51]) and degraded the nominal condition; the fall-heavy saturated dynamics is learned at the expense of the frozen value head's calibration. \todo{identification-driven prior ($w=0.3$--$0.7$) vs.\ blanket broad prior: results pending.}
 
-% =====================================================================
+\section{Hardware Protocol and Preliminary Results}
+Actuator weakening on the Go1 is realized in the low-level bridge as a host-side PD law saturated at $s\times23.7$\,Nm (the simulator's effort limit), so the ground-truth scale is known. Conditions: flat ground nominal, $s=0.6$, $s=0.4$, and a 3\,kg payload. Models: SimDist with its narrow prior adapted on 29.5\,min of real data; the broad prior alone; the broad prior with the planner on the pretrained model; the same with the model adapted on identified-simulator data; and, as the coupling test, the broad prior with the model adapted on the 29.5\,min collected by the narrow prior. Ten 30\,s runs per model and condition; falls, speed-tracking error and distance are logged with fall termination flags. Pre-registered predictions: the replay identifier recovers $0.6$ and $0.4$ within $\pm0.15$; the broad prior walks at $s=0.4$ where SimDist falls or stands; the planner's gain over the prior alone is larger than in simulation because the real prior is further from the expert; the narrow-data-adapted model degrades the broad prior. \prelim{Preliminary results will be inserted here (sessions in November).}
+
 \section{Limitations}
-Inside the covered regime the planner on a broad prior matches the broad policy alone; the value of planning
-lies in recovering imperfect priors and, untested here, in new objectives and constraints. Adaptation gave no
-gain at $0.4\times$ torque because the pretrained dynamics were already adequate around the robust prior. Single
-embodiment; one expert seed per width (\todo{update with seeds}); falls and reward as the only metrics;
-sim-to-sim shifts are physically simple (actuation, payload, friction). The label-free diagnostic of coverage
-we attempted (history visibility) failed; the practical test remains ``does the prior walk there in simulation''.
+All quantitative results are from a simulation-to-simulation benchmark on one embodiment, with one expert seed per randomization width (seed variance is comparable to the width effect for the cloned priors, which is why we also report the retrained policy head). Inside the covered regime a good prior matches the planner, so the value of planning rests on the prior being imperfect, which we expect on hardware but have not yet shown. Replay identification works for the actuator axis and payload but not for friction, and motor strength and payload partially trade off in a joint grid. Adaptation on true-condition data degraded the broad head in our benchmark; we report this as an observation, not a general claim. Hardware results are preliminary at this stage.
 
-% =====================================================================
 \section{Conclusion}
-\todo{Recipe restated; what it changes in SimDist-style pipelines (randomize the actuator in the prior's
-expert, collect adaptation data with the deployed prior); future work: outcome-based candidate filters,
-concentrability of dynamics data, second embodiment.}
+In a simulation-pretrained world-model planner, the pretraining prior decides which dynamics regimes the robot can handle, planning repairs the prior within that envelope, and real-data updates are tied to the policy that collected the data. Real data is therefore best spent on identifying the physics, after which coverage is bought in simulation. The hardware stage will test the recipe under actuator caps with known ground truth.
 
-\bibliographystyle{IEEEtranN}
+\bibliographystyle{plainnat}
 \bibliography{references}
-
 \end{document}
