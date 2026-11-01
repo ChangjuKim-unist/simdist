@@ -73,6 +73,13 @@ def _apply_go1(cfg: Go2EnvCfg):
         cfg.events.physics_material.params["dynamic_friction_range"] = (lo, hi)
         print(f"[go1] foot-friction DR range from GO1_FRICTION_DR: ({lo}, {hi})")
 
+    # optional added-base-mass randomization override (design doc 11, payload axis): GO1_MASS_DR="lo,hi" [kg]
+    mk = os.environ.get("GO1_MASS_DR")
+    if mk:
+        lo, hi = (float(x) for x in mk.split(","))
+        cfg.events.add_base_mass.params["mass_distribution_params"] = (lo, hi)
+        print(f"[go1] added-mass DR range from GO1_MASS_DR: ({lo}, {hi})")
+
     # the Go1 has no head bodies
     cfg.terminations.base_contact.params["sensor_cfg"].body_names = [
         BASE_BODY,

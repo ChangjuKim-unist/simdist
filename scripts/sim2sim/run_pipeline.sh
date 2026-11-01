@@ -73,6 +73,10 @@ condition_overrides() {
     weak_motor)   echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.6" ;;
     very_weak_motor) echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.4" ;;
     motor0.5)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.5" ;;   # identified-sim condition (design doc 10, MAP of the 0.4 logs)
+    motor0.3)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.3" ;;
+    motor0.6)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.6" ;;
+    motor0.8)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.8" ;;
+    payload5)     echo "sim.friction=0.8 sim.add_mass=5.0 sim.motor_strength=1.0" ;;
     combo)        echo "sim.friction=0.4 sim.add_mass=2.0 sim.motor_strength=0.8" ;;
     combo_hard)   echo "sim.friction=0.3 sim.add_mass=3.0 sim.motor_strength=0.6" ;;
     *) echo "unknown condition: $1" >&2; exit 1 ;;

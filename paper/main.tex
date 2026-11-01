@@ -92,7 +92,7 @@ Algorithm~1 is a composition of known pieces (offline randomization fitting, pri
 \textbf{Step 4 in the benchmark.} Adapting the broad head on 45k on-policy steps generated at the identified scale ($\hat s=0.5$) changed falls at the true $0.4$ from $1.49$ to $1.24$ (ratio $0.84$ [0.62, 1.11], not significant) and left the nominal condition unchanged. Adapting it on on-policy data generated at the true scale ($0.4$) raised falls to $2.74$ (ratio $1.84$ [1.25, 2.51]) and degraded the nominal condition ($1.38$ [1.14, 1.60]); removing the windows that end in a fall made it worse ($3.26$). We read this as the frozen value head misjudging latent trajectories once the dynamics has learned saturation, but we cannot yet separate this from the identifier's upward bias, which makes the identified-simulator data fall-free; a control with matched fall content is pending.
 
 \begin{table}[t]\centering\caption{Pre-registered hypotheses and outcomes (simulation).}\label{tab:hyp}
-\small\begin{tabular}{p{0.62\columnwidth}l}\toprule
+\scriptsize\begin{tabular}{@{}p{0.66\columnwidth}p{0.30\columnwidth}@{}}\toprule
 hypothesis & outcome\\\midrule
 H1 falls at $0.4\times$ torque drop only when the prior's DR reaches it & supported\\
 H2 nominal cost grows monotonically with DR width & not supported (seed variance $>$ width effect)\\
