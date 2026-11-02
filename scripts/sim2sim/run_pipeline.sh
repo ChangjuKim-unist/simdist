@@ -77,6 +77,7 @@ condition_overrides() {
     motor0.6)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.6" ;;
     motor0.8)     echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.8" ;;
     payload5)     echo "sim.friction=0.8 sim.add_mass=5.0 sim.motor_strength=1.0" ;;
+    friction0.15) echo "sim.friction=0.15 sim.add_mass=0.0 sim.motor_strength=1.0" ;;
     combo)        echo "sim.friction=0.4 sim.add_mass=2.0 sim.motor_strength=0.8" ;;
     combo_hard)   echo "sim.friction=0.3 sim.add_mass=3.0 sim.motor_strength=0.6" ;;
     *) echo "unknown condition: $1" >&2; exit 1 ;;
