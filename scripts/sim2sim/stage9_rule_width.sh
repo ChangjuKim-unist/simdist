@@ -7,7 +7,7 @@ set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh; OUT=results/stage9; mkdir -p 
 echo "### rule-width start $(date)"
 
 # ---- head pipeline: head NAME MOTOR_LO,MOTOR_HI [FRICTION_LO,FRICTION_HI] ----
-head() { local name=$1 mdr=$2 fdr=${3:-}; local env="GO1_MOTOR_DR=$mdr"; [ -n "$fdr" ] && env="$env GO1_FRICTION_DR=$fdr"
+mkhead() { local name=$1 mdr=$2 fdr=${3:-}; local env="GO1_MOTOR_DR=$mdr"; [ -n "$fdr" ] && env="$env GO1_FRICTION_DR=$fdr"
   local EXP=$OUT/expert_$name.txt DSF=$OUT/dataset_$name.txt
   if [ ! -f $EXP ]; then
     local before=$(ls -t checkpoints/rl | head -1); echo "== expert $name ($env) $(date +%H:%M)"
@@ -44,8 +44,8 @@ run() { local name=$1 ckpt=$2 cond=$3; shift 3
 }
 
 # ---- E1: width-cost curve (lower bound 0.3 fixed, upper varies; eval at motor 0.4 inside all) ----
-head rw_w02 0.3,0.5 && for c in motor0.4 nominal; do run H_rw_w02_planner go1_paper_rw_w02 $c; done
-head rw_w06 0.3,0.9 && for c in motor0.4 nominal; do run H_rw_w06_planner go1_paper_rw_w06 $c; done
+mkhead rw_w02 0.3,0.5 && for c in motor0.4 nominal; do run H_rw_w02_planner go1_paper_rw_w02 $c; done
+mkhead rw_w06 0.3,0.9 && for c in motor0.4 nominal; do run H_rw_w06_planner go1_paper_rw_w06 $c; done
 
 # ---- E4: reference heads and SimDist at the E2 true values ----
 for c in motor0.5 motor0.6; do run H_targethead_planner go1_paper_targethead $c; run H_broadhead_planner go1_paper_broadhead $c; run A_simdist_planner go1_paper $c; done
@@ -74,9 +74,9 @@ K=$(python3 -c "import json;print(round(json.load(open('$OUT/k.json'))['k'],2))"
 # ---- E2: rule-width heads for true 0.5 and 0.6 (posteriors from S2b broadhead logs, bias set {0.05,0.10}) ----
 for s in 0.5 0.6; do
   tag=${s/./}; R=$(python3 scripts/sim2sim/dr_from_posterior.py results/stage7/id_s2b_bh_s$s.json --k $K 2>$OUT/rule_t$tag.json); echo "== rule range true $s: $R"
-  head rw_t$tag $R && for c in motor$s nominal; do run H_rw_t${tag}_planner go1_paper_rw_t$tag $c; done
+  mkhead rw_t$tag $R && for c in motor$s nominal; do run H_rw_t${tag}_planner go1_paper_rw_t$tag $c; done
 done
 
 # ---- E3: friction-blanket head (no identification; lower bound 0.1 covers friction 0.15) ----
-head fr_blanket 1.0,1.0 0.1,1.2 && for c in friction0.15 nominal; do run H_fr_blanket_planner go1_paper_fr_blanket $c; done
+mkhead fr_blanket 1.0,1.0 0.1,1.2 && for c in friction0.15 nominal; do run H_fr_blanket_planner go1_paper_fr_blanket $c; done
 echo "### rule-width done $(date)"
