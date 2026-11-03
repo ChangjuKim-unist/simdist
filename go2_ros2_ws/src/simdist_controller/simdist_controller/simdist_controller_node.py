@@ -248,7 +248,7 @@ class SimdistControllerNode(Node):
 
         self.publish_action(action)
 
-        if self.robot_state == "WALKING":
+        if self.robot_state == "WALKING" and not self.fell:  # after a fall the bridge overrides every command with damping
             self.logger.write(obs, elev, action, cmd)
 
         self.last_action = action
@@ -274,9 +274,11 @@ class SimdistControllerNode(Node):
                 self.loop_timer.disable_print()
 
     def fallen_callback(self, msg):
-        if msg.data:
+        if msg.data and not self.fell:
             self.fell = True
-            self.get_logger().warn("Fall event from the bridge: episode will be logged as terminated")
+            self.get_logger().warn("Fall event from the bridge: closing the episode log as terminated")
+            with self.log_lock:  # close now; the rows after this point would be actions the bridge never applied
+                self.logger.close(terminated=True)
 
     def observation_callback(self, msg: Float32MultiArray):
         with self.obs_lock:

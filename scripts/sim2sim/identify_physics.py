@@ -64,6 +64,9 @@ def main(cfg):
     tg.sub_terrains = {"plane": tg.sub_terrains["plane"]}
     env_cfg.events.physics_material.params["static_friction_range"] = (cfg.friction, cfg.friction); env_cfg.events.physics_material.params["dynamic_friction_range"] = (cfg.friction, cfg.friction)
     env_cfg.events.add_base_mass.params["mass_distribution_params"] = (cfg.add_mass, cfg.add_mass)
+    env_cfg.seed = int(cfg.seed)
+    for ev in ("joint_stiffness_and_damping", "joint_friction"):  # nominal Kp/Kd/joint friction for every candidate (no per-reset draws)
+        if hasattr(env_cfg.events, ev): setattr(env_cfg.events, ev, None)
     env = ManagerBasedRLEnv(env_cfg); env.reset()
     robot = env.scene["robot"]; dev = env.device
     act = robot.actuators["base_legs"]; nominal = act.effort_limit.clone()
@@ -80,15 +83,31 @@ def main(cfg):
         masses[:, base_id] = robot.data.default_mass[:, base_id].cpu() + torch.as_tensor(cand_env[:, 2], dtype=masses.dtype)
         robot.root_physx_view.set_masses(masses, torch.arange(N))
     names = ["base_lin_vel", "base_ang_vel", "projected_gravity", "joint_pos", "joint_vel", "cos_sin_phase"]  # go1 proprio layout (35 dims)
-    jn = robot.joint_names; default_q = robot.data.default_joint_pos[0].cpu().numpy()
-    leg_idx = [[jn.index(f"{l}_{p}_joint") for p in ("hip", "thigh", "calf")] for l in JOINT_ORDER]  # (4,3) indices into the 12 joints
+    jn = robot.joint_names; default_q = robot.data.default_joint_pos[0].cpu().numpy()   # articulation (Isaac) joint order
+    # the log's joint_pos / joint_vel / actions are in Unitree order (simdist.rl.go2.JOINT_NAMES, preserve_order=True);
+    # u2n[i] = articulation index of Unitree joint i. Before 2026-11-03 the two orders were added together (bug).
+    from simdist.rl.go2 import JOINT_NAMES
+    u2n = np.array([jn.index(n) for n in JOINT_NAMES]); default_u = default_q[u2n]
+    print("articulation joint order:", jn); print("Unitree -> articulation index map:", u2n.tolist())
+    leg_idx = [[jn.index(f"{l}_{p}_joint") for p in ("hip", "thigh", "calf")] for l in JOINT_ORDER]  # (4,3) articulation indices
     origins = env.scene.env_origins.cpu().numpy()
-    rng = np.random.default_rng(int(cfg.seed)); err_sum = np.zeros(N); err_sum_b = np.zeros(N); err_cnt = np.zeros(N); t0 = time.time()
+    rng = np.random.default_rng(int(cfg.seed)); t0 = time.time(); RND = int(cfg.rounds)
+    E = np.zeros((RND, N)); W = np.zeros((RND, N)); EB = np.zeros((RND, N)); NB = np.zeros((RND, N)); fell = np.zeros((RND, N), bool)
+    padded = ~np.any(A != 0, axis=-1)  # all-zero action rows = the aggregator's frozen 25-step prefix, not real motion
+    def sample_starts():
+        off = lambda n: rng.integers(0, 25 - K, n) if K < 25 else 0
+        s = rng.choice(starts, N) + off(N)
+        for _ in range(20):  # resample windows that overlap the padded prefix
+            bad = padded[s] | padded[s + K - 1]
+            if not bad.any(): break
+            s[bad] = rng.choice(starts, int(bad.sum())) + off(int(bad.sum()))
+        return s
     # segments: steps s..s+K inside a window (so inside one episode)
-    for rnd in range(int(cfg.rounds)):
-        s = rng.choice(starts, N) + rng.integers(0, 25 - K, N) if K < 25 else rng.choice(starts, N)
+    for rnd in range(RND):
+        s = sample_starts()
         p0 = P[s]  # (N,35)
-        q = default_q[None] + p0[:, 9:21]; dq = p0[:, 21:33]
+        q = np.repeat(default_q[None], N, 0).astype(np.float32); dq = np.zeros((N, 12), np.float32)
+        q[:, u2n] = default_u[None] + p0[:, 9:21]; dq[:, u2n] = p0[:, 21:33]   # Unitree-ordered log -> articulation order
         quat, roll, pitch = quat_from_gravity(p0[:, 6:9]); Rm = rotmat(roll, pitch)
         feet = foot_positions_base(q[:, np.array(leg_idx)])  # (N,4,3) using Isaac joint index map per leg
         feet_w = np.einsum("nij,nkj->nki", Rm, feet); z = -(feet_w[..., 2].min(1)) + R_FOOT
@@ -103,31 +122,48 @@ def main(cfg):
         for k in range(K):
             a_k = A[s + k]
             obs, _, term, trunc = env.step(torch.as_tensor(a_k, device=dev, dtype=torch.float32))[0:4]
-            alive &= ~(term | trunc).cpu().numpy()
+            alive &= ~(term | trunc).cpu().numpy()   # a candidate that falls keeps accumulating error (its post-reset obs vs the log)
             pred = np.concatenate([obs["obs"][n].cpu().numpy() for n in names], -1)
             tgt = P[s + k + 1]
-            # torque demand of the logged PD command (Kp (q_des - q) - Kd dq); the motor cap only matters where it binds,
-            # so steps are weighted by how close the demand comes to the nominal limit
-            q_des = default_q[None] + float(cfg.action_scale) * a_k; q_log = default_q[None] + P[s + k][:, 9:21]
+            # torque demand of the logged PD command (Kp (q_des - q) - Kd dq), Unitree order; the motor cap only matters where it
+            # binds, so steps are weighted by how close the demand comes to the nominal limit
+            q_des = default_u[None] + float(cfg.action_scale) * a_k; q_log = default_u[None] + P[s + k][:, 9:21]
             tau = float(cfg.kp) * (q_des - q_log) - float(cfg.kd) * P[s + k][:, 21:33]
             w_k = np.clip(np.abs(tau).max(-1) / float(cfg.tau_nominal), 0.0, 1.0) ** 2 if cfg.demand_weight else np.ones(N)
             e = (pred - tgt) / std
             if k >= int(cfg.skip):
                 seg_err += w_k * np.mean(e[:, 9:33] ** 2, -1); seg_w += w_k           # joint channel (motor): demand-weighted
                 seg_err_b += np.mean(e[:, 0:6] ** 2, -1)                               # base-velocity channel (friction / mass): unweighted
-        ok = alive & (seg_w > 0)
-        err_sum += np.where(ok, seg_err / np.maximum(seg_w, 1e-8), 0); err_cnt += ok
-        err_sum_b += np.where(alive, seg_err_b / max(K - int(cfg.skip), 1), 0)
-        if rnd % 5 == 0: print(f"round {rnd}: alive {alive.mean():.2f}, mean err {np.nanmean(err_sum[err_cnt > 0] / err_cnt[err_cnt > 0]):.3f} ({time.time()-t0:.0f}s)", flush=True)
-    per_env = err_sum / np.maximum(err_cnt, 1); per_cand = per_env.reshape(G, R).mean(1); cnt = err_cnt.reshape(G, R).sum(1)
-    per_cand_b = (err_sum_b / np.maximum(err_cnt, 1)).reshape(G, R).mean(1)
-    # two channels, each standardized by its median, combined as a product of Gaussian likelihoods
-    def logp(e): eps = np.median(e); return -(e - e.min()) / (2 * (0.1 * eps) ** 2)
-    lp = logp(per_cand) + (logp(per_cand_b) if cfg.base_channel else 0.0)
-    post = np.exp(lp - lp.max()); post /= post.sum(); per_cand = per_cand + (per_cand_b if cfg.base_channel else 0.0)
-    best = cand[int(np.argmax(post))]; mean = (cand * post[:, None]).sum(0)
-    res = {"dataset": cfg.dataset, "candidates": cand.tolist(), "error": per_cand.tolist(), "segments": cnt.tolist(), "posterior": post.tolist(),
-           "map": best.tolist(), "mean": mean.tolist(), "seg_len": K, "rounds": int(cfg.rounds), "axes": ["motor", "friction", "mass"]}
+        E[rnd] = seg_err; W[rnd] = seg_w; EB[rnd] = seg_err_b; NB[rnd] = K - int(cfg.skip); fell[rnd] = ~alive
+        if rnd % 5 == 0:
+            cur = (E[:rnd + 1].sum(0) / np.maximum(W[:rnd + 1].sum(0), 1e-8)).reshape(G, R).mean(1)
+            print(f"round {rnd}: alive {alive.mean():.2f}, best {cand[int(np.argmin(cur))].round(2).tolist()} err {cur.min():.3f} ({time.time()-t0:.0f}s)", flush=True)
+    # demand-weighted error over ALL segments of a candidate (sum w*e / sum w, replicas pooled); low-demand segments count little.
+    # (Before 2026-11-03 each segment was normalized by its own weight sum, so a no-demand segment counted as much as a saturated one.)
+    def cand_err(rows):
+        e = E[rows].sum(0).reshape(G, R).sum(1); w = W[rows].sum(0).reshape(G, R).sum(1)
+        eb = EB[rows].sum(0).reshape(G, R).sum(1); nb = NB[rows].sum(0).reshape(G, R).sum(1)
+        return e / np.maximum(w, 1e-8), eb / np.maximum(nb, 1e-8)
+    per_cand, per_cand_b = cand_err(np.arange(RND)); cnt = (~fell).reshape(RND, G, R).sum((0, 2))
+    score = per_cand + (per_cand_b if cfg.base_channel else 0.0); best = cand[int(np.argmin(score))]
+    # posterior := bootstrap distribution of the argmin over resampled rounds. No likelihood temperature: the old
+    # Gaussian with eps = 0.1 * median(error over the grid) was grid-dependent and over-confident.
+    # Two data-calibrated posteriors (no temperature constant):
+    #  (a) bootstrap_argmin: how often each candidate is the best over resampled rounds (discrete, zero tails);
+    #  (b) posterior (used for the DR-width rule): exp(-z^2/2) with z = (mean excess error over the best) / (its bootstrap
+    #      standard error), i.e. how many standard errors a candidate is worse than the best. Continuous tails.
+    B = int(cfg.get("bootstrap", 200)); D = np.zeros((B, G))
+    for b in range(B):
+        rows = rng.integers(0, RND, RND); e_b, eb_b = cand_err(rows); tot = e_b + (eb_b if cfg.base_channel else 0.0)
+        D[b] = tot - tot.min()
+    post_arg = np.bincount(np.argmin(D, 1), minlength=G) / B
+    z = D.mean(0) / np.maximum(D.std(0), 1e-8); z[np.argmin(score)] = 0.0
+    post = np.exp(-0.5 * z ** 2); post /= post.sum()
+    mean = (cand * post[:, None]).sum(0); per_cand = score
+    res = {"dataset": cfg.dataset, "candidates": cand.tolist(), "error": score.tolist(), "segments": cnt.tolist(), "posterior": post.tolist(),
+           "map": best.tolist(), "mean": mean.tolist(), "seg_len": K, "rounds": RND, "axes": ["motor", "friction", "mass"],
+           "posterior_type": "z_score_vs_best", "bootstrap": B, "bootstrap_argmin": post_arg.tolist(), "z": z.tolist(),
+           "joint_order_map": u2n.tolist()}
     if len(grid_f) == 1 and len(grid_k) == 1:
         print("error per candidate:", " ".join(f"{g:.2f}:{e:.3f}" for g, e in zip(grid_m, per_cand)))
     else:  # marginal posteriors per axis

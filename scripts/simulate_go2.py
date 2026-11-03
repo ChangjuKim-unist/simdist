@@ -102,6 +102,13 @@ class Go2Sim:
         env_cfg.scene.terrain.terrain_generator.difficulty_range = (diff, diff)
         terrains = env_cfg.scene.terrain.terrain_generator.sub_terrains
         env_cfg.scene.terrain.terrain_generator.sub_terrains = {terr: terrains[terr]}
+        # same physics definition as scripts/simulate_batch.py (code review 2026-11-03): wide ground slab,
+        # seeded env, nominal gains / joint friction (no per-reset randomization)
+        env_cfg.scene.terrain.terrain_generator.border_width = 100.0
+        env_cfg.seed = int(cfg["sim"]["seed"])
+        for ev in ("joint_stiffness_and_damping", "joint_friction"):
+            if hasattr(env_cfg.events, ev):
+                setattr(env_cfg.events, ev, None)
         env_cfg.events.reset_base.params["pose_range"]["x"] = (0.0, 0.0)
         fric = cfg["sim"]["friction"]
         env_cfg.events.physics_material.params["static_friction_range"] = (fric, fric)
@@ -110,13 +117,12 @@ class Go2Sim:
         env_cfg.events.physics_material.params["restitution_range"] = (rest, rest)
         mass = cfg["sim"]["add_mass"]
         env_cfg.events.add_base_mass.params["mass_distribution_params"] = (mass, mass)
-        # scale the motor torque limits, e.g. to mimic weaker or worn motors
+        # scale the motor torque cap (effort_limit only): same mechanism as the training DR, the replay
+        # identification and the hardware bridge cap (see scripts/simulate_batch.py)
         motor_strength = cfg["sim"].get("motor_strength", 1.0)
         if motor_strength != 1.0:
             act_cfg = env_cfg.scene.robot.actuators["base_legs"]
             act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
-            if getattr(act_cfg, "saturation_effort", None) is not None:
-                act_cfg.saturation_effort = act_cfg.saturation_effort * motor_strength
 
         # create the env
         self.env = ManagerBasedRLEnv(env_cfg)

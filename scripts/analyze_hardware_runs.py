@@ -20,7 +20,7 @@ for d in sorted(glob.glob(os.path.join(root, args.glob))):
     model, cond = name[3:].split("_", 1)[0], name[3:].split("_", 1)[1]
     for f in sorted(glob.glob(os.path.join(d, "raw", "*.hdf5"))):
         with h5py.File(f) as h:
-            t = h["time"][:]; p = h["proprio_obs"][:]; c = h["commands"][:]
+            t = h["time"][:].astype(np.float64) * 1e-9; p = h["proprio_obs"][:]; c = h["commands"][:]  # time is logged in ns
             term = bool(h["terminated"][-1]) if "terminated" in h else False
         n = len(t)
         if n < args.min_steps: continue

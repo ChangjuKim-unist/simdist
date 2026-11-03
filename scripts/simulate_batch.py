@@ -5,9 +5,10 @@
         sim.episode_length_s=100 batch.speeds=[0.3,0.6,0.9] batch.seeds=[11,12,13] \
         output.csv=results/x.csv output.condition=combo_hard --headless
 
-Per robot it reports the whole-run reward per step, the number of resets (falls and
-time-outs), and the first episode's length / reward / forward progress, exactly as
-scripts/simulate_go2.py does for one robot. The planner is the batched MPPI
+Per robot it reports the whole-run reward per step, the number of resets (any cause),
+the number of falls (base/thigh contact or bad orientation) and time-outs separately,
+and the first episode's length / reward / forward progress. Falls per 1000 steps =
+num_falls / (total_steps / 1000). The ground slab is 100 m wide so no robot reaches an edge. The planner is the batched MPPI
 (simdist/control/mppi_batch.py); with policy.rl_run set, the exported RL expert acts.
 """
 
@@ -112,6 +113,15 @@ class BatchSim:
         env_cfg.scene.terrain.terrain_generator.difficulty_range = (diff, diff)
         terrains = env_cfg.scene.terrain.terrain_generator.sub_terrains
         env_cfg.scene.terrain.terrain_generator.sub_terrains = {terr: terrains[terr]}
+        # Ground must outlast the run: with the default 20 m border the robot walked off the slab at x = 27.5 m
+        # (first episode always ended at ~26 m) and that edge reset was counted as a fall (code review 2026-11-03).
+        env_cfg.scene.terrain.terrain_generator.border_width = 100.0
+        # deterministic physics: seed the env (gain/joint-friction draws) and switch those per-reset randomizations off,
+        # so "nominal" means the nominal Kp/Kd/joint friction the condition is defined with
+        env_cfg.seed = int(cfg["sim"]["seed"])
+        for ev in ("joint_stiffness_and_damping", "joint_friction"):
+            if hasattr(env_cfg.events, ev):
+                setattr(env_cfg.events, ev, None)
         env_cfg.events.reset_base.params["pose_range"]["x"] = (0.0, 0.0)
         fric = cfg["sim"]["friction"]
         env_cfg.events.physics_material.params["static_friction_range"] = (fric, fric)
@@ -120,12 +130,14 @@ class BatchSim:
         env_cfg.events.physics_material.params["restitution_range"] = (rest, rest)
         mass = cfg["sim"]["add_mass"]
         env_cfg.events.add_base_mass.params["mass_distribution_params"] = (mass, mass)
+        # Weak motor = scaled torque cap (effort_limit only). This is the same mechanism as the training DR
+        # (simdist/rl/go1.py randomize_motor_strength), the replay identification and the hardware bridge cap
+        # (|tau| <= scale * 23.7). Scaling saturation_effort as well (old code) made eval "0.4" harsher than DR 0.4
+        # whenever the joint moved (torque-speed curve shrunk too).
         motor_strength = cfg["sim"].get("motor_strength", 1.0)
         if motor_strength != 1.0:
             act_cfg = env_cfg.scene.robot.actuators["base_legs"]
             act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
-            if getattr(act_cfg, "saturation_effort", None) is not None:
-                act_cfg.saturation_effort = act_cfg.saturation_effort * motor_strength
 
         self.env = ManagerBasedRLEnv(env_cfg)
         self.cmd_manager = self.env.command_manager
@@ -143,6 +155,10 @@ class BatchSim:
         self.steps_since_reset = np.zeros(self.N, np.int64)
         self.run_reward = np.zeros(self.N)
         self.num_resets = np.zeros(self.N, np.int64)
+        self.num_falls = np.zeros(self.N, np.int64)     # base/thigh contact or bad orientation
+        self.num_timeouts = np.zeros(self.N, np.int64)  # episode time limit
+        tm = self.env.termination_manager
+        self.fall_terms = [t for t in ("base_contact", "bad_orientation") if t in tm.active_terms]
         self.first_done = np.zeros(self.N, bool)
         self.first_len = np.zeros(self.N, np.int64)
         self.first_reward = np.zeros(self.N)
@@ -224,6 +240,12 @@ class BatchSim:
 
         self.obs_dict, reward, terminated, truncated = self.env.step(torch.from_numpy(action).to(self.env.device))[0:4]
         reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
+        tm = self.env.termination_manager
+        fall = np.zeros(self.N, bool)
+        for t in self.fall_terms:
+            fall |= tm.get_term(t).cpu().numpy()
+        timeout = tm.get_term("time_out").cpu().numpy() if "time_out" in tm.active_terms else np.zeros(self.N, bool)
+        self.num_falls += fall; self.num_timeouts += timeout & ~fall
         self.total += 1
         self.steps_since_reset += 1
         active = ~resetting
@@ -257,6 +279,8 @@ class BatchSim:
                 "first_episode_length": int(self.first_len[i]),
                 "first_episode_reward": float(self.first_reward[i]),
                 "forward_progress": prog,
+                "num_falls": int(self.num_falls[i]),
+                "num_timeouts": int(self.num_timeouts[i]),
             }
             rows.append(row)
             print("RESULT", row, flush=True)

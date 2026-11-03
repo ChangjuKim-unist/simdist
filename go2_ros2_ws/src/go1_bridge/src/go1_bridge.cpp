@@ -101,7 +101,7 @@ public:
     start_delay_ = get_parameter("go1.start_delay").as_double();
     torque_scale_ = std::clamp(get_parameter("go1.torque_scale").as_double(), 0.3, 1.0);
     torque_limit_ = get_parameter("go1.torque_limit").as_double();
-    if (torque_scale_ < 1.0) {
+    if (torque_scale_ <= 1.0) {
       RCLCPP_WARN(get_logger(), "TORQUE CAP: host-side PD with |tau| <= %.1f%% of %.1f Nm (software motor weakening)",
                   100.0 * torque_scale_, torque_limit_);
     }
@@ -266,7 +266,7 @@ private:
       }
       if (overheated) {
         set_damping(cmd);
-      } else if (torque_scale_ < 1.0) {
+      } else if (torque_scale_ <= 1.0) {
         apply_torque_cap(cmd);
       }
       const int protect = safety_->PowerProtect(cmd, sdk_state_, power_protect_level_);

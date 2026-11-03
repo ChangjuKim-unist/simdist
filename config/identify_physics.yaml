@@ -10,6 +10,7 @@ add_mass: 0.0      # fixed added mass when mass_grid is empty
 friction_grid: []  # e.g. [0.15, 0.3, 0.5, 0.8, 1.0] for a 3-axis grid
 mass_grid: []      # e.g. [0.0, 1.5, 3.0, 4.5]
 seed: 0
+bootstrap: 200     # posterior = bootstrap distribution (over rounds) of the best candidate
 out:
 # scoring (design doc 10 §4): weight steps by the logged PD torque demand relative to the nominal limit, joint-space error only
 demand_weight: true

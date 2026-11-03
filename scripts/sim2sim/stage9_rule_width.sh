@@ -47,19 +47,19 @@ run() { local name=$1 ckpt=$2 cond=$3; shift 3
 mkhead rw_w02 0.3,0.5 && for c in motor0.4 nominal; do run H_rw_w02_planner go1_paper_rw_w02 $c; done
 mkhead rw_w06 0.3,0.9 && for c in motor0.4 nominal; do run H_rw_w06_planner go1_paper_rw_w06 $c; done
 
-# ---- E4: reference heads and SimDist at the E2 true values ----
-for c in motor0.5 motor0.6; do run H_targethead_planner go1_paper_targethead $c; run H_broadhead_planner go1_paper_broadhead $c; run A_simdist_planner go1_paper $c; done
+# (E4 reference evals at motor 0.5/0.6 live in stage10_reeval.sh, results/stage10/eval_core.csv)
 
 # ---- fit k: falls(w) = a * w^k on (0.2, 0.4, 0.6, 0.8); fallback k=1.8 if non-monotone or slope < 0.5 ----
+# falls = num_falls (base/thigh contact or bad orientation) per 1000 steps; all four points from the fixed evaluator
 python3 - <<'EOF' > $OUT/k.json
 import csv, json, math, numpy as np
 def falls(path, model, cond):
-    v=[float(r['num_resets']) for r in csv.DictReader(open(path)) if r['model']==model and r['condition']==cond]
+    v=[float(r['num_falls']) for r in csv.DictReader(open(path)) if r['model']==model and r['condition']==cond]
     return sum(v)/len(v)/5 if v else None
 pts={0.2:falls('results/stage9/eval_rule_width.csv','H_rw_w02_planner','motor0.4'),
-     0.4:falls('results/stage6/eval_targethead.csv','H_targethead_planner','motor0.4'),
+     0.4:falls('results/stage10/eval_core.csv','H_targethead_planner','motor0.4'),
      0.6:falls('results/stage9/eval_rule_width.csv','H_rw_w06_planner','motor0.4'),
-     0.8:falls('results/stage3/eval_broadhead.csv','H_broadhead_planner','motor0.4')}
+     0.8:falls('results/stage10/eval_core.csv','H_broadhead_planner','motor0.4')}
 ok={w:f for w,f in pts.items() if f}
 k=None; note='fit'
 if len(ok)>=3:
@@ -71,9 +71,19 @@ json.dump({'points':pts,'k':k,'note':note},open('/dev/stdout','w'))
 EOF
 K=$(python3 -c "import json;print(round(json.load(open('$OUT/k.json'))['k'],2))"); echo "== k = $K ($(cat $OUT/k.json))"
 
-# ---- E2: rule-width heads for true 0.5 and 0.6 (posteriors from S2b broadhead logs, bias set {0.05,0.10}) ----
+# ---- E2: rule-width heads for true 0.5 and 0.6 (posteriors from the re-identified broadhead logs, results/stage10;
+#      bias set = MAP - true of the OTHER calibration points {0.5, 0.6, 0.8}, leave-one-out) ----
 for s in 0.5 0.6; do
-  tag=${s/./}; R=$(python3 scripts/sim2sim/dr_from_posterior.py results/stage7/id_s2b_bh_s$s.json --k $K 2>$OUT/rule_t$tag.json); echo "== rule range true $s: $R"
+  tag=${s/./}
+  BIAS=$(python3 -c "
+import json
+b=[]
+for t in [0.5,0.6,0.8]:
+    if abs(t-$s)<1e-6: continue
+    try: b.append(round(json.load(open(f'results/stage10/id_bh_s{t}.json'))['map'][0]-t,3))
+    except Exception: pass
+print(' '.join(str(x) for x in b) if b else '0.0')")
+  R=$(python3 scripts/sim2sim/dr_from_posterior.py results/stage10/id_bh_s$s.json --k $K --bias $BIAS 2>$OUT/rule_t$tag.json); echo "== rule range true $s: $R (k=$K, bias=$BIAS)"
   mkhead rw_t$tag $R && for c in motor$s nominal; do run H_rw_t${tag}_planner go1_paper_rw_t$tag $c; done
 done
 

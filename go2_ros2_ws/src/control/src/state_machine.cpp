@@ -104,6 +104,8 @@ private:
     get_parameter("state_machine.proning_Kp", proning_Kp_);
     get_parameter("state_machine.prone_Kp", prone_Kp_);
     get_parameter("state_machine.Kd", Kd_);
+    declare_parameter<double>("state_machine.cmd_timeout_s", 0.5);
+    get_parameter("state_machine.cmd_timeout_s", cmd_timeout_s_);
   }
 
   void lowstate_callback(const unitree_go::msg::LowState::SharedPtr msg) {
@@ -119,6 +121,19 @@ private:
     for (int i = 0; i < 12; ++i) {
       desired_joint_pos_[i] = msg->data[i];
     }
+    last_joint_cmd_time_ = std::chrono::steady_clock::now();
+  }
+
+  // Watchdog (2026-11-03): if the controller stops publishing targets while WALKING (process died, planner
+  // stalled), the old code kept commanding the last pose forever. Fall back to RECOVERY like a button press.
+  void check_joint_cmd_watchdog() {
+    if (state_ != RobotState::WALKING)
+      return;
+    const double age = std::chrono::duration<double>(std::chrono::steady_clock::now() - last_joint_cmd_time_).count();
+    if (age > cmd_timeout_s_) {
+      RCLCPP_ERROR(this->get_logger(), "No joint target for %.2f s while WALKING: switching to RECOVERY", age);
+      transition_state(RobotState::RECOVERY);
+    }
   }
 
   void run_loop() {
@@ -132,6 +147,7 @@ private:
 
   void control_loop() {
     std::lock_guard<std::mutex> lock(control_mutex_);
+    check_joint_cmd_watchdog();
     auto lowcmd_msg = create_lowcmd_message();
     lowcmd_pub_->publish(lowcmd_msg);
   }
@@ -239,6 +255,7 @@ private:
     case RobotState::WALKING:
       RCLCPP_INFO(this->get_logger(), "Press the start button / space bar to stand");
       RCLCPP_INFO(this->get_logger(), "Press any other button / key to go to recovery");
+      last_joint_cmd_time_ = std::chrono::steady_clock::now();  // grace period for the watchdog
       break;
     case RobotState::PRONING:
       break;
@@ -402,6 +419,8 @@ private:
   std::mutex control_mutex_;
   std::chrono::steady_clock::time_point last_controller_input_time_;
   const int controller_input_cooldown_ms_ = 250;
+  std::chrono::steady_clock::time_point last_joint_cmd_time_{std::chrono::steady_clock::now()};
+  double cmd_timeout_s_ = 0.5;
 
   std::vector<float> desired_joint_pos_;
   std::vector<float> current_joint_pos_;

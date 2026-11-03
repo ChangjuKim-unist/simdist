@@ -130,11 +130,13 @@ PREV=go1_finetuned_r2 NEW=go1_finetuned_r2_value RECIPE=res scripts/go1_round.sh
 ## 하드웨어 실험 절차 (설계 문서 6 §9, 2026-10-25 준비)
 
 **새 스위치**
-- 브리지 토크 상한: `ros2 launch bringup launch_go1.py torque_scale:=0.6` (0.4). 1.0이면 꺼짐. 켜지면 브리지가 PD를 직접 계산해 |τ| ≤ 비율 × 23.7 N·m로 자르고 토크 명령만 보낸다(시뮬의 effort limit과 같은 포화). 시작 로그에 `TORQUE CAP` 경고가 떠야 한다. **처음 켤 때는 반드시 끈을 걸고 서기(STAND)부터 확인.**
-  - 종아리(calf) 관절 주의: 실제 Go1 calf는 35.55 N·m / 20.06 rad/s이고 hip·thigh는 23.7 N·m / 30.1 rad/s인데(Isaac Lab PR #7564, 2026-09), 우리 시뮬(`simdist/rl/go1.py`)은 전 관절 23.7 / 30.0이다. 토크 상한 1.0 = 전 관절 23.7은 calf 토크를 시뮬과 **일치**시키므로 정상 조건에서도 `torque_scale:=1.0`으로 상한을 켜 두는 쪽이 시뮬과 같다(끄면 calf가 시뮬보다 1.5배 강함). 속도 한계는 시뮬 calf(30)가 실제(20.06)보다 느슨해 남는 불일치이며, 식별값에 이 자산 차이가 섞일 수 있음을 결과에 적는다(조사 보고서 `reports/Sim to real 격차 축소 연구 조사.md`).
+- 브리지 토크 상한: `ros2 launch bringup launch_go1.py torque_scale:=0.6` (0.4). **2026-11-03 수정: 상한은 항상 켜져 있다.** 1.0이면 전 관절 |τ| ≤ 23.7 N·m(시뮬 한계)로 자르고, 0.6/0.4면 그 비율로 자른다. 브리지가 PD를 직접 계산해 토크 명령만 보낸다(시뮬의 effort limit과 같은 포화). 시작 로그에 `TORQUE CAP` 경고가 모든 실행에서 떠야 한다. (수정 전 코드는 1.0에서 상한이 꺼져 온보드 PD + calf 35.55 N·m로 돌았다.) **처음 켤 때는 반드시 끈을 걸고 서기(STAND)부터 확인.** 코드를 바꿨으니 컨테이너에서 `go1_bridge`·`control`·`config`를 다시 빌드한다(`go1_round.sh`는 config만 빌드함).
+  - 종아리(calf) 관절 주의: 실제 Go1 calf는 35.55 N·m / 20.06 rad/s이고 hip·thigh는 23.7 N·m / 30.1 rad/s인데(Isaac Lab PR #7564, 2026-09), 우리 시뮬(`simdist/rl/go1.py`)은 전 관절 23.7 / 30.0이다. 상한 1.0 = 전 관절 23.7이 calf 토크를 시뮬과 일치시킨다. 속도 한계는 시뮬 calf(30)가 실제(20.06)보다 느슨해 남는 불일치이며, 식별값에 이 자산 차이가 섞일 수 있음을 결과에 적는다(조사 보고서 `reports/Sim to real 격차 축소 연구 조사.md`).
+  - 관절 감쇠 Kd: `go1.yaml`의 상태 머신 Kd를 1.0 → **0.5**로 바꿨다(시뮬 학습값·식별 가정값). 첫 세션에서 STAND·보행이 Kd 0.5로 안정한지 먼저 확인한다.
+  - 감시 타이머: 보행 중 0.5 s 동안 관절 목표가 안 오면 상태 머신이 자동으로 RECOVERY로 간다(컨트롤러 사망·계획기 정지 대비). 넘어짐(`/fallen`) 시 컨트롤러가 로그를 즉시 닫는다(넘어진 뒤 행이 데이터에 안 들어감).
 - 넘어짐 이벤트: 브리지가 넘어짐 잠금 시 `/fallen`(Bool)을 발행하고 컨트롤러가 그 에피소드 로그에 `terminated`를 기록한다. 이전처럼 OFF/PRONE으로 돌려야 잠금이 풀린다.
 - 컨트롤러 모델 선택 (`config/config/hw_*.yaml`): M1 `simdist_controller_go1.yaml`(SimDist r3), M2 `hw_M2_student.yaml`(넓은 학생 단독), M3 `hw_M3_student_planner.yaml`(학생 + 계획기 + 사전학습), M4 `hw_M4_priorfirst.yaml`(M3로 모은 10분 데이터로 적응, 세션 2 이후), M5 `hw_M5_r3data.yaml`(r3 데이터로 적응한 동역학 + 학생).
-- 실행마다 데이터셋 이름: `ros2 launch bringup launch_control.py controller_config:=hw_M3_student_planner.yaml dataset_name:=hw_M3_torque60`. 이름 규칙 **`hw_<모델>_<조건>`** (조건: nominal / torque60 / torque40 / payload3). 분석은 `python scripts/analyze_hardware_runs.py`.
+- 실행마다 데이터셋 이름: `ros2 launch bringup launch_control.py robot_config:=go1.yaml controller_config:=hw_M3_student_planner.yaml dataset_name:=hw_M3_torque60`. **`robot_config:=go1.yaml`을 빼면 속도 한계가 Go2 값(1.5 m/s)으로 풀린다** (2026-11-03 확인). 이름 규칙 **`hw_<모델>_<조건>`** (조건: nominal / torque60 / torque40 / payload3). 분석은 `python scripts/analyze_hardware_runs.py` (시간 단위 ns→s 버그 수정됨; 이전 분/거리 숫자는 무효). 컨트롤러는 로봇이 PRONE일 때 띄우고 `Controller initialized`를 본 뒤 Start; WALKING마다 `Logging episode data to:`가 떠야 로그가 남는다.
 
 **세션 계획 (조건당 모델당 10회 × 30 s, 속도 0.3·0.6 m/s 번갈아; 조작 순서는 조건 안에서 모델을 섞어서)**
 1. 세션 1 (정상 + 토크 60 %): M1·M2·M3·M5. 토크 60 %는 M2로 먼저 서기·걷기 확인. M3 정상 조건 끝에 **M3로 10분 추가 수집** (`dataset_name:=hw_M3_collect`, 정상 5분 + 토크 60 % 5분) → 세션 후 `PREV=go1_paper DATASET=hw_M3_collect NEW=go1_paper_hw_priorfirst_dyn scripts/go1_round.sh`로 M4 생성.

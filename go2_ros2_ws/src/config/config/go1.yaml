@@ -32,7 +32,7 @@
       motor_temp_stop: 70.0  # [C] hold the motors in damping mode above this, until back below motor_temp_warn
       battery_warn: 20.0  # [%] warn below this state of charge
       abort_roll_pitch: 0.7  # [rad] fallen: damping until the state machine is back in prone
-      torque_scale: 1.0  # software motor weakening: < 1.0 = host-side PD with |tau| <= torque_scale * torque_limit (0.6 / 0.4 in the hardware experiments)
+      torque_scale: 1.0  # host-side PD with |tau| <= torque_scale * torque_limit on every joint (0.6 / 0.4 = weak-motor conditions). The cap is ALWAYS on (also at 1.0 = 23.7 Nm, the simulator's limit); set > 1.0 is clamped to 1.0.
       torque_limit: 23.7  # [Nm] simulator effort limit (simdist/rl/go1.py)
 
     leg_odometry:
@@ -67,7 +67,7 @@ state_machine:
       walking_Kp: 25.0  # joint stiffness the world model was trained with in simulation
       proning_Kp: 20.0
       prone_Kp: 5.0
-      Kd: 1.0
+      Kd: 0.5  # joint damping the world model / expert were trained with (simdist/rl/go2.py JOINT_DAMPING) and the replay identification assumes (config/identify_physics.yaml). Was 1.0 until 2026-11-03.
 
 # Conservative command limits for the first real-robot sessions (control.yaml has
 # the Go2 values 1.5 / 0.5 / 1.0). Raise them once the Go1 walks reliably.
