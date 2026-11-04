@@ -1,4 +1,5 @@
 import flax.nnx as nnx
+import jax
 import jax.numpy as jnp
 
 from simdist.modeling import types, scaler, encoders, modules
@@ -34,6 +35,27 @@ class _ValueHead(nnx.Module):
         self.emb = emb
         self.enc = enc
         self.dec = dec
+
+
+class ContextEncoder(nnx.Module):
+    """History window -> context vector psi (design doc 13, docs/design_context_wm_ko.md).
+
+    The first three components are the standardized physics estimate
+    [motor torque scale, foot friction, added base mass]; the rest are free.
+    Inputs are the planner's own (scaled) history: (..., H+1, o_p) and (..., H, a).
+    """
+
+    def __init__(self, in_dim: int, hidden_dims: list[int], dim: int, rngs: nnx.Rngs, dropout_rate: float = 0.0):
+        self.mlp = modules.MLP(
+            input_dim=in_dim, hidden_dims=hidden_dims, output_dim=dim, rngs=rngs, dropout_rate=dropout_rate
+        )
+
+    def __call__(self, proprio_hist_s, acts_hist_s, deterministic: bool | None = None):
+        lead = proprio_hist_s.shape[:-2]
+        flat = jnp.concatenate(
+            [proprio_hist_s.reshape(lead + (-1,)), acts_hist_s.reshape(lead + (-1,))], axis=-1
+        )
+        return self.mlp(flat, deterministic=deterministic)
 
 
 class ModelBase(nnx.Module):
@@ -186,6 +208,78 @@ class WorldModelBase(ModelBase):
         if self.model_cfg.get("policy_anchor", False):
             self.prior_anchor = _PolicyHead(nnx.clone(self.policy), nnx.clone(self.policy_dec))
 
+        # context slot psi (design doc 13): history -> psi, injected as a context token (dynamics,
+        # policy) and into the value embedding. Off by default: the model is then unchanged.
+        self.context = None
+        self.ctx_proj = None
+        self.ctx_value_proj = None
+        ctx_cfg = self.model_cfg.get("context", {}) or {}
+        if ctx_cfg.get("enabled", False):
+            self._build_context(ctx_cfg, rngs)
+
+    # ---- context slot psi (design doc 13) --------------------------------------------
+    def _build_context(self, ctx_cfg: dict, rngs: nnx.Rngs) -> None:
+        H = self.model_cfg["dataset"]["history_length"]
+        in_dim = (H + 1) * self.proprio_obs_dim + H * self.action_dim
+        dim = int(ctx_cfg.get("dim", 8))
+        assert dim >= 3, "context dim must hold the 3 physics components"
+        self.context = ContextEncoder(
+            in_dim, list(ctx_cfg.get("hidden_dims", [256, 256])), dim, rngs, self.mlp_dropout_rate
+        )
+        # zero-initialized injections: a model with a freshly added slot computes exactly the pretrained model
+        self.ctx_proj = nnx.Linear(dim, self.latent_dim, rngs=rngs)
+        self.ctx_value_proj = nnx.Linear(dim, self.latent_dim, rngs=rngs)
+        for lin in (self.ctx_proj, self.ctx_value_proj):
+            lin.kernel.value = jnp.zeros_like(lin.kernel.value)
+            lin.bias.value = jnp.zeros_like(lin.bias.value)
+        self.ctx_noise_std = float(ctx_cfg.get("noise_std", 0.1))
+        self.ctx_xi_mean = tuple(float(v) for v in ctx_cfg.get("xi_mean", [0.7, 0.7, 1.0]))
+        self.ctx_xi_std = tuple(float(v) for v in ctx_cfg.get("xi_std", [0.23, 0.29, 1.15]))
+        self.ctx_rngs = nnx.Rngs(noise=int(ctx_cfg.get("noise_seed", 0)))
+
+    def add_context(self, ctx_cfg: dict, rngs: nnx.Rngs) -> None:
+        """Attach a context slot to a pretrained model (warm start, design doc 13 §3)."""
+        ctx_cfg = dict(ctx_cfg)
+        ctx_cfg["enabled"] = True
+        self.model_cfg["context"] = ctx_cfg
+        self._build_context(ctx_cfg, rngs)
+
+    def scale_xi(self, xi) -> jnp.ndarray:
+        """Raw [motor scale, foot friction, added mass] -> standardized (fixed DR statistics)."""
+        return (jnp.asarray(xi, jnp.float32) - jnp.asarray(self.ctx_xi_mean)) / jnp.asarray(self.ctx_xi_std)
+
+    def unscale_xi(self, xi_s) -> jnp.ndarray:
+        return jnp.asarray(xi_s, jnp.float32) * jnp.asarray(self.ctx_xi_std) + jnp.asarray(self.ctx_xi_mean)
+
+    def context_from(
+        self, proprio_hist_s, acts_hist_s, deterministic: bool | None = None, override=None
+    ) -> jnp.ndarray:
+        """psi from a scaled history window; psi[..., :3] is the standardized physics estimate.
+        ``override`` (..., 3) replaces psi[..., :3] (oracle, design doc 13 P2)."""
+        psi = self.context(proprio_hist_s, acts_hist_s, deterministic=deterministic)
+        if override is not None:
+            psi = jnp.concatenate([jnp.asarray(override, psi.dtype), psi[..., 3:]], axis=-1)
+        return psi
+
+    def _encode_context(self, x_s, deterministic: bool | None = None):
+        """Encoder outputs and the context tokens for the decoders: history, z_t and (if enabled) the psi token.
+        Returns (encoding, context, psi, psi_in); psi_in is psi plus training noise."""
+        encoding = self.encoder(x_s, deterministic=deterministic)
+        latent_enc = jnp.expand_dims(encoding["latent"], axis=1)
+        context = jnp.concatenate([encoding["history"], latent_enc], axis=1)
+        psi = psi_in = None
+        if self.context is not None:
+            psi = self.context_from(
+                x_s["proprio_obs_hist"], x_s["acts_hist"], deterministic, x_s.get("context_override")
+            )
+            psi_in = psi
+            if not deterministic and self.ctx_noise_std > 0:
+                psi_in = psi + self.ctx_noise_std * jax.random.normal(self.ctx_rngs.noise(), psi.shape, psi.dtype)
+            # injected additively into the z_t token (the "current state" the decoders attend to); an
+            # appended token would change the cross-attention even at zero init (softmax over one more key)
+            context = context.at[:, -1, :].add(self.ctx_proj(psi_in))
+        return encoding, context, psi, psi_in
+
     def _build_value_head(self, rngs: nnx.Rngs):
         T = self.model_cfg["dataset"]["prediction_length"]
         emb_cfg = self.model_cfg["embedding"]
@@ -305,10 +399,8 @@ class WorldModelBase(ModelBase):
         can be optimized through the dynamics (prior refresh, design doc 3).
         """
         x = self.scaler.scale(x)
-        encoding = self.encoder(x, deterministic=deterministic)
+        encoding, context, psi, psi_in = self._encode_context(x, deterministic=deterministic)
         fut_cmds_emb = self.fut_cmds_embed(x["fut_cmds"][:, :-1], deterministic=deterministic)
-        latent_enc = jnp.expand_dims(encoding["latent"], axis=1)
-        context = jnp.concatenate([encoding["history"], latent_enc], axis=1)
         if use_anchor:
             assert self.prior_anchor is not None, "model has no policy anchor"
             lat = self.prior_anchor.policy(fut_cmds_emb, context, deterministic=deterministic)
@@ -322,7 +414,7 @@ class WorldModelBase(ModelBase):
         rew_in = jnp.concatenate((z_t_tm1, actions, x["fut_cmds"][:, :-1]), axis=-1)
         rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
         rewards = self.reward_dec(self.reward(rew_in_emb, deterministic=deterministic), deterministic=deterministic).squeeze(-1)
-        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic, use_residual=True)
+        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic, use_residual=True, psi=psi_in)
         return {"actions": actions, "latents": latents, "rewards": rewards, "values": values}
 
     def add_value_anchor(self) -> None:
@@ -339,11 +431,13 @@ class WorldModelBase(ModelBase):
         deterministic: bool | None = None,
         use_residual: bool = True,
         use_anchor: bool = False,
+        psi: jnp.ndarray | None = None,
     ) -> jnp.ndarray:
         """Value of each latent in ``latents`` (..., T, lat_dim), in scaled units.
 
         ``fut_cmds_next`` are the commands aligned with the latents (..., T, cmd_dim).
         With ``use_anchor`` the frozen pretrained head is used (no residual).
+        ``psi`` (..., ctx_dim) is the context slot (design doc 13), added to the value embedding.
         """
         value_in = jnp.concatenate((latents, fut_cmds_next), axis=-1)
         if use_anchor:
@@ -354,6 +448,8 @@ class WorldModelBase(ModelBase):
             values = head.dec(value_pred, deterministic=deterministic)
         else:
             value_in_emb = self.value_emb(value_in, deterministic=deterministic)
+            if psi is not None and self.ctx_value_proj is not None:
+                value_in_emb = value_in_emb + self.ctx_value_proj(psi)[..., None, :]
             value_pred = self.value(value_in_emb, deterministic=deterministic)
             values = self.value_dec(value_pred, deterministic=deterministic)
             if use_residual and self.value_res is not None:
@@ -393,15 +489,12 @@ class WorldModelBase(ModelBase):
 
         # pre-processing, encoding, and embedding
         x = self.scaler.scale(x)
-        encoding = self.encoder(x, deterministic=deterministic)
+        # history tokens + z_t (+ psi token, design doc 13)
+        encoding, context, psi, psi_in = self._encode_context(x, deterministic=deterministic)
         fut_acts_emb = self.fut_acts_embed(x["fut_acts"], deterministic=deterministic)
         fut_cmds_emb = self.fut_cmds_embed(
             x["fut_cmds"][:, :-1], deterministic=deterministic
         )
-
-        # concatenate latent to the end of the history encoding
-        latent_enc = jnp.expand_dims(encoding["latent"], axis=1)
-        context = jnp.concatenate([encoding["history"], latent_enc], axis=1)
 
         # dynamics (+ residual, design doc 7)
         latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic)
@@ -421,8 +514,8 @@ class WorldModelBase(ModelBase):
         rew_pred = self.reward(rew_in_emb, deterministic=deterministic)
         rewards = self.reward_dec(rew_pred, deterministic=deterministic).squeeze()
 
-        # value head: latent prediction with future commands
-        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic)
+        # value head: latent prediction with future commands (+ psi, design doc 13)
+        values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic, psi=psi_in)
 
         # policy head
         latent_acts_pred = self.policy(
@@ -430,12 +523,15 @@ class WorldModelBase(ModelBase):
         )
         actions = self.policy_dec(latent_acts_pred, deterministic=deterministic)
 
-        return {
+        out = {
             "latents": latents,
             "rewards": rewards,
             "values": values,
             "actions": actions,
         }
+        if psi is not None:
+            out["context"] = psi  # (B, ctx_dim), noise-free; psi[:, :3] = standardized physics estimate
+        return out
 
     def inference(
         self,

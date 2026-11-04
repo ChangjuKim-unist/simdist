@@ -73,6 +73,9 @@ class BatchedMppiController:
         # callable raw planner inputs -> raw action sequences (N, T, A); replaces the
         # world model's policy head as the source of the prior samples
         self.external_prior = None
+        # extra model inputs broadcast to every robot and candidate, e.g. {"context_override": (N, 3)}
+        # (oracle context, design doc 13 P2)
+        self.extra_inputs = {}
         # design doc 7 planner options (both default off):
         #  noise_schedule: DIAL-MPC-style two-axis annealing of the sampling noise (shrinks over
         #    iterations and toward the near end of the horizon); zero extra compute
@@ -144,7 +147,22 @@ class BatchedMppiController:
             "fut_acts": self.dummy_actions,
             "fut_cmds": jnp.asarray(self.fut_cmds),
         }
+        x.update(self.extra_inputs)
         return x
+
+    # ---- context slot (design doc 13) --------------------------------------------
+    @functools.partial(nnx.jit, static_argnames=["self"])
+    def _context_estimate(self, x):
+        xs = self.model.scaler.scale(x)
+        psi = self.model.context_from(xs["proprio_obs_hist"], xs["acts_hist"], deterministic=True)
+        return self.model.unscale_xi(psi[:, :3])
+
+    def context_estimate(self):
+        """Raw [motor scale, foot friction, added mass] read by the model from every robot's
+        history, shape (N, 3); None for a model without a context slot."""
+        if getattr(self.model, "context", None) is None:
+            return None
+        return np.asarray(self._context_estimate(self._model_inputs()))
 
     def run_control(self) -> np.ndarray:
         """Returns the planned action sequences, shape (N, T, A)."""

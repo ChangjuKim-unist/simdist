@@ -25,6 +25,11 @@ sim:
   restitution: 0.05
   add_mass: 0.0
   motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
+  # design doc 13: feed the true standardized physics into the context slot (oracle, P2)
+  context_oracle: false
+  # design doc 13 P4: at this step switch every robot's torque cap to motor_switch_strength x nominal
+  motor_switch_step:
+  motor_switch_strength:
 
 # Act with an exported RL policy instead of the planner (privileged expert, see
 # checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.
@@ -60,3 +65,4 @@ output:
   csv:            # e.g. results/sim2sim/combo_hard/eval_long.csv
   model_name:     # model column (defaults to model.checkpoint)
   condition:      # condition column (e.g. combo_hard)
+  context_csv:    # design doc 13: per-robot online physics estimate every 25 steps

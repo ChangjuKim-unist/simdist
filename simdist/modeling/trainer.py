@@ -156,6 +156,11 @@ def train(cfg: dict):
                 model.add_policy_anchor()
                 cfg["model"]["policy_anchor"] = True
                 print("Froze a copy of the pretrained base policy as the prior-refresh anchor")
+            ctx_cfg = adapt_cfg.get("context", {}) or {}
+            if ctx_cfg.get("enabled", False) and getattr(model, "context", None) is None:
+                model.add_context(ctx_cfg, nnx.Rngs(cfg["training"]["seed"]))
+                cfg["model"]["context"] = dict(model.model_cfg["context"])
+                print("Added a context slot psi (zero-initialized injections, design doc 13)")
     elif finetuning:
         raise ValueError("checkpoint.resume_checkpoint must be given when finetuning.")
     else:

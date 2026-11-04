@@ -70,6 +70,16 @@ class BatchSim:
         self.controller = BatchedMppiController(
             model, model_cfg, cfg["control"], self.N, [s for _, s in self.pairs]
         )
+        # design doc 13: oracle context (psi[:3] := standardized true physics of this run) and
+        # logging of the model's own online physics estimate (output.context_csv, every 25 steps)
+        self.ctx_rows = []
+        self.ctx_csv = (cfg.get("output", {}) or {}).get("context_csv")
+        if cfg["sim"].get("context_oracle", False):
+            assert getattr(model, "context", None) is not None, "sim.context_oracle needs a model with a context slot"
+            xi = [float(cfg["sim"].get("motor_strength", 1.0)), float(cfg["sim"]["friction"]), float(cfg["sim"]["add_mass"])]
+            xi_s = np.asarray(model.scale_xi(np.asarray(xi, np.float32)), np.float32)
+            self.controller.extra_inputs["context_override"] = jnp.asarray(np.tile(xi_s[None], (self.N, 1)))
+            print(f"Oracle context: xi={xi} -> standardized {xi_s.tolist()}")
         # optional student prior (design doc 4): replaces the policy-head prior samples, or
         # acts alone when policy.use_as == "student_act"
         self.student = None
@@ -140,6 +150,12 @@ class BatchSim:
             act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
 
         self.env = ManagerBasedRLEnv(env_cfg)
+        # design doc 13 P4: switch every robot's torque cap at sim.motor_switch_step to
+        # sim.motor_switch_strength x nominal (online tracking of the context estimate)
+        self.motor_switch_step = cfg["sim"].get("motor_switch_step")
+        if self.motor_switch_step is not None:
+            act = self.env.scene["robot"].actuators["base_legs"]
+            self._effort_nominal = act.effort_limit.clone() / float(motor_strength)
         self.cmd_manager = self.env.command_manager
         self._patch_per_env_speed()
         self.obs_dict, _ = self.env.reset()
@@ -212,12 +228,26 @@ class BatchSim:
         simulation_app.close()
 
     def step(self):
+        if self.motor_switch_step is not None and self.total == int(self.motor_switch_step):
+            act = self.env.scene["robot"].actuators["base_legs"]
+            act.effort_limit[:] = self._effort_nominal * float(self.cfg["sim"]["motor_switch_strength"])
+            print(f"motor strength switched to {self.cfg['sim']['motor_switch_strength']} at step {self.total}", flush=True)
         resetting = self.steps_since_reset < self.reset_steps
         cmd = self.cmd_manager.get_command("base_velocity").cpu().numpy().copy()
         cmd[resetting] = 0.0
         self.controller.set_fut_cmd(cmd)
         proprio, extero = self.get_obs()
         self.controller.update(proprio, extero, self.last_action)
+        if self.ctx_csv and self.total % 25 == 0:
+            est = self.controller.context_estimate()
+            if est is not None:
+                out = self.cfg.get("output", {}) or {}
+                for i, (v, s) in enumerate(self.pairs):
+                    self.ctx_rows.append({
+                        "model": out.get("model_name") or self.cfg["model"]["checkpoint"], "condition": out.get("condition") or "",
+                        "speed": v, "seed": s, "step": self.total, "resetting": int(resetting[i]),
+                        "motor_hat": float(est[i, 0]), "friction_hat": float(est[i, 1]), "mass_hat": float(est[i, 2]),
+                    })
         if self.rl_policy is not None and self.expert_use == "act":
             with torch.no_grad():
                 action = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy()
@@ -295,6 +325,15 @@ class BatchSim:
                 if new:
                     w.writeheader()
                 w.writerows(rows)
+        if self.ctx_csv and self.ctx_rows:
+            os.makedirs(os.path.dirname(os.path.abspath(self.ctx_csv)), exist_ok=True)
+            new = not os.path.exists(self.ctx_csv)
+            with open(self.ctx_csv, "a", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=list(self.ctx_rows[0].keys()))
+                if new:
+                    w.writeheader()
+                w.writerows(self.ctx_rows)
+            print(f"context estimates written to {self.ctx_csv} ({len(self.ctx_rows)} rows)")
 
 
 @hydra.main(config_path=paths.get_config_dir(), config_name="simulate_batch", version_base=None)

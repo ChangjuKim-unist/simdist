@@ -25,6 +25,16 @@ adapt:
   value_anchor: false
   # prior refresh (loss=policy_refresh heads=policy_only): freeze a copy of the base policy as anchor
   policy_anchor: false
+  # context slot psi (design doc 13): attach to a pretrained model and train it together with
+  # the rest (heads=all, loss=world_model) on physics-labelled simulation data
+  context:
+    enabled: false
+    dim: 8
+    hidden_dims: [256, 256]
+    noise_std: 0.1
+    noise_seed: 0
+    xi_mean: [0.7, 0.7, 1.0]
+    xi_std: [0.23, 0.29, 1.15]
   # learning rate for the residual head only (blank = same schedule as the rest)
   residual_lr:
   # data anchor: windows of a simulation dataset on which the adapted value is

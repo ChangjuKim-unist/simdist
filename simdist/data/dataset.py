@@ -133,8 +133,17 @@ class WorldModelDatasetBase(DatasetBase):
             prior_weight = np.float32(np.mean(self._data["prior_weight"][t:t_T]))  # window weight
         else:
             prior_weight = np.float32(1.0)
+        # physics label of the window [motor scale, foot friction, added mass] (design doc 13):
+        # constant within an episode; a zero motor scale marks an unlabelled dataset
+        if "physics" in self._data:
+            physics = np.asarray(self._data["physics"][t], np.float32)
+        else:
+            physics = np.zeros((3,), np.float32)
+        physics_valid = np.float32(physics[0] > 0.0)
         labels: types.WorldModelSchema.Labels = {
             "prior_weight": prior_weight,
+            "physics": physics,
+            "physics_valid": physics_valid,
             "proprio_obs": proprio_obs,
             "extero_obs": extero_obs,
             "rewards": rewards,
@@ -187,6 +196,9 @@ class WorldModelDatasetBase(DatasetBase):
         # optional per-step prior-consistency weights (scripts/prior_consistency_weights.py, design doc 9)
         if os.path.exists(paths.get_prior_weight_path(data_dir)):
             self._files["prior_weight"] = h5py.File(paths.get_prior_weight_path(data_dir))
+        # optional per-step physics condition (simulation data with the physics recorder; design doc 13)
+        if os.path.exists(paths.get_physics_path(data_dir)):
+            self._files["physics"] = h5py.File(paths.get_physics_path(data_dir))
 
     def _load_data(self) -> None:
         for key, file in self._files.items():
@@ -222,6 +234,8 @@ class WorldModelDatasetBase(DatasetBase):
             "steps_to_end": np.full((T,), 1e6),
             "rtg": np.zeros((T,)),
             "terminated": np.zeros((T,)),
+            "physics": np.array([1.0, 0.8, 0.0], np.float32),
+            "physics_valid": np.float32(1.0),
         }
 
         return {

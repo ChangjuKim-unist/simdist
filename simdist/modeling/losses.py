@@ -115,11 +115,32 @@ class WorldModelLoss(Loss):
         action_error = y_pred["actions"] - y["actions"]
         action_loss = jnp.mean((action_error * act_loss_mask) ** 2)
 
+        # context slot (design doc 13): psi[:, :3] regresses the standardized physics label of the
+        # window (labelled windows only), and psi from the history must agree with psi from the
+        # future segment of the same episode (symmetric, each side stop-gradient). Zero without a slot.
+        psi = y_pred.get("context")
+        if psi is not None and "physics" in y:
+            x_s = jax.lax.stop_gradient(scaler.scale(x))
+            valid = jnp.asarray(y["physics_valid"], jnp.float32).reshape(-1)
+            xi_s = jax.lax.stop_gradient(model.scale_xi(jnp.asarray(y["physics"])))
+            per_window = jnp.mean((psi[:, :3] - xi_s) ** 2, axis=-1)
+            context_loss = jnp.sum(valid * per_window) / (jnp.sum(valid) + 1e-8)
+            ph_fut = jnp.concatenate([x_s["proprio_obs_hist"][:, -1:], y["proprio_obs"]], axis=1)  # o_t .. o_{t+T}
+            psi_fut = model.context_from(ph_fut, x_s["fut_acts"], deterministic=deterministic)
+            context_consistency = jnp.mean((psi - jax.lax.stop_gradient(psi_fut)) ** 2) + jnp.mean(
+                (psi_fut - jax.lax.stop_gradient(psi)) ** 2
+            )
+        else:
+            context_loss = jnp.zeros(())
+            context_consistency = jnp.zeros(())
+
         losses = {
             "latent_dynamics": latent_dynamics_loss,
             "reward": reward_loss,
             "value": value_loss,
             "action": action_loss,
+            "context": context_loss,
+            "context_consistency": context_consistency,
         }
 
         return losses, {}
