@@ -78,8 +78,13 @@ def get_highest_numbered_file(folder_path, prefix, suffix):
 
 def find_folders(root_dir, folder_name) -> list[str]:
     """Find all folders with a specific name under a root directory."""
-    path_root = Path(root_dir)
-    return [str(p) for p in path_root.rglob(folder_name) if p.is_dir()]
+    # os.walk with followlinks so a symlinked datasets/sim (e.g. a data disk on a server) is searched too;
+    # Path.rglob does not descend into symlinked directories.
+    import fnmatch
+    out = []
+    for d, dirs, _ in os.walk(root_dir, followlinks=True):
+        out += [os.path.join(d, n) for n in dirs if fnmatch.fnmatch(n, folder_name)]
+    return out
 
 
 def get_config_dir():
