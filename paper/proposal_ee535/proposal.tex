@@ -1,0 +1,34 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,booktabs,cite}
+\title{Coverage Before Adaptation: What Limits a Sim-Pretrained World-Model Planner on a Real Quadruped\\[2pt]
+\large EE535/AI535 Final Project Proposal}
+\author{Changju Kim\\ UNIST, \texttt{kcj4746@unist.ac.kr}}
+\begin{document}
+\maketitle
+
+\section{Problem}
+SimDist~\cite{simdist} pretrains a latent world model (dynamics, reward, value, policy prior) in simulation and deploys it on a quadruped with a sampling-based planner (MPPI), adapting only the latent dynamics with about 30 minutes of real data. On a Unitree Go1 the dominant sim-to-real gaps are actuation (motors weaker than modeled, as low as 0.4$\times$) and contact (foot friction). This project asks \emph{which part of such a planner must change to close these gaps, and whether the change should be made with real data or with simulation}.
+
+\section{What we have measured so far}
+We built a sim-to-sim benchmark (Isaac Lab, Go1, 6 seeds $\times$ 3 speeds, 100\,s episodes) that reproduces the two gaps by scaling motor torque and friction, and reports falls per 1000 control steps (lower is better).
+\begin{enumerate}
+\item \textbf{Real-data adaptation is axis-dependent.} Dynamics-only adaptation with 45k real-format steps removes the contact gap (friction 0.15: $2.86 \to 0.22$) but not the actuation gap (motor 0.4: $3.58 \to 3.69$): the planner's value function never sees how weak the robot is.
+\item \textbf{Coverage must come from the prior.} With motor-strength domain randomization (DR) in the expert that trains the policy prior, falls at motor 0.4 drop only once the DR range covers the target ($\approx 11 \to 3$, replicated over 3 seeds); the planner cannot compensate outside the prior's range. System identification plus head retraining reaches 0.3--0.8, but every retrained head loses friction robustness ($>5$).
+\item \textbf{Breadth of the dynamics is the key (this week).} Fine-tuning the \emph{whole} world model, including the history-conditioned dynamics, on 19M simulated steps with broad DR (motor 0.3--1.1, friction 0.2--1.2, payload $-1$ to $+3$\,kg) gives, with no real data, 0.20 at motor 0.4, 0.47 at friction 0.15 and 0.011 nominal, beating every real-data recipe above. An explicit context slot that regresses the physics parameters from the history (RMA-style) adds nothing over this control, and a probe confirms that motor strength is barely visible in passive 25-step history.
+\end{enumerate}
+
+\section{Plan for the course project}
+\begin{enumerate}
+\item \textbf{Hardware validation (Nov.\ 10--24).} Compare SimDist and the broad-DR world model on the real Go1 under a software torque cap (1.0, 0.6, 0.4) and a 3\,kg payload, with pre-registered predictions, using the lab's Go1 bridge and fall detection built for this purpose.
+\item \textbf{Order of adaptation.} Test whether real-data dynamics adaptation, collected with the deployed prior, still improves the contact axis on top of broad pretraining (in simulation: $0.59 \to 0.17$ for one model; to be repeated on the control model and on hardware).
+\item \textbf{Analysis.} Explain why the history-attending dynamics benefit from breadth while an explicit estimator does not, using linear probes and the planner's value statistics.
+\end{enumerate}
+The course material directly used: model-based RL and world models, sampling MPC (MPPI), system identification, domain randomization and sim-to-real transfer.
+
+\section{Declaration}
+This project is part of research that I intend to submit to RSS 2027 (abstract deadline Dec.\ 4, 2026). The simulation results above were obtained before and during the course; the hardware validation and the analysis in Sec.~III will be developed for this course. The original method (SimDist, RSS 2026) is by other authors; the final report will state this relation and include the original paper as requested.
+
+\begin{thebibliography}{1}
+\bibitem{simdist} SimDist: sim-to-real world-model distillation and adaptation for legged locomotion, RSS 2026, arXiv:2603.15759.
+\end{thebibliography}
+\end{document}
