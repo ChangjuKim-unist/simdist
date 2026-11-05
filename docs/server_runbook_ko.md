@@ -1,6 +1,21 @@
-# 연구실 서버(gpu1)에서 simdist 돌리기 — 처음부터 끝까지
+# 연구실 서버에서 simdist 돌리기 — 처음부터 끝까지
 
-서버: `10.20.22.101`, 포트 52700, RTX 2080 Ti 11 GB × 4, 드라이버 595, Docker 있음, 공유 NAS `/nas_data`.
+서버 4대(포트 52700, 계정 cjkim, Ubuntu 18.04, docker 그룹 있음, 공유 NAS `/nas_data`):
+| 별칭 | 주소 | GPU | 드라이버 | 루트 여유 | 데이터 디스크 | 적합 |
+|---|---|---|---|---|---|---|
+| gpu1 | 10.20.22.101 | RTX 2080 Ti 11 GB × 4 | 530 | 51 GB | – | 가능 (평가 1개/장) |
+| gpu2 | 10.20.22.105 | Quadro RTX 8000 48 GB × 4 | 470 | 42 GB | – | 불가 (CUDA 12 안 됨) |
+| gpu3 | 10.20.22.71 | RTX 3090 24 GB × 6 | 545 | 25 GB | – | 디스크 없음 |
+| gpu4 | 10.20.22.166 | RTX 3090 24 GB × 4 | 530 | 30 GB | /data1 505 GB | **주력** (2026-11-05 세팅 완료) |
+
+**gpu4에서 실제로 필요했던 수정 (2026-11-05)**
+1. 서버 도커 20.10.7의 기본 seccomp 프로필이 `clone3`를 EPERM으로 막아 컨테이너 안 glibc의 스레드 생성이 실패(numpy 임포트 시 OpenBLAS `pthread_create failed: Operation not permitted`). 해결: 기본 프로필 + `clone3` 허용 규칙(`scripts/server/seccomp-clone3.json`, 도커 20.10.10의 수정과 같은 효과; 호스트 커널 4.15에는 clone3가 없어 ENOSYS → glibc가 clone으로 폴백)을 `run.sh`의 docker run 인자에 `--security-opt seccomp=$HOME/simdist-docker/seccomp-clone3.json`로 추가.
+2. `git clone`만으로는 IsaacLab 서브모듈이 없어 `No module named isaaclab` → `git submodule update --init IsaacLab`.
+3. 루트 디스크가 작아 `~/simdist/datasets/sim` → `/data1/cjkim/datasets_sim` 링크, `~/docker/isaac-sim` → `/data1/cjkim/isaac-sim` 링크, `run.sh`에 `-v /data1:/data1 -v /nas_data:/nas_data` 추가.
+4. 이미지는 ssh 대신 NAS 경유: 로컬 `docker save simdist:latest > /nas_data/cjkim/simdist_docker/simdist_image.tar`, 서버 `docker load < 그 파일`.
+5. `cuStreamGetGreenCtx` 경고(드라이버 530)는 무해.
+
+아래 원래 절차(gpu1 기준)는 그대로 유효.
 전제: 본인 계정 + docker 그룹 + 디스크 150 GB. 아래 명령은 표시가 없으면 **로컬 PC**에서 실행.
 
 ## 0. 접속 설정 (한 번)
