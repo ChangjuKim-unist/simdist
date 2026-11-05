@@ -25,6 +25,8 @@ ap.add_argument("--num_windows", type=int, default=600_000); ap.add_argument("--
 ap.add_argument("--batch", type=int, default=1024); ap.add_argument("--hidden", type=int, nargs="+", default=[512, 512])
 ap.add_argument("--seed", type=int, default=0); ap.add_argument("--out", default=None)
 ap.add_argument("--save", default=None, help="directory to save the history -> xi probe (params, scaler, config) for scripts/sim2sim/visibility_apply.py")
+ap.add_argument("--blocks", type=int, default=20, help="number of contiguous blocks the windows are drawn from (episode-major data: more blocks = more distinct physics labels; 20 reproduces design doc 5)")
+ap.add_argument("--expert_only", action="store_true", help="keep only windows whose target step was produced by the expert policy (expert_policy_flag.hdf5)")
 ap.add_argument("--horizon", type=int, default=25, help="action-sensitivity target: the expert's next `horizon` actions (the student's output); 1 = next action only, which is almost fully determined by the last action")
 args = ap.parse_args()
 AXES = ["motor", "friction", "mass"]
@@ -37,14 +39,17 @@ sc = json.load(open(os.path.join(d, "scaler_params.json")))
 H, Hp = 25, args.history
 rng = np.random.default_rng(args.seed)
 # windows from random contiguous blocks (see train_student_prior.py); held-out = last 20 % of blocks
-blocks, per = 20, max(1, min(args.num_windows, len(starts)) // 20)
+blocks, per = args.blocks, max(1, min(args.num_windows, len(starts)) // args.blocks)
+EF = h5py.File(os.path.join(d, "expert_policy_flag.hdf5"))["data"] if args.expert_only else None
 Pm, Am, Cm, Xm, sel, split = [], [], [], [], [], []
 off = 0
 for b in range(blocks):
     i0 = int(rng.integers(0, max(1, len(starts) - per))); blk = starts[i0:i0 + per]
     lo, hi = int(blk.min()), int(blk.max()) + 2 * H + args.horizon + 2
     Pm.append(P[lo:hi]); Am.append(A[lo:hi]); Cm.append(C[lo:hi]); Xm.append(X[lo:hi])
-    sel.append(blk - lo + off); split.append(np.full(len(blk), b >= blocks - 4)); off += hi - lo
+    if EF is not None:
+        ef = np.asarray(EF[lo:hi]).reshape(-1); blk = blk[ef[blk - lo + H] > 0.5]
+    sel.append(blk - lo + off); split.append(np.full(len(blk), b >= blocks - max(1, blocks // 5))); off += hi - lo
 Pm, Am, Cm, Xm = (np.concatenate(z).astype(np.float32) for z in (Pm, Am, Cm, Xm)); sel = np.concatenate(sel); test = np.concatenate(split)
 print(f"windows {len(sel)} (test {int(test.sum())}); physics ranges:", {a: (float(Xm[:, i].min()), float(Xm[:, i].max())) for i, a in enumerate(AXES)}, flush=True)
 
