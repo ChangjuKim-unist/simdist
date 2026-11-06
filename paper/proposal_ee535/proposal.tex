@@ -1,34 +1,34 @@
 \documentclass[conference]{IEEEtran}
 \usepackage{amsmath,booktabs,cite}
-\title{Coverage Before Adaptation: What Limits a Sim-Pretrained World-Model Planner on a Real Quadruped\\[2pt]
+\title{When Should a Sim-Pretrained World-Model Planner Trust Its Imagination?\\[2pt]
 \large EE535/AI535 Final Project Proposal}
 \author{Changju Kim\\ UNIST, \texttt{kcj4746@unist.ac.kr}}
 \begin{document}
 \maketitle
 
 \section{Problem}
-SimDist~\cite{simdist} pretrains a latent world model (dynamics, reward, value, policy prior) in simulation and deploys it on a quadruped with a sampling-based planner (MPPI), adapting only the latent dynamics with about 30 minutes of real data. On a Unitree Go1 the dominant sim-to-real gaps are actuation (motors weaker than modeled, as low as 0.4$\times$) and contact (foot friction). This project asks \emph{which part of such a planner must change to close these gaps, and whether the change should be made with real data or with simulation}.
+SimDist~\cite{simdist} pretrains a latent world model (encoder, history-conditioned dynamics, reward, value, policy prior) in simulation and controls a quadruped with a sampling planner (MPPI) that imagines hundreds of candidate action sequences and executes the one the model scores best. The model is never exactly right on the real robot, and a planner is the worst consumer of a wrong model: it searches for the highest score, so it preferentially picks candidates whose score is \emph{inflated} by model error. Existing remedies either widen simulation coverage (SimDist's own recipe) or penalise uncertain predictions, which in our experience makes the robot stop rather than fall less. This project asks: \emph{can the planner tell, from its own recent prediction errors, when its imagination is trustworthy, and plan only then?}
 
 \section{What we have measured so far}
-We built a sim-to-sim benchmark (Isaac Lab, Go1, 6 seeds $\times$ 3 speeds, 100\,s episodes) that reproduces the two gaps by scaling motor torque and friction, and reports falls per 1000 control steps (lower is better).
+Sim-to-sim benchmark (Isaac Lab, Go1, 6 seeds $\times$ 3 speeds, 100\,s episodes); metric: falls per 1000 control steps (lower is better); physical shifts: motor strength and foot friction.
 \begin{enumerate}
-\item \textbf{Real-data adaptation is axis-dependent.} Dynamics-only adaptation with 45k real-format steps removes the contact gap (friction 0.15: $2.86 \to 0.22$) but not the actuation gap (motor 0.4: $3.58 \to 3.69$): the planner's value function never sees how weak the robot is.
-\item \textbf{Coverage must come from the prior.} With motor-strength domain randomization (DR) in the expert that trains the policy prior, falls at motor 0.4 drop only once the DR range covers the target ($\approx 11 \to 3$, replicated over 3 seeds); the planner cannot compensate outside the prior's range. System identification plus head retraining reaches 0.3--0.8, but every retrained head loses friction robustness ($>5$).
-\item \textbf{Breadth of the dynamics is the key (this week).} Fine-tuning the \emph{whole} world model, including the history-conditioned dynamics, on 19M simulated steps with broad DR (motor 0.3--1.1, friction 0.2--1.2, payload $-1$ to $+3$\,kg) gives, with no real data, 0.20 at motor 0.4, 0.47 at friction 0.15 and 0.011 nominal, beating every real-data recipe above. An explicit context slot that regresses the physics parameters from the history (RMA-style) adds nothing over this control, and a probe confirms that motor strength is barely visible in passive 25-step history.
+\item \textbf{Planning helps inside the model's coverage and hurts outside it.} With a world model fine-tuned on broad domain randomisation (motor 0.3--1.1, friction 0.2--1.2), executing the policy prior alone vs.\ planning gives, at motor 0.4 (inside coverage), $0.46 \to 0.20$ falls (planning helps; reward higher with CI excluding 0), but at friction 0.15 (outside coverage), $0.03 \to 0.47$ (planning hurts; 95\% CI of the paired difference $[0.09, 0.81]$, forward progress $55 \to 33$\,m). All extra falls occur at 0.9\,m/s. Decomposing the planner's gain as \emph{promised gain} minus \emph{selection bias} predicts exactly this: the bias scales with the spread of the model's return error, which we measure as $0.02$ at 0.3\,m/s and $0.16$ at 0.9\,m/s. (Preliminary, from this week.)
+\item \textbf{The model's own prediction errors are persistent and predictive.} One-step latent prediction errors have autocorrelation 0.88/0.58/0.42 at lags 1/25/100 steps, and the mean error over the last 25 steps correlates $-0.64$ with the return the model will over-promise in the next 25 steps ($n{=}88$k windows). Errors rise from 1.02 to 1.67 in the 100 steps before a fall.
+\item \textbf{Real-data adaptation trades one axis for another.} Adapting only the dynamics on low-friction data (SimDist's recipe) fixes friction ($0.59 \to 0.17$) but triples falls at motor 0.4 ($0.27 \to 0.77$): after adaptation the model is right on one axis and wrong on another, which is precisely where a trust signal is needed.
 \end{enumerate}
 
 \section{Plan for the course project}
 \begin{enumerate}
-\item \textbf{Hardware validation (Nov.\ 10--24).} Compare SimDist and the broad-DR world model on the real Go1 under a software torque cap (1.0, 0.6, 0.4) and a 3\,kg payload, with pre-registered predictions, using the lab's Go1 bridge and fall detection built for this purpose.
-\item \textbf{Order of adaptation.} Test whether real-data dynamics adaptation, collected with the deployed prior, still improves the contact axis on top of broad pretraining (in simulation: $0.59 \to 0.17$ for one model; to be repeated on the control model and on hardware).
-\item \textbf{Analysis.} Explain why the history-attending dynamics benefit from breadth while an explicit estimator does not, using linear probes and the planner's value statistics.
+\item \textbf{Trust signal (simulation).} Feed the last 25 one-step prediction errors (imagined minus realised latent and reward) to a small encoder whose output conditions a return-correction head trained on \emph{self-rollouts}: the pretrained model is run in deliberately mismatched physics and its realised 25-step returns and falls are recorded as free labels. The world model itself stays frozen. Pre-registered test: the error window must predict falls within 100 steps with AUC $\ge 0.8$ and beat a raw state-history baseline by $\ge 0.1$; otherwise the idea is rejected.
+\item \textbf{Plan-on-demand gate.} Execute the prior when the corrected score of the prior's own imagined rollout is safe; plan (with corrected scores) only when it is not. Evaluate prior-only / planner / gate over motor, friction, payload and speed-change conditions, zero-shot and after real-data adaptation, with ablations (gate without error input, uncertainty penalty baseline).
+\item \textbf{Hardware (Nov.\ 10--24).} Real Go1: nominal, PTFE sheet (low friction), 3\,kg payload; prior-only vs.\ planner vs.\ gate, 10 trials each, before and after 30 minutes of real-data adaptation, with the pattern of item~1 as the pre-registered prediction.
 \end{enumerate}
-The course material directly used: model-based RL and world models, sampling MPC (MPPI), system identification, domain randomization and sim-to-real transfer.
+Course material used: model-based RL and world models, sampling MPC (MPPI), uncertainty and calibration, domain randomisation and sim-to-real transfer.
 
 \section{Declaration}
-This project is part of research that I intend to submit to RSS 2027 (abstract deadline Dec.\ 4, 2026). The simulation results above were obtained before and during the course; the hardware validation and the analysis in Sec.~III will be developed for this course. The original method (SimDist, RSS 2026) is by other authors; the final report will state this relation and include the original paper as requested.
+This project is part of research that I intend to submit to RSS 2027 (abstract deadline Dec.\ 4, 2026). The measurements above were obtained before and during the course; the trust signal, the gate and the hardware validation will be developed for this course. The base method (SimDist, RSS 2026) is by other authors; the final report will state this relation and include the original paper as requested.
 
 \begin{thebibliography}{1}
-\bibitem{simdist} SimDist: sim-to-real world-model distillation and adaptation for legged locomotion, RSS 2026, arXiv:2603.15759.
+\bibitem{simdist} SimDist: Simulation Distillation --- pretraining world models in simulation for rapid real-world adaptation, RSS 2026, arXiv:2603.15759.
 \end{thebibliography}
 \end{document}
