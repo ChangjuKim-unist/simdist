@@ -23,17 +23,21 @@ def features(d, W=25, K_ERR=10, K_FALL=100, H_RET=25):
     X_hist, X_err, y_fall, y_gap, keep = [], [], [], [], []
     # episode id per step to avoid crossing resets
     ep = np.cumsum(reset, axis=0)
+    # label: first reset after t within K_FALL steps -> positive if it is a fall, drop if it is a time-out; none -> negative
     for t in range(W + K_ERR, S - K_FALL):
-        same = (ep[t - W - K_ERR] == ep[t]) & (~resetting[t]) & (ep[t + K_FALL] == ep[t]) | ((ep[t - W - K_ERR] == ep[t]) & (~resetting[t]) & fall[t:t + K_FALL].any(axis=0))
+        valid = (ep[t - W - K_ERR] == ep[t]) & (~resetting[t])
+        fut_reset = reset[t + 1:t + 1 + K_FALL]; fut_fall = fall[t + 1:t + 1 + K_FALL]
+        any_reset = fut_reset.any(axis=0)
+        first = np.where(any_reset, fut_reset.argmax(axis=0), K_FALL)
+        is_fall = fut_fall[np.minimum(first, K_FALL - 1), np.arange(N)] & any_reset
+        drop = any_reset & ~is_fall
         hist = z[t - W + 1:t + 1].transpose(1, 0, 2).reshape(N, -1)
         errs = [pl[t - k, :, k - 1] - z[t] for k in range(1, K_ERR + 1)]                 # (N, D) each
         rerr = [pr[t - k, :, k - 1] - r[t] for k in range(1, K_ERR + 1)]                 # (N,)
         err = np.concatenate([np.stack(errs, 1).reshape(N, -1), np.stack(rerr, 1)], 1)
-        f = fall[t + 1:t + 1 + K_FALL].any(axis=0).astype(np.float32)
-        # realized vs predicted 25-step return (undiscounted), only if no reset inside
         ok = ep[t + H_RET] == ep[t]
         gap = np.where(ok, r[t + 1:t + 1 + H_RET].sum(0) - pr[t].sum(1), np.nan)
-        X_hist.append(hist); X_err.append(err); y_fall.append(f); y_gap.append(gap); keep.append(same)
+        X_hist.append(hist); X_err.append(err); y_fall.append(is_fall.astype(np.float32)); y_gap.append(gap); keep.append(valid & ~drop)
     X_hist = np.concatenate(X_hist); X_err = np.concatenate(X_err); y_fall = np.concatenate(y_fall)
     y_gap = np.concatenate(y_gap); keep = np.concatenate(keep)
     seeds = np.tile(d["seeds"], len(y_fall) // N)
