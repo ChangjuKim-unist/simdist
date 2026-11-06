@@ -3,7 +3,7 @@ predict (i) a fall within K steps, (ii) the realized-minus-predicted 25-step ret
 better than a window of raw state/action history?  Inputs: trace .npz files written by simulate_batch
 (output.trace_npz).  Three probe inputs over a window of W steps ending at t:
   hist  : realized latents z_{t-W+1..t}  (what a history-conditioned model already sees, in latent form)
-  err   : one-step and k-step prediction errors  pred_latents[t-k, :, k-1] - z[t]  for k=1..K_ERR, plus reward errors
+  err   : one-step prediction errors of the executed actions over the window (exact model errors), plus one-step reward errors
   both  : hist + err
 Split by seed (held-out seeds), train on a mix of conditions; optional held-out condition (--holdout) for generalisation.
 Usage: python trust_probe.py --traces /data1/cjkim/stage13/T_broadwm_prior_*.npz --holdout mass3 --out probe.json
@@ -14,29 +14,36 @@ def load(path):
     d = np.load(path, allow_pickle=False)
     return {k: d[k] for k in d.files}
 
-def features(d, W=25, K_ERR=10, K_FALL=100, H_RET=25):
-    z = d["z"].astype(np.float32)                 # (S, N, D)
-    pl = d["pred_latents"].astype(np.float32)     # (S, N, T, D)
-    pr = d["pred_rewards"]; r = d["reward"]       # (S, N, T), (S, N)
+def features(d, W=25, K_FALL=100, H_RET=25):
+    """Per decision step t (features use only what is known before executing a_t):
+      hist : realized latents z_{t-W+1..t}
+      err  : one-step prediction errors of the executed actions, e_s = pred_latents[s, :, 0] - z[s+1] for s = t-W..t-1
+             (exact model errors: a_s = plan_s[0] was executed), plus one-step reward errors pred_rewards[s, :, 0] - r[s]
+    labels: fall = the first reset within K_FALL steps from t (inclusive) is a fall (time-out windows dropped);
+            gap  = realized 25-step return r_t..r_{t+24} minus the model's predicted return at t (NaN if a reset intervenes)."""
+    z = d["z"].astype(np.float32)                 # (S, N, D)  z[t] = E(o_t), before executing a_t
+    pl = d["pred_latents"].astype(np.float32)     # (S, N, T, D)  pl[t, :, i] predicts z[t+1+i] under plan_t
+    pr = d["pred_rewards"]; r = d["reward"]       # pr[t, :, i] predicts r[t+i]; r[t] realized after executing a_t
     fall = d["fall"]; reset = d["reset"]; resetting = d["resetting"]
     S, N, D = z.shape
+    # episode id of observation t = number of resets strictly before t
+    ep = np.concatenate([np.zeros((1, N), np.int64), np.cumsum(reset, axis=0)[:-1]])
+    e1 = pl[:-1, :, 0] - z[1:]                    # (S-1, N, D)  one-step latent error of step s
+    r1 = pr[:-1, :, 0] - r[:-1]                   # (S-1, N)     one-step reward error of step s
     X_hist, X_err, y_fall, y_gap, keep = [], [], [], [], []
-    # episode id per step to avoid crossing resets
-    ep = np.cumsum(reset, axis=0)
-    # label: first reset after t within K_FALL steps -> positive if it is a fall, drop if it is a time-out; none -> negative
-    for t in range(W + K_ERR, S - K_FALL):
-        valid = (ep[t - W - K_ERR] == ep[t]) & (~resetting[t])
-        fut_reset = reset[t + 1:t + 1 + K_FALL]; fut_fall = fall[t + 1:t + 1 + K_FALL]
+    for t in range(W, S - K_FALL):
+        same_ep = ep[t - W] == ep[t]
+        no_reset_in_window = ~resetting[t - W:t + 1].any(axis=0)
+        valid = same_ep & no_reset_in_window
+        fut_reset = reset[t:t + K_FALL]; fut_fall = fall[t:t + K_FALL]
         any_reset = fut_reset.any(axis=0)
-        first = np.where(any_reset, fut_reset.argmax(axis=0), K_FALL)
-        is_fall = fut_fall[np.minimum(first, K_FALL - 1), np.arange(N)] & any_reset
+        first = np.where(any_reset, fut_reset.argmax(axis=0), 0)
+        is_fall = fut_fall[first, np.arange(N)] & any_reset
         drop = any_reset & ~is_fall
         hist = z[t - W + 1:t + 1].transpose(1, 0, 2).reshape(N, -1)
-        errs = [pl[t - k, :, k - 1] - z[t] for k in range(1, K_ERR + 1)]                 # (N, D) each
-        rerr = [pr[t - k, :, k - 1] - r[t] for k in range(1, K_ERR + 1)]                 # (N,)
-        err = np.concatenate([np.stack(errs, 1).reshape(N, -1), np.stack(rerr, 1)], 1)
-        ok = ep[t + H_RET] == ep[t]
-        gap = np.where(ok, r[t + 1:t + 1 + H_RET].sum(0) - pr[t].sum(1), np.nan)
+        err = np.concatenate([e1[t - W:t].transpose(1, 0, 2).reshape(N, -1), r1[t - W:t].T], 1)
+        ok = (ep[t + H_RET - 1] == ep[t]) & ~reset[t:t + H_RET - 1].any(axis=0)
+        gap = np.where(ok, r[t:t + H_RET].sum(0) - pr[t].sum(1), np.nan)
         X_hist.append(hist); X_err.append(err); y_fall.append(is_fall.astype(np.float32)); y_gap.append(gap); keep.append(valid & ~drop)
     X_hist = np.concatenate(X_hist); X_err = np.concatenate(X_err); y_fall = np.concatenate(y_fall)
     y_gap = np.concatenate(y_gap); keep = np.concatenate(keep)
