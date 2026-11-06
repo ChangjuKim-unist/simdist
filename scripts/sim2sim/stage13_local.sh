@@ -26,4 +26,9 @@ run L_ctx_prior go1_ctx motor0.4 $PO
 run L_ctx_planner go1_ctx motor0.4
 run L_ctx_prior go1_ctx nominal $PO
 run L_ctx_planner go1_ctx nominal
+# design doc 14 §2 proposition 2: the adapted model (friction-adapted, forgot the motor axis) — does planning help where the model is right and hurt where it forgot?
+run L_adapt_prior go1_ctx_friction0.15_dyn_b45000_term friction0.15 $PO
+run L_adapt_planner go1_ctx_friction0.15_dyn_b45000_term friction0.15
+run L_adapt_prior go1_ctx_friction0.15_dyn_b45000_term motor0.4 $PO
+run L_adapt_planner go1_ctx_friction0.15_dyn_b45000_term motor0.4
 echo "### trust0-local done $(date)"
