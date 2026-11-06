@@ -74,6 +74,10 @@ class BatchSim:
         # logging of the model's own online physics estimate (output.context_csv, every 25 steps)
         self.ctx_rows = []
         self.ctx_csv = (cfg.get("output", {}) or {}).get("context_csv")
+        # design doc 14: per-step trace of the model's prediction for the executed plan vs. what happened
+        # (output.trace_npz): z_t, predicted latents/rewards/values, realized reward, fall, reset flags.
+        self.trace_path = (cfg.get("output", {}) or {}).get("trace_npz")
+        self.trace = {k: [] for k in ("z", "pred_latents", "pred_rewards", "pred_values", "reward", "fall", "reset", "resetting")} if self.trace_path else None
         if cfg["sim"].get("context_oracle", False):
             assert getattr(model, "context", None) is not None, "sim.context_oracle needs a model with a context slot"
             xi = [float(cfg["sim"].get("motor_strength", 1.0)), float(cfg["sim"]["friction"]), float(cfg["sim"]["add_mass"])]
@@ -260,7 +264,12 @@ class BatchSim:
                     a_exp = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy().astype(np.float32)
                 mean = np.repeat(a_exp[:, None, :], self.controller.T, axis=1)
                 self.controller.state = self.controller.state.replace(mean=jnp.asarray(mean))
-            action = self.controller.run_control()[:, 0]
+            plan = self.controller.run_control()
+            action = plan[:, 0]
+            if self.trace is not None:
+                z, pl, pr, pv = self.controller.trace(plan)
+                self.trace["z"].append(z.astype(np.float16)); self.trace["pred_latents"].append(pl.astype(np.float16))
+                self.trace["pred_rewards"].append(pr.astype(np.float32)); self.trace["pred_values"].append(pv.astype(np.float32))
         action = np.where(resetting[:, None], 0.0, action).astype(np.float32)
         self.last_action = action
 
@@ -276,6 +285,9 @@ class BatchSim:
             fall |= tm.get_term(t).cpu().numpy()
         timeout = tm.get_term("time_out").cpu().numpy() if "time_out" in tm.active_terms else np.zeros(self.N, bool)
         self.num_falls += fall; self.num_timeouts += timeout & ~fall
+        if self.trace is not None and len(self.trace["z"]) > len(self.trace["reward"]):
+            self.trace["reward"].append(reward.astype(np.float32)); self.trace["fall"].append(fall.copy())
+            self.trace["reset"].append(reset.copy()); self.trace["resetting"].append(resetting.copy())
         self.total += 1
         self.steps_since_reset += 1
         active = ~resetting
@@ -325,6 +337,14 @@ class BatchSim:
                 if new:
                     w.writeheader()
                 w.writerows(rows)
+        if self.trace is not None and self.trace["z"]:
+            n = min(len(v) for v in self.trace.values())
+            arrs = {k: np.stack(v[:n]) for k, v in self.trace.items()}
+            arrs.update(speeds=np.array([v for v, _ in self.pairs], np.float32), seeds=np.array([s for _, s in self.pairs], np.int64),
+                        model=np.array(model_name), condition=np.array(cond), motor_switch_step=np.array(self.motor_switch_step if self.motor_switch_step is not None else -1))
+            os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
+            np.savez(self.trace_path, **arrs)
+            print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
         if self.ctx_csv and self.ctx_rows:
             os.makedirs(os.path.dirname(os.path.abspath(self.ctx_csv)), exist_ok=True)
             new = not os.path.exists(self.ctx_csv)

@@ -66,3 +66,4 @@ output:
   model_name:     # model column (defaults to model.checkpoint)
   condition:      # condition column (e.g. combo_hard)
   context_csv:    # design doc 13: per-robot online physics estimate every 25 steps
+  trace_npz:      # design doc 14: per-step model prediction for the executed plan vs. realized reward/fall (npz)

@@ -193,6 +193,22 @@ class BatchedMppiController:
             self.pred_next = self._predict_next(x, actions)
         return np.asarray(actions)
 
+    # ---- design doc 14: trace of the model's own prediction for the executed plan ----------
+    @functools.partial(nnx.jit, static_argnames=["self"])
+    def _trace(self, x, actions):
+        xx = dict(x); xx["fut_acts"] = actions
+        y = self.model.inference(xx)
+        xs = self.model.scaler.scale(x)
+        z_now = self.model.encode_latent(xs["proprio_obs_hist"][:, -1], xs["extero_obs"], deterministic=True)
+        return z_now, y["latents"], y["rewards"], y["values"]
+
+    def trace(self, actions):
+        """Current latent z_t (N, D) and the model's prediction for the plan that will be executed:
+        latents (N, T, D), rewards (N, T), values (N, T) in raw units. Inputs = the same history
+        the planner used this step (call after run_control, before env.step)."""
+        z, l, r, v = self._trace(self._model_inputs(), jnp.asarray(actions, jnp.float32))
+        return np.asarray(z), np.asarray(l), np.asarray(r), np.asarray(v)
+
     @functools.partial(nnx.jit, static_argnames=["self"])
     def _encode_now(self, x):
         xs = self.model.scaler.scale(x)
