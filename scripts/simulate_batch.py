@@ -77,7 +77,9 @@ class BatchSim:
         # design doc 14: per-step trace of the model's prediction for the executed plan vs. what happened
         # (output.trace_npz): z_t, predicted latents/rewards/values, realized reward, fall, reset flags.
         self.trace_path = (cfg.get("output", {}) or {}).get("trace_npz")
-        self.trace = {k: [] for k in ("z", "pred_latents", "pred_rewards", "pred_values", "reward", "fall", "reset", "resetting")} if self.trace_path else None
+        self.trace = {k: [] for k in ("z", "pred_latents", "pred_rewards", "pred_values", "action", "reward", "fall", "reset", "resetting")} if self.trace_path else None
+        if self.trace is not None and ((cfg.get("policy", {}) or {}).get("rl_run") or (cfg.get("prior", {}) or {}).get("student")):
+            print("WARNING: output.trace_npz is only recorded on the planner/prior path (not rl_run / student_act)", flush=True)
         if cfg["sim"].get("context_oracle", False):
             assert getattr(model, "context", None) is not None, "sim.context_oracle needs a model with a context slot"
             xi = [float(cfg["sim"].get("motor_strength", 1.0)), float(cfg["sim"]["friction"]), float(cfg["sim"]["add_mass"])]
@@ -267,9 +269,12 @@ class BatchSim:
             plan = self.controller.run_control()
             action = plan[:, 0]
             if self.trace is not None:
-                z, pl, pr, pv = self.controller.trace(plan)
+                # the plan that is really executed: zeros during the post-reset phase (code review 2026-11-06)
+                plan_exec = np.where(resetting[:, None, None], 0.0, plan).astype(np.float32)
+                z, pl, pr, pv = self.controller.trace(plan_exec)
                 self.trace["z"].append(z.astype(np.float16)); self.trace["pred_latents"].append(pl.astype(np.float16))
                 self.trace["pred_rewards"].append(pr.astype(np.float32)); self.trace["pred_values"].append(pv.astype(np.float32))
+                self.trace["action"].append(plan_exec[:, 0].astype(np.float16))
         action = np.where(resetting[:, None], 0.0, action).astype(np.float32)
         self.last_action = action
 
@@ -328,6 +333,14 @@ class BatchSim:
             print("RESULT", row, flush=True)
         if getattr(self.controller, "gate_steps", 0):
             print(f"consistency gate rate: {self.controller.gated_steps / self.controller.gate_steps:.4f} (design doc 7)")
+        if self.trace is not None and self.trace["z"]:
+            n = min(len(v) for v in self.trace.values())
+            arrs = {k: np.stack(v[:n]) for k, v in self.trace.items()}
+            arrs.update(speeds=np.array([v for v, _ in self.pairs], np.float32), seeds=np.array([s for _, s in self.pairs], np.int64),
+                        model=np.array(model_name), condition=np.array(cond), motor_switch_step=np.array(self.motor_switch_step if self.motor_switch_step is not None else -1))
+            os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
+            np.savez(self.trace_path, **arrs)
+            print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
         if out.get("csv"):
             path = out["csv"]
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
@@ -337,14 +350,6 @@ class BatchSim:
                 if new:
                     w.writeheader()
                 w.writerows(rows)
-        if self.trace is not None and self.trace["z"]:
-            n = min(len(v) for v in self.trace.values())
-            arrs = {k: np.stack(v[:n]) for k, v in self.trace.items()}
-            arrs.update(speeds=np.array([v for v, _ in self.pairs], np.float32), seeds=np.array([s for _, s in self.pairs], np.int64),
-                        model=np.array(model_name), condition=np.array(cond), motor_switch_step=np.array(self.motor_switch_step if self.motor_switch_step is not None else -1))
-            os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
-            np.savez(self.trace_path, **arrs)
-            print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
         if self.ctx_csv and self.ctx_rows:
             os.makedirs(os.path.dirname(os.path.abspath(self.ctx_csv)), exist_ok=True)
             new = not os.path.exists(self.ctx_csv)

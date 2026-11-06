@@ -14,7 +14,7 @@ def load(path):
     d = np.load(path, allow_pickle=False)
     return {k: d[k] for k in d.files}
 
-def features(d, W=25, K_FALL=100, H_RET=25):
+def features(d, W=25, K_FALL=100, H_RET=25, stride=5):
     """Per decision step t (features use only what is known before executing a_t):
       hist : realized latents z_{t-W+1..t}
       err  : one-step prediction errors of the executed actions, e_s = pred_latents[s, :, 0] - z[s+1] for s = t-W..t-1
@@ -22,6 +22,7 @@ def features(d, W=25, K_FALL=100, H_RET=25):
     labels: fall = the first reset within K_FALL steps from t (inclusive) is a fall (time-out windows dropped);
             gap  = realized 25-step return r_t..r_{t+24} minus the model's predicted return at t (NaN if a reset intervenes)."""
     z = d["z"].astype(np.float32)                 # (S, N, D)  z[t] = E(o_t), before executing a_t
+    act = d["action"].astype(np.float32) if "action" in d else None   # (S, N, A) executed action a_t
     pl = d["pred_latents"].astype(np.float32)     # (S, N, T, D)  pl[t, :, i] predicts z[t+1+i] under plan_t
     pr = d["pred_rewards"]; r = d["reward"]       # pr[t, :, i] predicts r[t+i]; r[t] realized after executing a_t
     fall = d["fall"]; reset = d["reset"]; resetting = d["resetting"]
@@ -31,7 +32,7 @@ def features(d, W=25, K_FALL=100, H_RET=25):
     e1 = pl[:-1, :, 0] - z[1:]                    # (S-1, N, D)  one-step latent error of step s
     r1 = pr[:-1, :, 0] - r[:-1]                   # (S-1, N)     one-step reward error of step s
     X_hist, X_err, y_fall, y_gap, keep = [], [], [], [], []
-    for t in range(W, S - K_FALL):
+    for t in range(W, S - K_FALL, stride):
         same_ep = ep[t - W] == ep[t]
         no_reset_in_window = ~resetting[t - W:t + 1].any(axis=0)
         valid = same_ep & no_reset_in_window
@@ -41,11 +42,13 @@ def features(d, W=25, K_FALL=100, H_RET=25):
         is_fall = fut_fall[first, np.arange(N)] & any_reset
         drop = any_reset & ~is_fall
         hist = z[t - W + 1:t + 1].transpose(1, 0, 2).reshape(N, -1)
+        if act is not None:  # the planner's own past commands a_{t-W..t-1} (what the model's history encoder also sees)
+            hist = np.concatenate([hist, act[t - W:t].transpose(1, 0, 2).reshape(N, -1)], 1)
         err = np.concatenate([e1[t - W:t].transpose(1, 0, 2).reshape(N, -1), r1[t - W:t].T], 1)
         ok = (ep[t + H_RET - 1] == ep[t]) & ~reset[t:t + H_RET - 1].any(axis=0)
         gap = np.where(ok, r[t:t + H_RET].sum(0) - pr[t].sum(1), np.nan)
         X_hist.append(hist); X_err.append(err); y_fall.append(is_fall.astype(np.float32)); y_gap.append(gap); keep.append(valid & ~drop)
-    X_hist = np.concatenate(X_hist); X_err = np.concatenate(X_err); y_fall = np.concatenate(y_fall)
+    X_hist = np.concatenate(X_hist).astype(np.float16); X_err = np.concatenate(X_err).astype(np.float16); y_fall = np.concatenate(y_fall)
     y_gap = np.concatenate(y_gap); keep = np.concatenate(keep)
     seeds = np.tile(d["seeds"], len(y_fall) // N)
     return X_hist[keep], X_err[keep], y_fall[keep], y_gap[keep], seeds[keep]
@@ -92,21 +95,32 @@ def main():
         data[(name, cond)] = features(d)
         print(p, "windows", len(data[(name, cond)][2]), "fall rate", float(data[(name, cond)][2].mean()), flush=True)
     res = {}
-    conds = sorted({c for _, c in data})
+    conds = sorted({c for _, c in data}); cond_id = {c: i for i, c in enumerate(conds)}
     for inp in ("hist", "err", "both"):
-        def getX(v): return {"hist": v[0], "err": v[1], "both": np.concatenate([v[0], v[1]], 1)}[inp]
+        def getX(v): return {"hist": v[0], "err": v[1], "both": np.concatenate([v[0], v[1]], 1)}[inp].astype(np.float32)
         tr = [(k, v) for k, v in data.items() if k[1] != args.holdout]
-        Xtr = np.concatenate([getX(v)[~np.isin(v[4], list(test_seeds))] for _, v in tr])
-        ytr = np.concatenate([v[2][~np.isin(v[4], list(test_seeds))] for _, v in tr])
-        gtr = np.concatenate([v[3][~np.isin(v[4], list(test_seeds))] for _, v in tr])
+        trm = [~np.isin(v[4], list(test_seeds)) for _, v in tr]
+        Xtr = np.concatenate([getX(v)[m] for (_, v), m in zip(tr, trm)])
+        ytr = np.concatenate([v[2][m] for (_, v), m in zip(tr, trm)])
+        gtr = np.concatenate([v[3][m] for (_, v), m in zip(tr, trm)])
+        ctr = np.concatenate([np.full(m.sum(), cond_id[k[1]]) for (k, v), m in zip(tr, trm)])
+        tests = {}
         for k, v in data.items():
             te = np.isin(v[4], list(test_seeds)) if k[1] != args.holdout else np.ones(len(v[2]), bool)
-            Xte, yte, gte = getX(v)[te], v[2][te], v[3][te]
-            s = mlp_fit(Xtr, ytr, "cls", Xte)
-            m = ~np.isnan(gtr); mt = ~np.isnan(gte)
-            g = mlp_fit(Xtr[m], gtr[m], "reg", Xte[mt]) if mt.sum() > 10 else None
-            res[f"{inp}|{k[0]}|{k[1]}"] = {"fall_auc": auc(yte, s), "n": int(len(yte)), "fall_rate": float(yte.mean()),
-                                           "gap_r2": r2(gte[mt], g) if g is not None else None, "holdout": k[1] == args.holdout}
+            tests[k] = (getX(v)[te], v[2][te], v[3][te], np.full(te.sum(), cond_id[k[1]]))
+        Xte_all = np.concatenate([t[0] for t in tests.values()]); n_te = [len(t[1]) for t in tests.values()]
+        s_all = mlp_fit(Xtr, ytr, "cls", Xte_all)
+        m = ~np.isnan(gtr); g_all = mlp_fit(Xtr[m], gtr[m], "reg", Xte_all)
+        # condition classification: one-vs-rest per condition, accuracy by argmax
+        sc = np.stack([mlp_fit(Xtr, (ctr == i).astype(np.float32), "cls", Xte_all) for i in range(len(conds))], 1) if len(conds) > 1 else None
+        off = 0
+        for (k, (Xte, yte, gte, cte)), n in zip(tests.items(), n_te):
+            sl = slice(off, off + n); off += n
+            mt = ~np.isnan(gte)
+            res[f"{inp}|{k[0]}|{k[1]}"] = {"fall_auc": auc(yte, s_all[sl]), "n": int(n), "fall_rate": float(yte.mean()),
+                                           "gap_r2": r2(gte[mt], g_all[sl][mt]) if mt.sum() > 10 else None,
+                                           "cond_acc": float((sc[sl].argmax(1) == cte).mean()) if sc is not None else None,
+                                           "holdout": k[1] == args.holdout}
             print(inp, k, res[f"{inp}|{k[0]}|{k[1]}"], flush=True)
     if args.out: json.dump(res, open(args.out, "w"), indent=1)
 

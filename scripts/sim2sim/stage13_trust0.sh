@@ -13,11 +13,11 @@ phys() { case $1 in nominal) echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_s
 SEEDS="[11,12,13,14,15,16]"
 run() { local gpu=$1 name=$2 ckpt=$3 cond=$4; shift 4
   local csv=$OUT/eval_trust0_gpu$gpu.csv
-  if cat $OUT/eval_trust0*.csv 2>/dev/null | grep -q "^$name,$cond,"; then return; fi
+  if [ -f $TR/${name}_${cond}.npz ] && cat $OUT/eval_trust0*.csv 2>/dev/null | grep -q "^$name,$cond,"; then return; fi
   echo "== $name on $cond ($*) gpu$gpu $(date +%H:%M)"
   GPUS="\"device=$gpu\"" $RUN python scripts/simulate_batch.py model.checkpoint=$ckpt $(phys $cond) sim.terrain=plane sim.total_steps=5000 sim.episode_length_s=100 \
     'batch.speeds=[0.3,0.6,0.9]' "batch.seeds=$SEEDS" output.csv=/workspace/simdist/$csv output.model_name=$name output.condition=$cond \
-    output.trace_npz=$TR/${name}_${cond}.npz "$@" --headless 2>&1 | grep -E "Traceback|rror:|trace written" | head -4
+    output.trace_npz=$TR/${name}_${cond}.npz "$@" --headless 2>&1 | grep -E "Traceback|rror:|trace written"
 }
 PO=control.prior_only=true
 JOBS=(

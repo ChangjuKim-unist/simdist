@@ -9,11 +9,11 @@ phys() { case $1 in nominal) echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_s
   mass3) echo "sim.friction=0.8 sim.add_mass=3.0 sim.motor_strength=1.0";; esac; }
 SEEDS="[11,12,13,14,15,16]"
 run() { local name=$1 ckpt=$2 cond=$3; shift 3
-  if [ -f $CSV ] && grep -q "^$name,$cond," $CSV; then return; fi
+  if [ -f $TR/${name}_${cond}.npz ] && [ -f $CSV ] && grep -q "^$name,$cond," $CSV; then return; fi
   echo "== $name on $cond ($*) $(date +%H:%M)"
   GPUS='"device=0"' $RUN python scripts/simulate_batch.py model.checkpoint=$ckpt $(phys $cond) sim.terrain=plane sim.total_steps=5000 sim.episode_length_s=100 \
     'batch.speeds=[0.3,0.6,0.9]' "batch.seeds=$SEEDS" output.csv=/workspace/simdist/$CSV output.model_name=$name output.condition=$cond \
-    output.trace_npz=/workspace/simdist/$TR/${name}_${cond}.npz "$@" --headless 2>&1 | grep -E "Traceback|rror:|trace written|switched" | head -4
+    output.trace_npz=/workspace/simdist/$TR/${name}_${cond}.npz "$@" --headless 2>&1 | grep -E "Traceback|rror:|trace written|switched"
 }
 PO=control.prior_only=true; SW="sim.motor_switch_step=2500 sim.motor_switch_strength=0.8"
 run L_ctx_prior go1_ctx friction0.15 $PO

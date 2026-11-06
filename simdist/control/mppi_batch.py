@@ -207,7 +207,8 @@ class BatchedMppiController:
         latents (N, T, D), rewards (N, T), values (N, T) in raw units. Inputs = the same history
         the planner used this step (call after run_control, before env.step)."""
         z, l, r, v = self._trace(self._model_inputs(), jnp.asarray(actions, jnp.float32))
-        return np.asarray(z), np.asarray(l), np.asarray(r), np.asarray(v)
+        N, T = actions.shape[0], actions.shape[1]
+        return np.asarray(z), np.asarray(l).reshape(N, T, -1), np.asarray(r).reshape(N, T), np.asarray(v).reshape(N, T)
 
     @functools.partial(nnx.jit, static_argnames=["self"])
     def _encode_now(self, x):
