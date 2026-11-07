@@ -21,3 +21,9 @@ consistency_gate:
   enabled: false
   factor: 3.0   # gate when ||z_actual - z_predicted|| > factor x running per-robot median
   window: 200   # steps of distance history for the median
+# design doc 15: calibrated planner score (quantile head trained on the planner's own traces)
+calib:
+  enabled: false
+  weights: null   # .npz from scripts/sim2sim/calib_head.py
+  tau: 0.1        # which quantile of the realised return scores a candidate (0.1 / 0.5 / 0.9)
+  fall_max: null  # exclude candidates whose predicted fall probability exceeds this (null = off)

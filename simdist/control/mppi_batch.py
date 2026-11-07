@@ -61,6 +61,21 @@ class BatchedMppiController:
         self.discounts = controller_cfg["discount"] ** jnp.arange(self.T)
         self.final_discount = controller_cfg["discount"] ** (self.T + 1)
         self.dummy_actions = jnp.zeros((self.N, self.T, self.act_dim))
+        # design doc 15: calibrated planner score.  control.calib = {enabled, weights, tau, fall_max}: candidates are
+        # scored by the tau-quantile of the REALISED 25-step return predicted by a small head (trained on the planner's
+        # own traces, scripts/sim2sim/calib_head.py) instead of the model's promised return; candidates whose
+        # predicted fall probability exceeds fall_max are excluded.  Everything else in MPPI is unchanged.
+        self.calib_cfg = dict(controller_cfg.get("calib", {}) or {})
+        self.calib = None
+        if self.calib_cfg.get("enabled", False):
+            w = np.load(str(self.calib_cfg["weights"]))
+            self.calib = {k: jnp.asarray(w[k], jnp.float32) for k in ("w1", "b1", "w2", "b2", "w3", "b3", "mu", "sd")}
+            self.calib["g_mu"] = float(w["g_mu"]); self.calib["g_sd"] = float(w["g_sd"])
+            taus = np.asarray(w["taus"], np.float64)
+            self.calib["tau_idx"] = int(np.argmin(np.abs(taus - float(self.calib_cfg.get("tau", 0.1)))))
+            self.calib["n_hist"] = int(w["n_hist"])
+            fm = self.calib_cfg.get("fall_max", None)
+            self.calib["fall_max"] = None if fm in (None, "null", "none") else float(fm)
 
         # history buffers (oldest -> newest along axis 1)
         self.proprio_hist = np.zeros((self.N, self.H + 1, self.proprio_dim), np.float32)
@@ -252,6 +267,28 @@ class BatchedMppiController:
         x_rep = jax.tree.map(lambda a: jnp.repeat(a, S + B, axis=0), x)
 
         I = int(self.ctrl_cfg["iterations"])
+        if self.calib is not None:
+            # history block, once per step: realised latents of the last T observations + the last T executed actions,
+            # in the same layout as scripts/sim2sim/calib_head.py (trace z = encode_latent(o), trace action = executed plan[0])
+            xs = self.model.scaler.scale(x)
+            ph = xs["proprio_obs_hist"][:, -T:]                                        # (N, T, o_p)
+            z_hist = jax.vmap(lambda p: self.model.encode_latent(p, xs["extero_obs"], deterministic=True),
+                              in_axes=1, out_axes=1)(ph)                                 # (N, T, D)
+            a_hist = jnp.asarray(x["acts_hist"], jnp.float32)[:, -T:]                    # (N, T, A) raw units
+            hist_feat = jnp.concatenate([z_hist.reshape(N, -1), a_hist.reshape(N, -1)], -1)  # (N, n_hist)
+            hist_rep = jnp.repeat(hist_feat[:, None], S + B, axis=1)                     # (N, S+B, n_hist)
+            c = self.calib
+
+            def calibrated_scores(y, returns):
+                lat = y["latents"].reshape(N, S + B, T, -1)
+                cand = jnp.concatenate([y["rewards"].reshape(N, S + B, T), y["values"].reshape(N, S + B, T)[..., -1:],
+                                        returns[..., None], lat.mean(2), lat[:, :, -1]], -1)
+                feat = (jnp.concatenate([hist_rep, cand], -1) - c["mu"]) / c["sd"]
+                hh = jax.nn.relu(feat @ c["w1"] + c["b1"]); hh = jax.nn.relu(hh @ c["w2"] + c["b2"]); out = hh @ c["w3"] + c["b3"]
+                score = out[..., c["tau_idx"]] * c["g_sd"] + c["g_mu"]
+                if c["fall_max"] is not None:
+                    score = jnp.where(jax.nn.sigmoid(out[..., 3]) > c["fall_max"], -1e6, score)
+                return score
         if self.noise_schedule.get("enabled", False):
             it_f = jnp.exp(-float(self.noise_schedule.get("iter_decay", 1.0)) * jnp.arange(I) / max(I - 1, 1))  # (I,)
             h_f = jnp.exp(-float(self.noise_schedule.get("horizon_decay", 1.0)) * (T - 1 - jnp.arange(T)) / max(T - 1, 1))  # (T,) less noise near t
@@ -269,6 +306,8 @@ class BatchedMppiController:
             y = self.model.inference(xx)
             rewards = jnp.sum(y["rewards"] * self.discounts, axis=-1)
             returns = (rewards + y["values"][:, -1] * self.final_discount).reshape(N, S + B)
+            if self.calib is not None:
+                returns = calibrated_scores(y, returns)
 
             elite_returns, elite_idxs = jax.lax.top_k(returns, self.ctrl_cfg["num_elites"])  # (N, k)
             elite_acts = jnp.take_along_axis(acts, elite_idxs[:, :, None, None], axis=1)  # (N, k, T, A)
