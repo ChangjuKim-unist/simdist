@@ -77,6 +77,19 @@ class BatchedMppiController:
             fm = self.calib_cfg.get("fall_max", None)
             self.calib["fall_max"] = None if fm in (None, "null", "none") else float(fm)
 
+        # design doc 16: generative-prior candidates.  control.gen = {enabled, weights, dec_noise, min_std_u}: candidates are
+        # decoded from a conditional VAE (scripts/sim2sim/gen_chunks.py) by CEM in its latent space instead of Gaussian noise
+        # around the shifted previous plan; no policy mixture samples (B = 0); the executed plan is the decoded final mean.
+        self.gen_cfg = dict(controller_cfg.get("gen", {}) or {})
+        self.gen = None
+        if self.gen_cfg.get("enabled", False):
+            w = np.load(str(self.gen_cfg["weights"]))
+            self.gen = {k: jnp.asarray(w[k], jnp.float32) for k in ("d1", "db1", "d2", "db2", "d3", "db3", "dlog_sig",
+                                                                     "p_mean", "p_std", "a_mean", "a_std", "c_mean", "c_std")}
+            self.gen["du"] = int(w["du"]); self.gen["dec_noise"] = float(self.gen_cfg.get("dec_noise", 0.0))
+            self.gen["min_std_u"] = float(self.gen_cfg.get("min_std_u", 0.05))
+            self.B = 0
+
         # history buffers (oldest -> newest along axis 1)
         self.proprio_hist = np.zeros((self.N, self.H + 1, self.proprio_dim), np.float32)
         self.acts_hist = np.zeros((self.N, self.H, self.act_dim), np.float32)
@@ -295,6 +308,46 @@ class BatchedMppiController:
             sched = it_f[:, None, None] * h_f[None, :, None]  # (I, T, 1)
         else:
             sched = jnp.ones((I, T, 1))
+
+        if self.gen is not None:
+            g = self.gen; du = g["du"]
+            cond = jnp.concatenate([((jnp.asarray(x["proprio_obs_hist"], jnp.float32) - g["p_mean"]) / g["p_std"]).reshape(N, -1),
+                                    ((jnp.asarray(x["acts_hist"], jnp.float32) - g["a_mean"]) / g["a_std"]).reshape(N, -1),
+                                    ((jnp.asarray(x["fut_cmds"], jnp.float32) - g["c_mean"]) / g["c_std"]).reshape(N, -1)], -1)  # (N, dc)
+            cond_rep = jnp.repeat(cond[:, None], S, axis=1)                                                         # (N, S, dc)
+            a_mean_T = jnp.tile(g["a_mean"], T); a_std_T = jnp.tile(g["a_std"], T)
+            ls = jnp.clip(g["dlog_sig"], -3.0, 1.0)
+
+            def decode(u, key):  # (N, S, du) -> raw action chunks (N, S, T, A)
+                hh = jax.nn.relu(jnp.concatenate([u, cond_rep[:, :u.shape[1]]], -1) @ g["d1"] + g["db1"])
+                hh = jax.nn.relu(hh @ g["d2"] + g["db2"]); m = hh @ g["d3"] + g["db3"]
+                if g["dec_noise"] > 0:
+                    m = m + g["dec_noise"] * jnp.exp(ls) * jax.random.normal(key, m.shape)
+                return (m * a_std_T + a_mean_T).reshape(N, u.shape[1], T, A)
+
+            def fg(carry, i):
+                mu_u, sig_u, keys = carry
+                keys, k_u = split(keys); keys, k_d = split(keys)
+                u = mu_u[:, None] + sig_u[:, None] * jax.vmap(lambda k: jax.random.normal(k, (S, du)))(k_u)       # (N, S, du)
+                acts = decode(u, k_d[0])
+                xx = dict(x_rep); xx["fut_acts"] = acts.reshape(N * S, T, A)
+                y = self.model.inference(xx)
+                rewards = jnp.sum(y["rewards"] * self.discounts, axis=-1)
+                returns = (rewards + y["values"][:, -1] * self.final_discount).reshape(N, S)
+                if self.calib is not None:
+                    returns = calibrated_scores(y, returns)
+                elite_returns, elite_idxs = jax.lax.top_k(returns, self.ctrl_cfg["num_elites"])
+                elite_u = jnp.take_along_axis(u, elite_idxs[:, :, None], axis=1)                                   # (N, k, du)
+                score = jnp.exp(self.ctrl_cfg["temperature"] * (elite_returns - elite_returns.max(axis=1, keepdims=True)))
+                w = score / score.sum(axis=1, keepdims=True)
+                new_mu = jnp.sum(w[:, :, None] * elite_u, axis=1)
+                new_sig = jnp.sqrt(jnp.sum(w[:, :, None] * (elite_u - new_mu[:, None]) ** 2, axis=1))
+                return (new_mu, jnp.clip(new_sig, min=g["min_std_u"]), keys), None
+
+            (mu_u, sig_u, keys), _ = jax.lax.scan(fg, (jnp.zeros((N, du)), jnp.ones((N, du)), keys), jnp.arange(I))
+            keys, k_d = split(keys)
+            plan = decode(mu_u[:, None], k_d[0])[:, 0]                                                            # (N, T, A)
+            return BatchedMppiState(plan.astype(jnp.float32), state.std, jax.random.key_data(keys))
 
         def f(carry, i):
             mean, std, keys = carry

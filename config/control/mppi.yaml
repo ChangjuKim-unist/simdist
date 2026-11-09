@@ -27,3 +27,9 @@ calib:
   weights: null   # .npz from scripts/sim2sim/calib_head.py
   tau: 0.1        # which quantile of the realised return scores a candidate (0.1 / 0.5 / 0.9)
   fall_max: null  # exclude candidates whose predicted fall probability exceeds this (null = off)
+# design doc 16: generative-prior candidates (conditional VAE decoder, CEM in its latent space)
+gen:
+  enabled: false
+  weights: null    # .npz from scripts/sim2sim/gen_chunks.py
+  dec_noise: 0.0   # multiply the decoder's per-dimension sigma for extra sampling noise (0 = candidates vary only through u)
+  min_std_u: 0.05  # lower bound of the latent sampling std across CEM iterations
