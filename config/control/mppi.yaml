@@ -33,3 +33,4 @@ gen:
   weights: null    # .npz from scripts/sim2sim/gen_chunks.py
   dec_noise: 0.0   # multiply the decoder's per-dimension sigma for extra sampling noise (0 = candidates vary only through u)
   min_std_u: 0.05  # lower bound of the latent sampling std across CEM iterations
+  u_max: 2.5       # latent samples are clipped to [-u_max, u_max] (decoder trained on posterior u ~ N(0, 1))

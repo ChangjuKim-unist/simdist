@@ -88,6 +88,7 @@ class BatchedMppiController:
                                                                      "p_mean", "p_std", "a_mean", "a_std", "c_mean", "c_std")}
             self.gen["du"] = int(w["du"]); self.gen["dec_noise"] = float(self.gen_cfg.get("dec_noise", 0.0))
             self.gen["min_std_u"] = float(self.gen_cfg.get("min_std_u", 0.05))
+            self.gen["u_max"] = float(self.gen_cfg.get("u_max", 2.5))
             self.B = 0
 
         # history buffers (oldest -> newest along axis 1)
@@ -329,6 +330,7 @@ class BatchedMppiController:
                 mu_u, sig_u, keys = carry
                 keys, k_u = split(keys); keys, k_d = split(keys)
                 u = mu_u[:, None] + sig_u[:, None] * jax.vmap(lambda k: jax.random.normal(k, (S, du)))(k_u)       # (N, S, du)
+                u = jnp.clip(u, -g["u_max"], g["u_max"])  # stay where the decoder was trained (posterior u ~ N(0, 1))
                 acts = decode(u, k_d[0])
                 xx = dict(x_rep); xx["fut_acts"] = acts.reshape(N * S, T, A)
                 y = self.model.inference(xx)
