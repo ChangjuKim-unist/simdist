@@ -18,7 +18,14 @@ H = 25; T = 25
 
 def load_windows(d, n_blocks, block, stride, seed):
     from simdist.data import DATA_KEY
-    f = {k: h5py.File(os.path.join(d, k + ".hdf5"), "r")[DATA_KEY] for k in ("proprio_obs", "acts", "cmds", "expert_policy_flag", "terminal")}
+    f = {k: h5py.File(os.path.join(d, k + ".hdf5"), "r")[DATA_KEY] for k in ("proprio_obs", "acts", "cmds", "expert_policy_flag")}
+    # episode-boundary source: terminal.hdf5 (steps-to-end countdown, DR datasets) or start_idxs.hdf5 (valid window starts
+    # t_H of the training loader, paper-style datasets without terminal.hdf5)
+    has_term = os.path.exists(os.path.join(d, "terminal.hdf5"))
+    if has_term:
+        f["terminal"] = h5py.File(os.path.join(d, "terminal.hdf5"), "r")[DATA_KEY]
+    else:
+        start_idxs = h5py.File(os.path.join(d, "start_idxs.hdf5"), "r")[DATA_KEY][:].ravel()
     sp = json.load(open(os.path.join(d, "scaler_params.json")))
     st = {k: (np.asarray(sp[k]["mean"], np.float32), np.asarray(sp[k]["std"], np.float32) + 1e-8) for k in ("proprio_obs", "actions", "commands")}
     N = f["acts"].shape[0]; rng = np.random.default_rng(seed)
@@ -29,9 +36,16 @@ def load_windows(d, n_blocks, block, stride, seed):
         p = (f["proprio_obs"][lo:hi] - st["proprio_obs"][0]) / st["proprio_obs"][1]
         a = (f["acts"][lo:hi] - st["actions"][0]) / st["actions"][1]
         c = (f["cmds"][lo:hi] - st["commands"][0]) / st["commands"][1]
-        fl = f["expert_policy_flag"][lo:hi]; ste = f["terminal"][lo:hi][:, 0]
+        fl = f["expert_policy_flag"][lo:hi]
+        if has_term:
+            ste = f["terminal"][lo:hi][:, 0]
+            same_ep = lambda t: ste[t - H] - ste[t + T] == H + T
+        else:
+            sl = start_idxs[np.searchsorted(start_idxs, lo):np.searchsorted(start_idxs, hi)] - lo
+            ok = np.zeros(hi - lo, bool); ok[sl] = True       # ok[j]: a window with t_H = lo + j stays inside one episode
+            same_ep = lambda t: bool(ok[t - H])
         for t in range(H, H + block, stride):
-            if not fl[t:t + T].all() or ste[t - H] - ste[t + T] != H + T:
+            if not fl[t:t + T].all() or not same_ep(t):
                 continue
             C.append(np.concatenate([p[t - H:t + 1].ravel(), a[t - H:t].ravel(), c[t:t + T + 1].ravel()]))
             X.append(a[t:t + T].ravel())

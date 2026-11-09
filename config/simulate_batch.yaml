@@ -67,3 +67,4 @@ output:
   condition:      # condition column (e.g. combo_hard)
   context_csv:    # design doc 13: per-robot online physics estimate every 25 steps
   trace_npz:      # design doc 14: per-step model prediction for the executed plan vs. realized reward/fall (npz)
+  terms_csv: null  # per-robot mean of every reward term (design 16 supplement)

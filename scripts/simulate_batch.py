@@ -187,6 +187,10 @@ class BatchSim:
         self.start_x = np.full(self.N, np.nan)
         self.end_x = np.full(self.N, np.nan)
         self.total = 0
+        # output.terms_csv: per-robot mean of every reward term over the run (design 16 supplement: reward decomposition)
+        self.terms_csv = (self.cfg.get("output", {}) or {}).get("terms_csv")
+        self.term_names = list(self.env.reward_manager.active_terms)
+        self.term_sums = np.zeros((self.N, len(self.term_names)))
 
     def _patch_per_env_speed(self):
         """Give every robot its own forward speed (the command term has one scalar)."""
@@ -297,6 +301,8 @@ class BatchSim:
         self.steps_since_reset += 1
         active = ~resetting
         self.run_reward[active] += reward[active]
+        if self.terms_csv:
+            self.term_sums[active] += self.env.reward_manager._step_reward.cpu().numpy()[active] * float(self.env.step_dt)
         fe = ~self.first_done
         self.first_reward[fe] += reward[fe]
         self.first_len[fe] += 1
@@ -341,6 +347,15 @@ class BatchSim:
             os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
             np.savez(self.trace_path, **arrs)
             print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
+        if self.terms_csv:
+            os.makedirs(os.path.dirname(os.path.abspath(self.terms_csv)), exist_ok=True)
+            new = not os.path.exists(self.terms_csv)
+            with open(self.terms_csv, "a", newline="") as f:
+                w = csv.writer(f)
+                if new:
+                    w.writerow(["model", "condition", "speed", "seed"] + self.term_names)
+                for i, (v, s) in enumerate(self.pairs):
+                    w.writerow([model_name, cond, v, s] + [float(x) for x in self.term_sums[i] / max(self.total, 1)])
         if out.get("csv"):
             path = out["csv"]
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

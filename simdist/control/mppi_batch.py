@@ -111,6 +111,7 @@ class BatchedMppiController:
         #  consistency_gate: if the latent predicted for this step by the previous plan is far
         #    from the encoded actual latent (> factor x running median), execute the prior's plan
         self.noise_schedule = dict(controller_cfg.get("noise_schedule", {}) or {})
+        self.noise_corr = float(controller_cfg.get("noise_corr", 0.0) or 0.0)  # AR(1) coefficient of the sampling noise along T
         self.gate_cfg = dict(controller_cfg.get("consistency_gate", {}) or {})
         self.pred_next = None  # (N, latent) predicted latent for the next control step
         self.dist_hist = []  # list of (N,) distances (most recent `window`)
@@ -354,7 +355,15 @@ class BatchedMppiController:
         def f(carry, i):
             mean, std, keys = carry
             keys, k_act = split(keys)
-            noise = jax.vmap(lambda k: jax.random.normal(k, (S, T, A)))(k_act) * (std * sched[i])[:, None]
+            noise = jax.vmap(lambda k: jax.random.normal(k, (S, T, A)))(k_act)
+            if self.noise_corr > 0.0:
+                # AR(1) along the horizon: e_t = rho e_{t-1} + sqrt(1 - rho^2) w_t keeps the marginal std (design 16 supplement,
+                # "coloured noise around the prior" control arm)
+                rho = self.noise_corr
+                w_t = jnp.moveaxis(noise, 2, 0)                                                      # (T, N, S, A)
+                e_rest = jax.lax.scan(lambda e, w: (rho * e + jnp.sqrt(1.0 - rho ** 2) * w,) * 2, w_t[0], w_t[1:])[1]
+                noise = jnp.moveaxis(jnp.concatenate([w_t[:1], e_rest], 0), 0, 2)                   # (N, S, T, A)
+            noise = noise * (std * sched[i])[:, None]
             acts = mean[:, None] + noise if B == 0 else jnp.concatenate([mean[:, None] + noise, noised_base], axis=1)  # (N, S+B, T, A)
             xx = dict(x_rep)
             xx["fut_acts"] = acts.reshape(N * (S + B), T, A)

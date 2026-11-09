@@ -12,6 +12,7 @@ discount: 0.99
 seed: 42
 init_mode: shift  # sampling-mean initialization: shift (warm start) | zero | prior | external (batched planner only)
 prior_only: false  # true = execute the (external) prior's own plan without planning (student alone)
+noise_corr: 0.0  # AR(1) coefficient of the Gaussian sampling noise along the horizon (0 = white; design 16 supplement control arm)
 # design doc 7 planner options
 noise_schedule:
   enabled: false
