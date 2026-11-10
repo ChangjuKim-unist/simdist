@@ -1,0 +1,15 @@
+{
+ "n_windows": 263505,
+ "n_val": 13175,
+ "r2_posterior": 0.9447533154243474,
+ "r2_u0": 0.764408158873169,
+ "u_extra_r2": 0.18034515655117833,
+ "sample_std_raw": 0.3722482916712761,
+ "nearest_rms_gen": 0.42983773417770865,
+ "nearest_rms_noise0.3": 0.623536615818739,
+ "nearest_rms_noise2.0": 1.8586189144849776,
+ "dec_sigma_mean": 0.21228699386119843,
+ "G0a": true,
+ "G0b": true,
+ "G0c": true
+}

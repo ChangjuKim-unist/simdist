@@ -1,0 +1,108 @@
+{
+ "holdout_axis": "mass",
+ "train_conditions": [
+  "friction0.15",
+  "friction0.3",
+  "friction0.5",
+  "motor0.3",
+  "motor0.4",
+  "motor0.5",
+  "motor0.5_friction0.3",
+  "motor0.6",
+  "motor0.8",
+  "nominal"
+ ],
+ "in_dist_val": {
+  "n": 53550,
+  "spearman_q50": 0.862185482603023,
+  "spearman_q10": 0.8476481791551261,
+  "spearman_jhat": 0.6895150483348749,
+  "fall_auc": 0.9914122391552943,
+  "coverage_q10": 0.8807469654528478,
+  "coverage_q90": 0.9230252100840336,
+  "mean_gap_jhat": 0.41217482049762777,
+  "mean_gap_q50": 0.02317054977937737,
+  "mse_ratio_q50_vs_jhat": 0.14490687635347124,
+  "pinball10_ratio": 0.06806927148822765
+ },
+ "holdout": {
+  "n": 86782,
+  "spearman_q50": 0.8037975227002163,
+  "spearman_q10": 0.6956943855652301,
+  "spearman_jhat": 0.8509990577429922,
+  "fall_auc": 0.9881997824251013,
+  "coverage_q10": 0.7302781682837455,
+  "coverage_q90": 0.9727247585904911,
+  "mean_gap_jhat": 0.2427192393912463,
+  "mean_gap_q50": 0.03796829624004055,
+  "mse_ratio_q50_vs_jhat": 0.12826308673583153,
+  "pinball10_ratio": 0.10709213752410351
+ },
+ "holdout_per_condition": {
+  "J_s2:friction0.3_mass3": {
+   "n": 16942,
+   "spearman_q50": 0.7481121919524946,
+   "spearman_q10": 0.6534275404815847,
+   "spearman_jhat": 0.8501030724986556,
+   "fall_auc": 0.9787617740525615,
+   "coverage_q10": 0.7000354149451068,
+   "coverage_q90": 0.9792822571125015,
+   "mean_gap_jhat": 0.261150096032264,
+   "mean_gap_q50": 0.045429331943709336,
+   "mse_ratio_q50_vs_jhat": 0.16495768071435135,
+   "pinball10_ratio": 0.12508144629299817
+  },
+  "J_s2:mass1": {
+   "n": 17460,
+   "spearman_q50": 0.9018486098196593,
+   "spearman_q10": 0.8966152881591464,
+   "spearman_jhat": 0.7869636775623206,
+   "fall_auc": NaN,
+   "coverage_q10": 0.8465635738831615,
+   "coverage_q90": 0.9468499427262314,
+   "mean_gap_jhat": 0.31403834248753165,
+   "mean_gap_q50": 0.011821505373593005,
+   "mse_ratio_q50_vs_jhat": 0.042382864158396726,
+   "pinball10_ratio": 0.04795458439480273
+  },
+  "J_s2:mass3": {
+   "n": 17460,
+   "spearman_q50": 0.7033624985382274,
+   "spearman_q10": 0.5571738549463032,
+   "spearman_jhat": 0.8072523183226389,
+   "fall_auc": NaN,
+   "coverage_q10": 0.7174112256586483,
+   "coverage_q90": 0.9760022909507445,
+   "mean_gap_jhat": 0.20959485770907582,
+   "mean_gap_q50": 0.03511302536975735,
+   "mse_ratio_q50_vs_jhat": 0.1406083126068565,
+   "pinball10_ratio": 0.11596259329562685
+  },
+  "J_s2:mass5": {
+   "n": 17460,
+   "spearman_q50": 0.7094635973908973,
+   "spearman_q10": 0.4068684559241365,
+   "spearman_jhat": 0.8624496639450231,
+   "fall_auc": NaN,
+   "coverage_q10": 0.6668957617411225,
+   "coverage_q90": 0.9852806414662085,
+   "mean_gap_jhat": 0.21741021874402452,
+   "mean_gap_q50": 0.061823982404223876,
+   "mse_ratio_q50_vs_jhat": 0.2216595065967578,
+   "pinball10_ratio": 0.15538540471970747
+  },
+  "J_s2:motor0.7_mass3": {
+   "n": 17460,
+   "spearman_q50": 0.7148734349230046,
+   "spearman_q10": 0.5780053212302821,
+   "spearman_jhat": 0.8067072728038251,
+   "fall_auc": NaN,
+   "coverage_q10": 0.7195876288659794,
+   "coverage_q90": 0.9764032073310424,
+   "mean_gap_jhat": 0.21194948517577789,
+   "mean_gap_q50": 0.03587499860770276,
+   "mse_ratio_q50_vs_jhat": 0.14467526946232923,
+   "pinball10_ratio": 0.11489545269623104
+  }
+ }
+}

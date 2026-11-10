@@ -93,7 +93,7 @@ def main():
             if o:
                 lines.append(fmt(o))
     for spec in args.pair:
-        name, a, b = spec.split(":")
+        name, a, b = spec.rsplit(":", 2)
         for c in conds:
             o = compare(by, a, b, c, name)
             if o:
