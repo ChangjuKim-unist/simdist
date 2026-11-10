@@ -85,6 +85,10 @@ COND15="nominal friction0.15 motor0.4 mass3 friction0.3 friction0.5 friction0.3_
   for s in 1 2; do echo "E_gen_s${s}_q50 go1_broadwm friction0.15 $(gens $s) $(cal14 head_broadwm_noF)"; echo "E_gen_s${s}_q50 go1_broadwm motor0.4 $(gens $s) $(cal14 head_broadwm_noM)"; done
   # amendment 13:40: R6 failed (seed 1 falls at motor 0.4, seed 2 at friction 0.15) -> G0(d) per generator seed
   for s in 1 2; do for c in friction0.15 motor0.4; do echo "D_gen_mean_s$s go1_broadwm $c $(gens $s) control.iterations=0"; done; done
+  # amendment 2 (13:58): generator seed 1 mean alone walks at motor 0.4 (0 falls) but CEM + q50 falls 1.27 -> traced rerun for a
+  # head-coverage check; generator-mean-only arm (iterations=0) on the from-scratch models as the extra baseline
+  echo "E_gen_s1_q50_tr go1_broadwm motor0.4 trace $(gens 1) $(cal14 head_broadwm_noM)"
+  for s in 1 2; do for c in friction0.15 motor0.4 nominal mass3; do echo "D_s$s go1_scratch_s$s $c $GEN control.iterations=0"; done; done
   for c in $COND15; do for s in 1 2; do echo "J_s$s go1_scratch_s$s $c trace"; done; done
   for c in nominal friction0.15 motor0.4 mass3; do for s in 1 2; do echo "P_s$s go1_scratch_s$s $c $PO"; done; done
   for s in 1 2; do for a in friction motor mass; do echo "HEAD s$s $a"; done; done
