@@ -83,7 +83,7 @@ COND15="nominal friction0.15 motor0.4 mass3 friction0.3 friction0.5 friction0.3_
   echo "D_gen_mean go1_broadwm friction0.15 $GEN control.iterations=0"
   echo "D_gen_mean go1_broadwm motor0.4 $GEN control.iterations=0"
   for s in 1 2; do echo "E_gen_s${s}_q50 go1_broadwm friction0.15 $(gens $s) $(cal14 head_broadwm_noF)"; echo "E_gen_s${s}_q50 go1_broadwm motor0.4 $(gens $s) $(cal14 head_broadwm_noM)"; done
-  # amendment 14:10: R6 failed (seed 1 falls at motor 0.4, seed 2 at friction 0.15) -> G0(d) per generator seed
+  # amendment 13:40: R6 failed (seed 1 falls at motor 0.4, seed 2 at friction 0.15) -> G0(d) per generator seed
   for s in 1 2; do for c in friction0.15 motor0.4; do echo "D_gen_mean_s$s go1_broadwm $c $(gens $s) control.iterations=0"; done; done
   for c in $COND15; do for s in 1 2; do echo "J_s$s go1_scratch_s$s $c trace"; done; done
   for c in nominal friction0.15 motor0.4 mass3; do for s in 1 2; do echo "P_s$s go1_scratch_s$s $c $PO"; done; done
@@ -95,7 +95,7 @@ COND15="nominal friction0.15 motor0.4 mass3 friction0.3 friction0.5 friction0.3_
     echo "GQ_s$s go1_scratch_s$s nominal $GEN $(cal head_s${s}_noF)"
     echo "GJ_s$s go1_scratch_s$s friction0.15 $GEN"
     echo "Q_s$s go1_scratch_s$s friction0.15 $(cal head_s${s}_noF)"
-    # amendment 14:10: generator seeds 1/2 on the from-scratch models (R6b)
+    # amendment 13:40: generator seeds 1/2 on the from-scratch models (R6b)
     for g in 1 2; do echo "GQ_s${s}_g$g go1_scratch_s$s friction0.15 $(gens $g) $(cal head_s${s}_noF)"; echo "GQ_s${s}_g$g go1_scratch_s$s motor0.4 $(gens $g) $(cal head_s${s}_noM)"; done
   done
 } > $QUEUE
