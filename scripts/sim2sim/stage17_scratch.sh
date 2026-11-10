@@ -26,7 +26,7 @@ train() { local gpu=$1 name=$2 seed=$3
       training.seed=$seed training.batch_size=$TRAIN_BATCH training.num_epochs=20 training.max_steps=$TRAIN_STEPS \
       training.warmup_steps=10000 training.decay_steps=$TRAIN_STEPS training.learning_rate=0.0002 training.end_learning_rate=0.0001 \
       training.eval_interval=10000 2>&1 | grep --line-buffered -E "Steps: [0-9]*000, |Error|error|Traceback|stop after|completed|OOM|memory" | cut -c1-240 > $OUT/train_$name.log
-    if ls -d checkpoints/models/$name/[0-9]* >/dev/null 2>&1 && grep -q "Steps: $TRAIN_STEPS," $OUT/train_$name.log; then
+    if [ -d checkpoints/models/$name/$TRAIN_STEPS ]; then   # the trainer's "Steps:" lines do not reach the pipe; the final checkpoint is the proof
       touch $OUT/train_$name.done; echo "== train $name done $(date +%H:%M)"
     else echo "== train $name FAILED $(date +%H:%M) (see $OUT/train_$name.log)"; fi
   fi
