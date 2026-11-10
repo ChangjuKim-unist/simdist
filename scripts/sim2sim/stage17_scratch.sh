@@ -116,7 +116,8 @@ worker() { local gpu=$1 j idle=0
     if [ -z "$j" ]; then
       [ -s $QUEUE ] || break
       # nothing ready: give up only when no training and no other job can still unblock the queue
-      if ! ls $OUT/gpu*.busy $OUT/running_gpu* >/dev/null 2>&1; then idle=$((idle+1)); [ $idle -ge 10 ] && { echo "== worker gpu$gpu: queue blocked, giving up $(date +%H:%M)"; break; }; else idle=0; fi
+      # (ls with two globs fails when either is empty: 11-10 15:07 workers 2/3 gave up while the trainings ran)
+      if ! { compgen -G "$OUT/gpu*.busy" || compgen -G "$OUT/running_gpu*"; } >/dev/null; then idle=$((idle+1)); [ $idle -ge 10 ] && { echo "== worker gpu$gpu: queue blocked, giving up $(date +%H:%M)"; break; }; else idle=0; fi
       sleep 120; continue
     fi
     idle=0; echo "$j" > $OUT/running_gpu$gpu
