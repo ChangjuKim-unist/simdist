@@ -9,7 +9,11 @@ set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh; OUT=results/stage17; TR=/nas_
 export SIMDIST_DIR=~/simdist
 GPUS_LIST=${GPUS_LIST:-"0 1 2 3"}
 DS=2026-11-05_11-39-08; DSDIR=datasets/sim/$DS
-[ -e $DSDIR ] || ln -s /nas_data/cjkim/simdist/datasets/sim/$DS $DSDIR
+# HDF5 reads from the NAS (NFS) fail with EIO under 8 DataLoader workers (2026-11-10 11:34), so the dataset lives on the
+# server's spare SSD (/mnt/newssd, mounted into the container by run.sh) and datasets/sim points there.
+LOCALDS=/mnt/newssd/cjkim/simdist/datasets/sim/$DS
+[ -f $LOCALDS/processed_data_go1dr_H-25_T-25/values.hdf5 ] || { mkdir -p $(dirname $LOCALDS); rsync -a /nas_data/cjkim/simdist/datasets/sim/$DS $(dirname $LOCALDS)/; }
+ln -sfn $LOCALDS $DSDIR
 echo "### stage17 start $(date) GPUs: $GPUS_LIST"
 
 # ---- A. from-scratch trainings (paper recipe; the GPU is marked busy so the eval worker on it waits) ----
