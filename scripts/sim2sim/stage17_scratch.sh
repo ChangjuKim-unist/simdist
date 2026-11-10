@@ -4,7 +4,7 @@
 # traces), prior-only, calibrated heads from the traces, generator + q50, and two ablations.  Side group while the two
 # trainings occupy GPUs 0/1: generator seeds 1/2, G0(d) (generator mean only, iterations=0) and the seed check on go1_broadwm.
 # gpu1, 4 GPUs.  Usage:  nohup bash scripts/sim2sim/stage17_scratch.sh > results/stage17_scratch.log 2>&1 &
-# Re-runnable: finished rows/files are skipped.  Queue jobs wait until their inputs (model, traces, head, generator) exist.
+# Re-runnable: finished rows/files are skipped; SKIP_TRAIN=1 waits for trainings started by an earlier run.  Queue jobs wait until their inputs (model, traces, head, generator) exist.
 set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh; OUT=results/stage17; TR=/nas_data/cjkim/simdist/traces_stage17; mkdir -p $OUT $TR
 export SIMDIST_DIR=~/simdist
 GPUS_LIST=${GPUS_LIST:-"0 1 2 3"}
@@ -20,7 +20,11 @@ echo "### stage17 start $(date) GPUs: $GPUS_LIST"
 TRAIN_BATCH=${TRAIN_BATCH:-512}; TRAIN_STEPS=${TRAIN_STEPS:-150000}
 train() { local gpu=$1 name=$2 seed=$3
   touch $OUT/gpu$gpu.busy
-  if [ ! -f $OUT/train_$name.done ]; then
+  if [ -n "${SKIP_TRAIN:-}" ] && [ ! -f $OUT/train_$name.done ]; then   # training launched by an earlier driver run: wait for it
+    echo "== waiting for $name final checkpoint on gpu$gpu $(date +%H:%M)"
+    while [ ! -d checkpoints/models/$name/$TRAIN_STEPS ]; do sleep 60; done; sleep 150
+    touch $OUT/train_$name.done; echo "== train $name done $(date +%H:%M)"
+  elif [ ! -f $OUT/train_$name.done ]; then
     echo "== train $name seed $seed batch $TRAIN_BATCH steps $TRAIN_STEPS on gpu$gpu $(date +%H:%M)"
     GPUS="\"device=$gpu\"" $RUN python scripts/train_model.py data.dataset_name=$DS system=go1dr run_name=$name \
       training.seed=$seed training.batch_size=$TRAIN_BATCH training.num_epochs=20 training.max_steps=$TRAIN_STEPS \
@@ -68,7 +72,7 @@ ready() { local j="$1" tok; set -- $j
     GENSEED) return 0;;
     HEAD) [ $(ls $TR/J_${2}_*.npz 2>/dev/null | wc -l) -ge 15 ] && return 0 || return 1;;
   esac
-  case $3 in go1_scratch_*) [ -f $OUT/train_$3.done ] || return 1;; esac
+  case $2 in go1_scratch_*) [ -f $OUT/train_$2.done ] || return 1;; esac
   for tok in "$@"; do case $tok in *results/stage17/*.npz) [ -f ${tok##*/workspace/simdist/} ] || return 1;; esac; done
   return 0
 }
@@ -79,6 +83,8 @@ COND15="nominal friction0.15 motor0.4 mass3 friction0.3 friction0.5 friction0.3_
   echo "D_gen_mean go1_broadwm friction0.15 $GEN control.iterations=0"
   echo "D_gen_mean go1_broadwm motor0.4 $GEN control.iterations=0"
   for s in 1 2; do echo "E_gen_s${s}_q50 go1_broadwm friction0.15 $(gens $s) $(cal14 head_broadwm_noF)"; echo "E_gen_s${s}_q50 go1_broadwm motor0.4 $(gens $s) $(cal14 head_broadwm_noM)"; done
+  # amendment 14:10: R6 failed (seed 1 falls at motor 0.4, seed 2 at friction 0.15) -> G0(d) per generator seed
+  for s in 1 2; do for c in friction0.15 motor0.4; do echo "D_gen_mean_s$s go1_broadwm $c $(gens $s) control.iterations=0"; done; done
   for c in $COND15; do for s in 1 2; do echo "J_s$s go1_scratch_s$s $c trace"; done; done
   for c in nominal friction0.15 motor0.4 mass3; do for s in 1 2; do echo "P_s$s go1_scratch_s$s $c $PO"; done; done
   for s in 1 2; do for a in friction motor mass; do echo "HEAD s$s $a"; done; done
@@ -89,6 +95,8 @@ COND15="nominal friction0.15 motor0.4 mass3 friction0.3 friction0.5 friction0.3_
     echo "GQ_s$s go1_scratch_s$s nominal $GEN $(cal head_s${s}_noF)"
     echo "GJ_s$s go1_scratch_s$s friction0.15 $GEN"
     echo "Q_s$s go1_scratch_s$s friction0.15 $(cal head_s${s}_noF)"
+    # amendment 14:10: generator seeds 1/2 on the from-scratch models (R6b)
+    for g in 1 2; do echo "GQ_s${s}_g$g go1_scratch_s$s friction0.15 $(gens $g) $(cal head_s${s}_noF)"; echo "GQ_s${s}_g$g go1_scratch_s$s motor0.4 $(gens $g) $(cal head_s${s}_noM)"; done
   done
 } > $QUEUE
 echo "== queue: $(wc -l < $QUEUE) jobs"
