@@ -1,0 +1,57 @@
+### upstream role 23:36:53
+role=upstream simdist package: /workspace/upstream/simdist  jax 0.6.0 [CpuDevice(id=0)]
+window starts: [1688780, 4186602, 7687882, 27566181, 31453293, 52226717, 65083233, 86914755]
+checkpoint step 368920, system go1
+scaler proprio_obs.mean: checkpoint vs dataset max abs diff 2.766e-08
+scaler proprio_obs.std: checkpoint vs dataset max abs diff 1.208e-07
+scaler extero_obs.mean: checkpoint vs dataset max abs diff 9.278e-10
+scaler extero_obs.std: checkpoint vs dataset max abs diff 1.424e-08
+scaler actions.mean: checkpoint vs dataset max abs diff 2.645e-08
+scaler actions.std: checkpoint vs dataset max abs diff 5.785e-08
+scaler commands.mean: checkpoint vs dataset max abs diff 1.155e-08
+scaler commands.std: checkpoint vs dataset max abs diff 1.981e-08
+scaler rewards.mean: checkpoint vs dataset max abs diff 2.778e-10
+scaler rewards.std: checkpoint vs dataset max abs diff 9.259e-10
+scaler values.mean: checkpoint vs dataset max abs diff 6.815e-08
+scaler values.std: checkpoint vs dataset max abs diff 3.426e-09
+control cfg: {'num_samples': 450, 'iterations': 8, 'delay': 1, 'mixture_coef': 0.05, 'min_std': 0.05, 'base_act_std': 0.05, 'init_std': 2.0, 'num_elites': 64, 'temperature': 0.25, 'momentum': 0.0, 'discount': 0.99, 'seed': 42}
+Initializing MppiController...
+MppiController initialized.
+planner step 1 mean |a| 1.0578, step 2 1.0647
+written results/audit/upstream_cpu.npz
+### fork role 23:37:16
+role=fork simdist package: /workspace/simdist/simdist  jax 0.6.0 [CpuDevice(id=0)]
+window starts: [1688780, 4186602, 7687882, 27566181, 31453293, 52226717, 65083233, 86914755]
+checkpoint step 368920, system go1
+scaler proprio_obs.mean: checkpoint vs dataset max abs diff 2.766e-08
+scaler proprio_obs.std: checkpoint vs dataset max abs diff 1.208e-07
+scaler extero_obs.mean: checkpoint vs dataset max abs diff 9.278e-10
+scaler extero_obs.std: checkpoint vs dataset max abs diff 1.424e-08
+scaler actions.mean: checkpoint vs dataset max abs diff 2.645e-08
+scaler actions.std: checkpoint vs dataset max abs diff 5.785e-08
+scaler commands.mean: checkpoint vs dataset max abs diff 1.155e-08
+scaler commands.std: checkpoint vs dataset max abs diff 1.981e-08
+scaler rewards.mean: checkpoint vs dataset max abs diff 2.778e-10
+scaler rewards.std: checkpoint vs dataset max abs diff 9.259e-10
+scaler values.mean: checkpoint vs dataset max abs diff 6.815e-08
+scaler values.std: checkpoint vs dataset max abs diff 3.426e-09
+control cfg: {'num_samples': 450, 'iterations': 8, 'delay': 1, 'mixture_coef': 0.05, 'min_std': 0.05, 'base_act_std': 0.05, 'init_std': 2.0, 'num_elites': 64, 'temperature': 0.25, 'momentum': 0.0, 'discount': 0.99, 'seed': 42, 'init_mode': 'shift', 'prior_only': False, 'noise_corr': 0.0}
+Initializing MppiController...
+MppiController initialized.
+planner step 1 mean |a| 1.0578, step 2 1.0647
+batched vs single planner: step 1 max abs diff 9.537e-07, step 2 7.153e-07
+Initializing MppiController...
+MppiController initialized.
+prior_only plan vs policy head actions (window 0): max abs diff 1.431e-06
+single-robot prior_only vs policy head: max abs diff 1.431e-06
+
+compare with results/audit/upstream_cpu.npz:
+  model_latents    max abs diff 0.000e+00  (max |ref| 2.067e+00)
+  model_rewards    max abs diff 0.000e+00  (max |ref| 5.519e-02)
+  model_values     max abs diff 0.000e+00  (max |ref| 3.886e+00)
+  model_actions    max abs diff 0.000e+00  (max |ref| 3.869e+00)
+  planner_key0     max abs diff 0.000e+00  (max |ref| 2.916e+09)
+  planner_act1     max abs diff 0.000e+00  (max |ref| 2.795e+00)
+  planner_act2     max abs diff 0.000e+00  (max |ref| 2.766e+00)
+written results/audit/fork_cpu.npz
+### audit run end 23:37:43
