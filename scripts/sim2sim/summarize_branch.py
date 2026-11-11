@@ -85,6 +85,12 @@ def cell_stats(d, groups):
         cv = cross(all_ids)
         if cv is not None:
             out["cv_all"] = float(cv.mean()); out["cv_all_ci"] = boot_ci(cv)
+    dep_ids = [i for g, ids in gidx.items() if g != "E" for i in ids]  # deployable candidates (E = surrogate upper bound)
+    if dep_ids:
+        best = (cm[:, dep_ids] - a0m[:, None]).max(axis=1); out["opt_dep"] = float(best.mean()); out["opt_dep_ci"] = boot_ci(best)
+        cv = cross(dep_ids)
+        if cv is not None:
+            out["cv_dep"] = float(cv.mean()); out["cv_dep_ci"] = boot_ci(cv)
     if "F" in gidx:
         f = cm[:, gidx["F"][0]] - a0m; out["F_gain"] = float(f.mean()); out["F_ci"] = boot_ci(f)
     return out
@@ -115,14 +121,14 @@ def main():
             sd1 = x[x.group == "A1"].groupby(["speed", "seed", "step"])["ret"].std().mean()
             lines.append(f"| {k[0]} | {k[1]} | {k[2]} | {s['n_bp']} | {s['a0_mean']:.3f} | {s['a0_clone_sd']:.4f} / {sd1:.4f} | {s['restore_err_mean']:+.4f} / {s['restore_err_abs']:.4f} | {s['a0_fell']:.3f} | {s['anchor_fell']:.3f} |")
     else:
-        lines.append("| model | condition | speed | n bp | A0 mean | (a) clone SD / restore err | (c) opt all | (d) cv all [95% CI] | (e) F − A0 [95% CI] |")
-        lines.append("|---|---|---|---|---|---|---|---|---|")
+        lines.append("| model | condition | speed | n bp | A0 mean | (a) clone SD / restore err | (c) opt all | (d) cv all [95% CI] | (d) cv without E [95% CI] | (e) F − A0 [95% CI] |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|")
         detail = ["| model | condition | speed | group | n cand | (b) worse / fell | (c) opt | (d) cv [95% CI] |", "|---|---|---|---|---|---|---|---|"]
         for k, x in d.groupby(cells):
             s = cell_stats(x, groups); a0 = s["a0_mean"]
             sp = k[2] if a.by_speed else "all"
             fg = f"{fmt(s['F_gain'], a0)} {fmt_ci(s['F_ci'], a0)}" if "F_gain" in s else "-"
-            lines.append(f"| {k[0]} | {k[1]} | {sp} | {s['n_bp']} | {a0:.3f} | {s['a0_clone_sd']:.3f} / {s['restore_err_abs']:.3f} | {fmt(s.get('opt_all', np.nan), a0)} | {fmt(s.get('cv_all', np.nan), a0)} {fmt_ci(s.get('cv_all_ci', (np.nan, np.nan)), a0)} | {fg} |")
+            lines.append(f"| {k[0]} | {k[1]} | {sp} | {s['n_bp']} | {a0:.3f} | {s['a0_clone_sd']:.3f} / {s['restore_err_abs']:.3f} | {fmt(s.get('opt_all', np.nan), a0)} | {fmt(s.get('cv_all', np.nan), a0)} {fmt_ci(s.get('cv_all_ci', (np.nan, np.nan)), a0)} | {fmt(s.get('cv_dep', np.nan), a0)} {fmt_ci(s.get('cv_dep_ci', (np.nan, np.nan)), a0)} | {fg} |")
             for g, st in s["groups"].items():
                 cvs = f"{fmt(st['cv'], a0)} {fmt_ci(st['cv_ci'], a0)}" if "cv" in st else "-"
                 detail.append(f"| {k[0]} | {k[1]} | {sp} | {g} | {st['n_cand']} | {st['worse']:.2f} / {st['fell']:.3f} | {fmt(st['opt'], a0)} | {cvs} |")
