@@ -1,0 +1,29 @@
+defaults:
+  - simulate_batch
+  - _self_
+
+# Design 18 gate 0 (docs/design_branch_headroom_ko.md): counterfactual branching.
+#   mode=anchor  base controller (control.prior_only=true) drives the usual 18 robots; a shadow SimDist planner runs
+#                on the same inputs without acting; every `every` steps the full state is snapshotted to branch.out
+#   mode=branch  W branch points x (candidates x J) robots restore the snapshots, run every candidate for 25 steps,
+#                continue with the base controller to 125 steps and log the realised return to branch.csv
+mode: anchor
+branch:
+  out:            # anchor mode: snapshot npz
+  anchor:         # branch mode: snapshot npz from the anchor run
+  csv:            # branch mode: output rows (appended; finished branch points are skipped on restart)
+  every: 50       # branch every N steps
+  warmup: 100     # no branch within this many steps after a reset
+  horizon: 125    # realised-return window = candidate 25 steps + 100 steps of the base controller
+  chunk: 25       # candidate length (= model prediction length)
+  W: 8            # branch points per round in branch mode
+  J: 3            # clones per candidate
+  perturb: true   # clones 1.. get the small state perturbation of design 18 section 2.2
+  groups: [A0, A1, B, C, D, E, F]
+  gen_weights: /workspace/simdist/results/stage15/gen_broad.npz
+  experts: ["2026-10-01_10-38-36", "2026-10-20_07-40-06"]
+  expert_iteration: 4999
+  speeds:         # optional filter of anchors (list), e.g. [0.6]
+  seeds:          # optional filter of anchors (list), e.g. [11, 12]
+  max_points:     # optional cap on the number of branch points (smoke tests)
+  seed: 0         # rng seed for Gaussian / generator candidates and perturbations
