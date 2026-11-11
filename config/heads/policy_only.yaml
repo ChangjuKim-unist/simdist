@@ -1,2 +1,4 @@
-# base policy heads only (policy, policy_dec); the anchor is named prior_anchor and stays frozen
+# base policy heads only: the transformer and its output decoder. The frozen copy prior_anchor.policy
+# is not selected (create_param_filter matches the top-level attribute name).
 - policy
+- policy_dec

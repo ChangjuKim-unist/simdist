@@ -37,7 +37,7 @@ from simdist.utils import paths, model as model_utils, config
 from simdist.control.controller_base import ControllerInput
 from simdist.control.mppi import MppiController
 from simdist.rl.envs import get_sim_env_cfg
-from simdist.data.episode_logger import HDF5EpisodeLogger
+from simdist.data.episode_logger import HDF5EpisodeLogger, fell_before_limit
 
 
 class Go2Sim:
@@ -293,9 +293,9 @@ class Go2Sim:
         self.num_resets += 1
         self.steps = 0
         if self.logger is not None:
-            # the episode ended by a fall unless it ran into the time limit
-            limit = self.env.max_episode_length
-            self.logger.close(terminated=self.episode_length < limit - 5)
+            # the episode ended by a fall unless it ran into the time limit. self.steps counts the
+            # steps of the episode that just ended (self.episode_length only tracks the first episode)
+            self.logger.close(terminated=fell_before_limit(self.steps, self.env.max_episode_length))
         proprio_obs, height_scan = self.get_obs(self.obs_dict)
         x = self.make_controller_input(proprio_obs, height_scan, self.zero_action)
         self.controller.reset(x, self.zero_cmd)

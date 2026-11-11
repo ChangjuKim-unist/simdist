@@ -122,15 +122,32 @@ def repeat_along_batch_dim(x: T, B: int) -> T:
     )
 
 
+class _TopLevel:
+    """Filter: the parameter belongs to the model attribute ``name`` (first path element).
+
+    ``nnx.PathContains(name)`` matches the key anywhere in the path, so ``policy`` would also
+    select a frozen copy stored under ``prior_anchor.policy``; a head name therefore selects
+    exactly the module of that name on the model (audit 2026-11-11)."""
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, path, x):
+        return len(path) > 0 and path[0] == self.name
+
+    def __repr__(self):
+        return f"TopLevel({self.name!r})"
+
+
 def create_param_filter(param_names: list[str]):
     filters = []
     for path in param_names:
         names = path.split("/")
         f = []
-        for name in names:
+        for i, name in enumerate(names):
             if name.isdigit():
                 name = int(name)
-            f.append(nnx.PathContains(name))
+            f.append(_TopLevel(name) if i == 0 else nnx.PathContains(name))
         f = tuple(f)
         f = nnx.All(nnx.Param, nnx.All(*f))
         filters.append(f)

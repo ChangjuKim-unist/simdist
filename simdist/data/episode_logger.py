@@ -24,6 +24,12 @@ ACTS_KEY = REAL_DATA_KEYS["actions"]
 CMDS_KEY = REAL_DATA_KEYS["commands"]
 
 
+def fell_before_limit(episode_steps: int, max_episode_length: int, margin: int = 5) -> bool:
+    """True when an episode of ``episode_steps`` steps ended before the environment's time limit,
+    i.e. by a termination (fall). ``margin`` absorbs the off-by-a-few of the time-out counter."""
+    return int(episode_steps) < int(max_episode_length) - int(margin)
+
+
 class HDF5EpisodeLogger:
     def __init__(self, dataset_name: str, extra_keys: tuple[str, ...] = ()):
         self.dataset_name = dataset_name

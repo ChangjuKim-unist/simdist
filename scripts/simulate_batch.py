@@ -171,6 +171,9 @@ class BatchSim:
         self.controller.reset(range(self.N), proprio, extero, self.zero_action, np.zeros((self.N, 3)))
         print("Compiling the batched planner...", flush=True)
         self.controller.run_control()
+        # the compile step advanced the MPPI mean and keys: start every robot from a zero mean and a
+        # fresh key, as the single-robot evaluator does (initialize() then reset())
+        self.controller.reset(range(self.N), proprio, extero, self.zero_action, np.zeros((self.N, 3)))
         print("Planner ready.", flush=True)
 
         self.last_action = self.zero_action.copy()
