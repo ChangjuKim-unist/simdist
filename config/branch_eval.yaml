@@ -19,7 +19,10 @@ branch:
   W: 8            # branch points per round in branch mode
   J: 3            # clones per candidate
   perturb: true   # clones 1.. get the small state perturbation of design 18 section 2.2
-  groups: [A0, A1, B, C, D, E, F]
+  groups: [A0, A1, B, C, D, E, F]   # section 8: also G (closed-loop generator samples), Fcl (planner replanning every step), Ccl (generator mean closed loop)
+  base: policy    # base controller: policy (the model's policy head) | gen (design-16 generator mean, u = 0, closed loop; section 8.3)
+  shadow: true    # anchor mode: run the shadow SimDist planner (needed for the F / Fcl candidates)
+  terms: false    # branch mode: also write the reward-term sums (125 steps: t_<term>, candidate 25 steps: c_<term>)
   gen_weights: /workspace/simdist/results/stage15/gen_broad.npz
   experts: ["2026-10-01_10-38-36", "2026-10-20_07-40-06"]
   expert_iteration: 4999

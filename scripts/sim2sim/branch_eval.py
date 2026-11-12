@@ -42,14 +42,41 @@ PERTURB = {"joint_pos": 0.002, "joint_vel": 0.02, "lin_vel": 0.005, "ang_vel": 0
 
 
 def gen_decode(g, p_hist, a_hist, cmds, u):
-    """Decode generator chunks (gen_chunks.py CVAE decoder) in numpy: u (n, du) -> (n, T, A) raw actions."""
-    cond = np.concatenate([((p_hist - g["p_mean"]) / g["p_std"]).reshape(-1), ((a_hist - g["a_mean"]) / g["a_std"]).reshape(-1),
-                           ((cmds - g["c_mean"]) / g["c_std"]).reshape(-1)]).astype(np.float32)
-    h = np.maximum(np.concatenate([u, np.tile(cond[None], (len(u), 1))], -1) @ g["d1"] + g["db1"], 0.0)
+    """Decode generator chunks (gen_chunks.py CVAE decoder) in numpy: one history, u (n, du) -> (n, T, A) raw actions."""
+    n = len(u)
+    return gen_decode_b(g, np.repeat(p_hist[None], n, 0), np.repeat(a_hist[None], n, 0), np.repeat(cmds[None], n, 0), u)
+
+
+def gen_decode_b(g, P, Ah, C, U):
+    """Batched decode: histories P (n, H+1, p), Ah (n, H, A), commands C (n, T+1, 3), latents U (n, du) -> (n, T, A)."""
+    n = len(U)
+    cond = np.concatenate([((P - g["p_mean"]) / g["p_std"]).reshape(n, -1), ((Ah - g["a_mean"]) / g["a_std"]).reshape(n, -1),
+                           ((C - g["c_mean"]) / g["c_std"]).reshape(n, -1)], -1).astype(np.float32)
+    h = np.maximum(np.concatenate([U.astype(np.float32), cond], -1) @ g["d1"] + g["db1"], 0.0)
     h = np.maximum(h @ g["d2"] + g["db2"], 0.0)
     m = h @ g["d3"] + g["db3"]
     T = int(g["T"]); A = g["a_mean"].shape[0]
-    return (m * np.tile(g["a_std"], T) + np.tile(g["a_mean"], T)).reshape(len(u), T, A).astype(np.float32)
+    return (m * np.tile(g["a_std"], T) + np.tile(g["a_mean"], T)).reshape(n, T, A).astype(np.float32)
+
+
+def load_gen(path):
+    w = np.load(str(path))
+    g = {k: np.asarray(w[k], np.float32) for k in ("d1", "db1", "d2", "db2", "d3", "db3", "p_mean", "p_std", "a_mean", "a_std", "c_mean", "c_std")}
+    g["du"] = int(w["du"]); g["T"] = int(w["T"])
+    return g
+
+
+class GenBase:
+    """Design 18 section 8.3: the design-16 generator's mean (u = 0) decoded every step on the controller's own history
+    buffers and executed receding-horizon = design 17's "generator mean only, iterations 0" arm, in numpy."""
+
+    def __init__(self, g, ctrl):
+        self.g, self.ctrl = g, ctrl
+
+    def plan(self, ids=None):
+        c = self.ctrl
+        P, Ah, C = (c.proprio_hist, c.acts_hist, c.fut_cmds) if ids is None else (c.proprio_hist[ids], c.acts_hist[ids], c.fut_cmds[ids])
+        return gen_decode_b(self.g, P, Ah, C, np.zeros((len(P), self.g["du"]), np.float32))
 
 
 class AnchorSim(sb.BatchSim):
@@ -61,12 +88,16 @@ class AnchorSim(sb.BatchSim):
         self.max_ep = int(self.env.max_episode_length)
         ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
         _, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
-        shadow_cfg = dict(cfg["control"]); shadow_cfg["prior_only"] = False
-        self.shadow = BatchedMppiController(self.controller.model, model_cfg, shadow_cfg, self.N, [s for _, s in self.pairs])
-        self.shadow._model_inputs = self.controller._model_inputs  # same history / commands as the acting controller
-        proprio, extero = self.get_obs()
-        self.shadow.reset(range(self.N), proprio, extero, self.zero_action, np.zeros((self.N, 3)))
-        print("Compiling the shadow planner...", flush=True); self.shadow.run_control(); print("Shadow planner ready.", flush=True)
+        self.base = str(b.get("base", "policy")); assert self.base in ("policy", "gen")
+        self.gen_base = GenBase(load_gen(b["gen_weights"]), self.controller) if self.base == "gen" else None
+        self.shadow = None
+        if b.get("shadow", True):
+            shadow_cfg = dict(cfg["control"]); shadow_cfg["prior_only"] = False
+            self.shadow = BatchedMppiController(self.controller.model, model_cfg, shadow_cfg, self.N, [s for _, s in self.pairs])
+            self.shadow._model_inputs = self.controller._model_inputs  # same history / commands as the acting controller
+            proprio, extero = self.get_obs()
+            self.shadow.reset(range(self.N), proprio, extero, self.zero_action, np.zeros((self.N, 3)))
+            print("Compiling the shadow planner...", flush=True); self.shadow.run_control(); print("Shadow planner ready.", flush=True)
         self._run_control = self.controller.run_control; self.controller.run_control = self._hooked_run_control
         self._ctrl_reset = self.controller.reset; self.controller.reset = self._hooked_reset
         self._env_step = self.env.step; self.env.step = self._hooked_env_step
@@ -76,7 +107,9 @@ class AnchorSim(sb.BatchSim):
         self.snaps = []
 
     def _hooked_reset(self, env_ids, *a):
-        self._ctrl_reset(env_ids, *a); self.shadow.reset(env_ids, *a)
+        self._ctrl_reset(env_ids, *a)
+        if self.shadow is not None:
+            self.shadow.reset(env_ids, *a)
 
     def _hooked_env_step(self, action):
         out = self._env_step(action)
@@ -90,8 +123,8 @@ class AnchorSim(sb.BatchSim):
         return out
 
     def _hooked_run_control(self):
-        plan = self._run_control()
-        F = self.shadow.run_control()  # every step: keeps the shift warm start alive
+        plan = self.gen_base.plan() if self.gen_base is not None else self._run_control()
+        F = self.shadow.run_control() if self.shadow is not None else np.zeros_like(plan)  # every step: keeps the shift warm start alive
         if self.total % self.every == 0:
             ep = self.env.episode_length_buf.cpu().numpy()
             ok = (self.steps_since_reset >= self.warmup) & (ep + self.horizon < self.max_ep) & (self.total + self.horizon <= self.total_steps)
@@ -176,6 +209,12 @@ class BranchSim(sb.BatchSim):
                 self.cands += [("D", k, f"D_{v[0]}") for k, v in enumerate(CMD_VARIANTS)]
             elif gname == "E":
                 self.cands += [("E", k, f"E_{r}") for k, r in enumerate(self.experts_cfg)]
+            elif gname == "G":   # section 8.3: generator latent samples re-decoded every step (closed loop), same u as C
+                self.cands += [("G", k, f"G{k}") for k in range(N_GEN)]
+            elif gname == "Fcl":  # section 8.2: SimDist planner replanning every step, warm-started from the shadow plan F
+                self.cands.append(("Fcl", 0, "Fcl"))
+            elif gname == "Ccl":  # section 8.2: generator mean (u = 0) re-decoded every step (closed loop)
+                self.cands.append(("Ccl", 0, "Ccl"))
             else:
                 raise ValueError(gname)
         self.K = len(self.cands); self.N_env = self.W * self.K * self.J
@@ -189,11 +228,21 @@ class BranchSim(sb.BatchSim):
         for r in self.experts_cfg:
             from simdist.utils.torch import get_actor_critic_from_iteration
             self.experts.append(get_actor_critic_from_iteration(r, int(b["expert_iteration"]), "cuda:0")[0])
-        self.gen = None
-        if "C" in groups:
-            w = np.load(str(b["gen_weights"]))
-            self.gen = {k: np.asarray(w[k], np.float32) for k in ("d1", "db1", "d2", "db2", "d3", "db3", "p_mean", "p_std", "a_mean", "a_std", "c_mean", "c_std")}
-            self.gen["du"] = int(w["du"]); self.gen["T"] = int(w["T"])
+        self.base = str(b.get("base", "policy")); assert self.base in ("policy", "gen")
+        self.gen = load_gen(b["gen_weights"]) if (set(groups) & {"C", "G", "Ccl"} or self.base == "gen") else None
+        self.gen_base = GenBase(self.gen, self.controller) if self.base == "gen" else None
+        # section 8.2 F_cl: a separate planner over the F_cl robots only (W x J), same config as the shadow planner
+        self.fcl = None; self.fcl_ids = np.array([e for e in range(self.N) if self.cands[self.e_cand[e]][0] == "Fcl"], np.int64)
+        if len(self.fcl_ids):
+            ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
+            _, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
+            fcfg = dict(cfg["control"]); fcfg["prior_only"] = False
+            self.fcl = BatchedMppiController(self.controller.model, model_cfg, fcfg, len(self.fcl_ids), [int(b["seed"]) + 100 + k for k in range(len(self.fcl_ids))])
+            proprio, extero = self.get_obs(); z = np.zeros((len(self.fcl_ids), 12), np.float32)
+            self.fcl.reset(range(len(self.fcl_ids)), proprio[self.fcl_ids], extero[self.fcl_ids], z, np.zeros((len(self.fcl_ids), 3)))
+            print(f"Compiling the F_cl planner ({len(self.fcl_ids)} robots)...", flush=True); self.fcl.run_control(); print("F_cl planner ready.", flush=True)
+        self.log_terms = bool(b.get("terms", False))
+        self.term_names = list(self.env.reward_manager.active_terms)
         self.rows_written = 0
 
     def _patch_per_env_speed(self):
@@ -256,6 +305,15 @@ class BranchSim(sb.BatchSim):
         self.controller.proprio_hist[:] = np.roll(A["hist_p"][bp], 1, axis=1); self.controller.acts_hist[:] = np.roll(A["hist_a"][bp], 1, axis=1)
         self.last_action = np.asarray(A["hist_a"][bp][:, -1], np.float32).copy()
         self.steps_since_reset[:] = self.reset_steps + 1
+        if self.fcl is not None:
+            ids = self.fcl_ids; f = self.fcl
+            f.proprio_hist[:] = self.controller.proprio_hist[ids]; f.acts_hist[:] = self.controller.acts_hist[ids]
+            f.fut_cmds[:] = self.controller.fut_cmds[ids]
+            f.reset_counts += 1
+            key_data = np.stack([f._env_key_data(i) for i in range(f.N)])
+            import jax.numpy as jnp
+            f.state = f.state.replace(mean=jnp.asarray(np.asarray(A["F"][bp[ids]], np.float32)),
+                                      std=jnp.full((f.N, f.T, f.act_dim), float(f.ctrl_cfg["init_std"]), jnp.float32), key_data=jnp.asarray(key_data))
         return bp
 
     # ---- one round -------------------------------------------------------------------------------------------
@@ -264,8 +322,10 @@ class BranchSim(sb.BatchSim):
         valid = np.arange(self.N) < n_valid
         grp = np.array([self.cands[k][0] for k in self.e_cand]); cid = np.array([self.cands[k][1] for k in self.e_cand])
         openloop = np.isin(grp, ["A1", "B", "C", "F"]); is_D = grp == "D"; is_E = grp == "E"
-        chunks = np.zeros((self.N, self.chunk, 12), np.float32)
+        is_G = grp == "G"; is_Ccl = grp == "Ccl"; gen_cl = np.where(is_G | is_Ccl)[0]
+        chunks = np.zeros((self.N, self.chunk, 12), np.float32); u_cl = np.zeros((self.N, self.gen["du"] if self.gen else 1), np.float32)
         ret = np.zeros(self.N); alive = np.ones(self.N, bool); fell = np.zeros(self.N, bool); fall_step = np.full(self.N, -1)
+        nt = len(self.term_names); term_sum = np.zeros((self.N, nt)); term_chunk = np.zeros((self.N, nt))
         for t in range(self.horizon):
             cmd = self.cmd_manager.get_command("base_velocity").cpu().numpy().copy()
             if t < self.chunk and is_D.any():
@@ -276,7 +336,10 @@ class BranchSim(sb.BatchSim):
             self.controller.set_fut_cmd(cmd)
             proprio, extero = self.get_obs()
             self.controller.update(proprio, extero, self.last_action)
-            plan = self.controller.run_control()  # (N, T, A): the policy head's chunk for every robot
+            plan = self.gen_base.plan() if self.gen_base is not None else self.controller.run_control()  # (N, T, A): the base controller's chunk
+            if self.fcl is not None and t < self.chunk:
+                ids = self.fcl_ids
+                self.fcl.set_fut_cmd(cmd[ids]); self.fcl.update(proprio[ids], extero[ids], self.last_action[ids])
             if t == 0:
                 for w in range(len(pts)):
                     q = pts[w]; rng = np.random.default_rng(int(self.b["seed"]) + 1000003 * int(A["seed"][q]) + int(A["step"][q]) + 7 * int(round(10 * float(A["speed"][q]))))
@@ -286,8 +349,9 @@ class BranchSim(sb.BatchSim):
                         return int(e[0]) if len(e) else None
                     e1 = env_of("A1"); base = plan[e1] if e1 is not None else plan[np.where(sl)[0][0]]
                     gen = None
-                    if self.gen is not None and env_of("C") is not None:
-                        e = env_of("C"); u = np.clip(rng.normal(size=(N_GEN, self.gen["du"])), -2.5, 2.5).astype(np.float32)
+                    if self.gen is not None and (env_of("C") is not None or env_of("G") is not None):
+                        e = env_of("C") if env_of("C") is not None else env_of("G")
+                        u = np.clip(rng.normal(size=(N_GEN, self.gen["du"])), -2.5, 2.5).astype(np.float32)
                         gen = gen_decode(self.gen, self.controller.proprio_hist[e], self.controller.acts_hist[e], self.controller.fut_cmds[e], u)
                     noise = {k: rng.normal(0.0, s, base.shape).astype(np.float32) for k, s in enumerate(GAUSS_STDS)}
                     for e in np.where(sl)[0]:
@@ -295,10 +359,17 @@ class BranchSim(sb.BatchSim):
                         if g == "A1": chunks[e] = base
                         elif g == "B": chunks[e] = base + noise[k]
                         elif g == "C": chunks[e] = gen[k]
+                        elif g == "G": u_cl[e] = u[k]       # same latent as C_k, re-decoded every step
                         elif g == "F": chunks[e] = A["F"][q]
             action = np.asarray(plan[:, 0], np.float32).copy()
             if t < self.chunk:
                 action[openloop] = chunks[openloop, t]
+                if len(gen_cl):
+                    c = self.controller
+                    action[gen_cl] = gen_decode_b(self.gen, c.proprio_hist[gen_cl], c.acts_hist[gen_cl], c.fut_cmds[gen_cl], u_cl[gen_cl])[:, 0]
+                if self.fcl is not None:
+                    # t = 0 executes the shadow plan's first action (the planner already planned at this state); then replan
+                    action[self.fcl_ids] = A["F"][bp[self.fcl_ids]][:, 0] if t == 0 else self.fcl.run_control()[:, 0]
                 for k, pol in enumerate(self.experts):
                     e = np.where(is_E & (cid == k))[0]
                     if len(e):
@@ -311,6 +382,11 @@ class BranchSim(sb.BatchSim):
             for tn in self.fall_terms:
                 fall |= tm.get_term(tn).cpu().numpy()
             ret[alive] += reward[alive]
+            if self.log_terms:
+                tr = self.env.reward_manager._step_reward.cpu().numpy() * float(self.env.step_dt)
+                term_sum[alive] += tr[alive]
+                if t < self.chunk:
+                    term_chunk[alive] += tr[alive]
             new = alive & reset; fell[new] = fall[new]; fall_step[new] = t; alive &= ~reset
         rows = []
         out = self.cfg.get("output", {}) or {}
@@ -321,6 +397,9 @@ class BranchSim(sb.BatchSim):
                          "group": grp[e], "cand": int(cid[e]), "label": self.cands[self.e_cand[e]][2], "clone": int(self.e_clone[e]),
                          "ret": float(ret[e]), "fell": int(fell[e]), "fall_step": int(fall_step[e]), "alive_steps": int(self.horizon if fall_step[e] < 0 else fall_step[e] + 1),
                          "anchor_ret": float(A["anchor_ret"][q]), "anchor_fell": int(A["anchor_fell"][q]), "anchor_len": int(A["anchor_len"][q])})
+            if self.log_terms:
+                rows[-1].update({f"t_{n}": f"{term_sum[e, k]:.4g}" for k, n in enumerate(self.term_names)})
+                rows[-1].update({f"c_{n}": f"{term_chunk[e, k]:.4g}" for k, n in enumerate(self.term_names)})
         return rows
 
     def run(self):

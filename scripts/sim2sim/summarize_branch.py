@@ -32,8 +32,9 @@ def boot_ci(x, n=2000, seed=0):
     return float(np.percentile(m, 2.5)), float(np.percentile(m, 97.5))
 
 
-def cell_stats(d, groups):
-    """d: rows of one (model, condition[, speed]) cell. Returns a dict of statistics (numpy, pandas-version independent)."""
+def cell_stats(d, groups, combos=None):
+    """d: rows of one (model, condition[, speed]) cell. Returns a dict of statistics (numpy, pandas-version independent).
+    combos: optional {name: [groups]} unions of candidate groups scored like a group (design 18 section 8.1)."""
     J = int(d.clone.max()) + 1
     d = d.copy()
     d["bp"] = pd.factorize(list(zip(d.speed.round(3), d.seed, d.step)))[0]
@@ -79,6 +80,17 @@ def cell_stats(d, groups):
             st["cv"] = float(cv.mean()); st["cv_ci"] = boot_ci(cv)
         per_group[g] = st
     out["groups"] = per_group
+    for name, gs in (combos or {}).items():
+        ids = [i for g in gs if g in gidx for i in gidx[g]]
+        if not ids:
+            continue
+        gain = cm[:, ids] - a0m[:, None]
+        st = {"n_cand": len(ids), "worse": float((gain < 0).mean()), "fell": float(F[:, ids].mean()), "mean_gain": float(gain.mean())}
+        best = gain.max(axis=1); st["opt"] = float(best.mean()); st["opt_ci"] = boot_ci(best)
+        cv = cross(ids)
+        if cv is not None:
+            st["cv"] = float(cv.mean()); st["cv_ci"] = boot_ci(cv)
+        per_group[name] = st
     all_ids = [i for ids in gidx.values() for i in ids]
     if all_ids:
         best = (cm[:, all_ids] - a0m[:, None]).max(axis=1); out["opt_all"] = float(best.mean()); out["opt_all_ci"] = boot_ci(best)
@@ -97,6 +109,8 @@ def cell_stats(d, groups):
 
 
 def fmt(v, a0):
+    if not a0 > 0.5:  # a negative or tiny A0 mean (cells where the base controller falls) makes a % meaningless
+        return f"{v:+.3f}"
     return f"{v:+.3f} ({100 * v / a0:+.1f} %)"
 
 
