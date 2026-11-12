@@ -36,6 +36,7 @@ P5의 DR 값: 미끄러운 판은 마찰 계수 하한을 0.05로(지금 0.2), �
 - **주 지표: 전진 거리 (m, 클수록 좋음)** — leg odometry가 미끄러운 판에서 틀릴 수 있으므로 바닥 눈금(0.2 m 간격 테이프)으로 사람이 읽고, 로그 odometry는 보조. 목표 길이에서 잘라 `min(거리, 목표)`.
 - 부 지표: 성공(목표 통과, 넘어짐 없음) 비율, 넘어짐 비율, 명령 속도 대비 실제 평균 속도 비.
 - 짝짓기: 같은 (표면, 속도)에서 팔을 섞어 교대로 돌리고(순서는 미리 난수로 뽑아 기록), 팔 간 차이는 칸 단위 bootstrap 95 % CI(시행 단위 재표집).
+- 실행 전 준비물(2026-11-12 커밋): 컨트롤러 설정 `hw_P1_paperpolicy.yaml`·`hw_P3_zeroshot.yaml`·`hw_P4_adapted.yaml`·`hw_P5_surfdr.yaml`(P2는 `hw_M2_student.yaml`), 시행 기록지 `results/real/stage19/trials_template.csv`(열: arm, surface, slope_deg, speed, trial, distance_m, success, fell, note), 팔 순서표 `results/real/stage19/order.csv`(seed 19, 칸·시행마다 팔 순서), 집계 `scripts/hw/summarize_design19.py`(표·§4 판정 자동).
 - 로그 이름 `hw_<팔>_<표면><경사>_<속도>` (예: `hw_P2_slip0_0.3`, `hw_P4_foam_0.5`). 분석 `scripts/analyze_hardware_runs.py` + 이 설계용 집계 `scripts/hw/summarize_design19.py`(실행 전 작성·커밋).
 
 ## 4. 판정 경계 (숫자, 실행 전 고정)
