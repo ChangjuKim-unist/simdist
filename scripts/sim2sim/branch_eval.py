@@ -224,6 +224,11 @@ class BranchSim(sb.BatchSim):
         cfg["batch"]["speeds"] = [0.0]; cfg["batch"]["seeds"] = list(range(self.N_env))
         super().__init__(cfg)
         assert self.N == self.N_env
+        ok = self.A["ep_len"][self.idx] + self.horizon < int(self.env.max_episode_length)  # section 9.7: long horizons
+        if (~ok).any():
+            print(f"dropping {int((~ok).sum())} branch points whose episode would time out within the horizon", flush=True); self.idx = self.idx[ok]
+        if self.chunk != 25:
+            assert not ({"A1", "B", "C", "F"} & set(groups)), "open-loop chunk candidates are 25 steps long: branch.chunk must be 25 with them"
         self.experts = []
         for r in self.experts_cfg:
             from simdist.utils.torch import get_actor_critic_from_iteration
@@ -423,6 +428,77 @@ class BranchSim(sb.BatchSim):
         self.env.close(); sb.simulation_app.close()
 
 
+class FeatureSim(BranchSim):
+    """Section 9.2 (mode=features): restore every branch point through the same path as branch mode (restore + first
+    update), re-create the candidates' t = 0 chunks (A0 = generator mean, D_k = mean under the variant command,
+    G_k = latent sample u_k with the branch run's rng rule) and record the world model's imagination for each chunk
+    (rewards, values, latents, J-hat as the planner computes it) plus the branch-point history. No env steps.
+    Output: branch.out npz."""
+
+    def __init__(self, cfg):
+        cfg["branch"]["groups"] = ["A0"]; cfg["branch"]["J"] = 1; cfg["branch"]["perturb"] = False; cfg["branch"]["csv"] = None
+        super().__init__(cfg)
+        assert self.gen is not None, "features mode needs branch.base=gen"
+        self.cand_defs = [("A0", 0, "A0")] + [("D", k, f"D_{v[0]}") for k, v in enumerate(CMD_VARIANTS)] + [("G", k, f"G{k}") for k in range(N_GEN)]
+        self.parts = []
+
+    def run_round(self, pts):
+        import jax.numpy as jnp
+        bp = self.restore(pts); A = self.A; n = len(pts); c = self.controller
+        cmd = self.cmd_manager.get_command("base_velocity").cpu().numpy().copy()
+        c.set_fut_cmd(cmd)
+        proprio, extero = self.get_obs(); c.update(proprio, extero, self.last_action)
+        x = c._model_inputs()
+        T, du, K = int(self.gen["T"]), int(self.gen["du"]), len(self.cand_defs)
+        U = np.zeros((self.N, N_GEN, du), np.float32)
+        for w in range(n):
+            q = pts[w]; rng = np.random.default_rng(int(self.b["seed"]) + 1000003 * int(A["seed"][q]) + int(A["step"][q]) + 7 * int(round(10 * float(A["speed"][q]))))
+            U[w] = np.clip(rng.normal(size=(N_GEN, du)), -2.5, 2.5)
+        disc = np.asarray(c.discounts, np.float64); fdisc = float(c.final_discount)
+        chunks = np.zeros((n, K, T, 12), np.float32); rew = np.zeros((n, K, T), np.float32); val = np.zeros((n, K, T), np.float32)
+        jhat = np.zeros((n, K), np.float32); cand_cmd = np.zeros((n, K, 3), np.float32); cand_u = np.zeros((n, K, du), np.float32)
+        zT = zmean = znow = None
+        for k, (g, i, label) in enumerate(self.cand_defs):
+            cm = cmd.copy()
+            if g == "D":
+                _, dim, v, how = CMD_VARIANTS[i]
+                if how == "mul": cm[:, dim] *= v
+                else: cm[:, dim] += v
+            C = np.repeat(cm[:, None, :], T + 1, 1).astype(np.float32)
+            u = U[:, i] if g == "G" else np.zeros((self.N, du), np.float32)
+            chunk = gen_decode_b(self.gen, c.proprio_hist, c.acts_hist, C, u)
+            xx = dict(x); xx["fut_cmds"] = jnp.asarray(C)
+            z, lat, r, v_ = c._trace(xx, jnp.asarray(chunk, jnp.float32))
+            z, lat, r, v_ = np.asarray(z), np.asarray(lat), np.asarray(r).reshape(self.N, T), np.asarray(v_).reshape(self.N, T)
+            if zT is None:
+                D = z.shape[-1]; znow = z[:n].copy(); zT = np.zeros((n, K, D), np.float32); zmean = np.zeros((n, K, D), np.float32)
+            lat = lat.reshape(self.N, T, -1)
+            chunks[:, k] = chunk[:n]; rew[:, k] = r[:n]; val[:, k] = v_[:n]; zT[:, k] = lat[:n, -1]; zmean[:, k] = lat[:n].mean(axis=1)
+            jhat[:, k] = (r[:n] * disc).sum(-1) + v_[:n, -1] * fdisc
+            cand_cmd[:, k] = cm[:n]; cand_u[:, k] = u[:n]
+        self.parts.append({"speed": A["speed"][bp[:n]], "seed": A["seed"][bp[:n]], "step": A["step"][bp[:n]],
+                           "anchor_ret": A["anchor_ret"][bp[:n]], "anchor_fell": A["anchor_fell"][bp[:n]],
+                           "hist_p": c.proprio_hist[:n].copy(), "hist_a": c.acts_hist[:n].copy(), "cmd": cmd[:n].copy(), "z_now": znow,
+                           "chunk": chunks, "rew": rew, "val": val, "jhat": jhat, "cand_cmd": cand_cmd, "cand_u": cand_u, "z_T": zT, "z_mean": zmean})
+        return n
+
+    def run(self):
+        t0 = time.time(); n_rounds = int(np.ceil(len(self.idx) / self.W)); done = 0
+        for r in range(n_rounds):
+            if not sb.simulation_app.is_running():
+                break
+            done += self.run_round(self.idx[r * self.W:(r + 1) * self.W])
+            el = time.time() - t0
+            print(f"round {r + 1}/{n_rounds}: {done} points, {el / (r + 1):.1f} s/round", flush=True)
+        out = {k: np.concatenate([p[k] for p in self.parts]) for k in self.parts[0]}
+        out["labels"] = np.array([d[2] for d in self.cand_defs]); out["groups"] = np.array([d[0] for d in self.cand_defs])
+        out["model"] = np.array(self.cfg["model"]["checkpoint"]); out["condition"] = np.array((self.cfg.get("output", {}) or {}).get("condition") or "")
+        os.makedirs(os.path.dirname(os.path.abspath(self.b["out"])), exist_ok=True)
+        np.savez(self.b["out"], **out)
+        print(f"RESULT features: {len(out['step'])} branch points x {len(self.cand_defs)} candidates -> {self.b['out']}", flush=True)
+        self.env.close(); sb.simulation_app.close()
+
+
 @hydra.main(config_path=paths.get_config_dir(), config_name="branch_eval", version_base=None)
 def main(cfg: DictConfig):
     cfg = OmegaConf.to_container(cfg, resolve=True)
@@ -430,6 +506,8 @@ def main(cfg: DictConfig):
         AnchorSim(cfg).run()
     elif cfg["mode"] == "branch":
         BranchSim(cfg).run()
+    elif cfg["mode"] == "features":
+        FeatureSim(cfg).run()
     else:
         raise ValueError(cfg["mode"])
 

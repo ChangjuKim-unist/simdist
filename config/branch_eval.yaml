@@ -7,7 +7,7 @@ defaults:
 #                on the same inputs without acting; every `every` steps the full state is snapshotted to branch.out
 #   mode=branch  W branch points x (candidates x J) robots restore the snapshots, run every candidate for 25 steps,
 #                continue with the base controller to 125 steps and log the realised return to branch.csv
-mode: anchor
+mode: anchor   # anchor | branch | features (section 9.2: branch-point features + world-model imagination of the candidates, no env steps)
 branch:
   out:            # anchor mode: snapshot npz
   anchor:         # branch mode: snapshot npz from the anchor run
