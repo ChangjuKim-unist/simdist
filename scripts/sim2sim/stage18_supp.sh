@@ -6,7 +6,7 @@
 # Results: $BIG (spare SSD, symlinked from results/stage18). Re-runnable (finished runs are skipped, branch runs resume).
 # Usage:  GPUS_LIST="0 1 2 3" nohup bash scripts/sim2sim/stage18_supp.sh > results/stage18_supp.log 2>&1 &
 set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh
-BIG=/mnt/newssd/cjkim/simdist/results/stage18; mkdir -p $BIG; [ -e results/stage18 ] || ln -s $BIG results/stage18; OUT=results/stage18
+BIG=/mnt/newssd/cjkim/simdist/results/stage18; mkdir -p $BIG; OUT=$BIG   # host path, mounted at the same path inside the container (run.sh)
 export SIMDIST_DIR=~/simdist
 GPUS_LIST=${GPUS_LIST:-"0 1 2 3"}
 W2=${W2:-8}     # branch points per round, check 2 (F_cl planner over W2 x J robots)
@@ -37,7 +37,7 @@ branch2() { local gpu=$1 name=$2 model=$3 cond=$4
   [ -f $OUT/branch2_${name}_$cond.done ] && return
   echo "== branch2 $name ($model) on $cond gpu$gpu $(date +%H:%M)"
   GPUS="\"device=$gpu\"" $RUN python scripts/sim2sim/branch_eval.py mode=branch model.checkpoint=$model $(phys $cond) $COMMON \
-    branch.anchor=/workspace/simdist/$OUT/anchor_${name}_$cond.npz branch.csv=/workspace/simdist/$OUT/branch2_${name}_$cond.csv branch.W=$W2 \
+    branch.anchor=$OUT/anchor_${name}_$cond.npz branch.csv=$OUT/branch2_${name}_$cond.csv branch.W=$W2 \
     'branch.groups=[A0,A1,D,F,Fcl,Ccl]' branch.terms=true branch.gen_weights=$GEN \
     output.model_name=$name output.condition=$cond --headless 2>&1 | grep -E "RESULT branch|Traceback|rror:|round [0-9]*0/" | tail -4
   mark_done $OUT/anchor_${name}_$cond.npz $OUT/branch2_${name}_$cond.csv $OUT/branch2_${name}_$cond.done
@@ -47,15 +47,15 @@ anchor3() { local gpu=$1 cond=$2
   echo "== anchor3 gen on $cond gpu$gpu $(date +%H:%M)"
   GPUS="\"device=$gpu\"" $RUN python scripts/sim2sim/branch_eval.py mode=anchor model.checkpoint=go1_broadwm $(phys $cond) $COMMON \
     'batch.speeds=[0.3,0.6,0.9]' 'batch.seeds=[11,12,13,14,15,16]' branch.base=gen branch.shadow=false branch.gen_weights=$GEN \
-    branch.out=/workspace/simdist/$OUT/anchor_gen_$cond.npz \
-    output.csv=/workspace/simdist/$OUT/anchor_runs_gpu$gpu.csv output.model_name=gen output.condition=$cond --headless 2>&1 \
+    branch.out=$OUT/anchor_gen_$cond.npz \
+    output.csv=$OUT/anchor_runs_gpu$gpu.csv output.model_name=gen output.condition=$cond --headless 2>&1 \
     | grep -E "RESULT|branch points written|Traceback|rror:" | tail -4
 }
 branch3() { local gpu=$1 cond=$2
   [ -f $OUT/branch3_gen_$cond.done ] && return
   echo "== branch3 gen on $cond gpu$gpu $(date +%H:%M)"
   GPUS="\"device=$gpu\"" $RUN python scripts/sim2sim/branch_eval.py mode=branch model.checkpoint=go1_broadwm $(phys $cond) $COMMON \
-    branch.anchor=/workspace/simdist/$OUT/anchor_gen_$cond.npz branch.csv=/workspace/simdist/$OUT/branch3_gen_$cond.csv branch.W=$W3 \
+    branch.anchor=$OUT/anchor_gen_$cond.npz branch.csv=$OUT/branch3_gen_$cond.csv branch.W=$W3 \
     'branch.groups=[A0,D,E,C,G]' branch.base=gen branch.terms=true branch.gen_weights=$GEN \
     output.model_name=gen output.condition=$cond --headless 2>&1 | grep -E "RESULT branch|Traceback|rror:|round [0-9]*0/" | tail -4
   mark_done $OUT/anchor_gen_$cond.npz $OUT/branch3_gen_$cond.csv $OUT/branch3_gen_$cond.done
