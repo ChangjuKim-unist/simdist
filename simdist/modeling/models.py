@@ -217,6 +217,26 @@ class WorldModelBase(ModelBase):
         if ctx_cfg.get("enabled", False):
             self._build_context(ctx_cfg, rngs)
 
+        # low-rank adapters on the latent dynamics (design doc 20): rebuilt here so that a checkpoint saved
+        # with adapters restores into the same parameter structure. Off by default: the model is unchanged.
+        lora_cfg = self.model_cfg.get("lora", {}) or {}
+        if lora_cfg.get("enabled", False):
+            self._apply_lora(lora_cfg, rngs)
+
+    # ---- low-rank adapters (design doc 20) ----------------------------------------
+    def _apply_lora(self, lora_cfg: dict, rngs: nnx.Rngs) -> int:
+        from simdist.modeling import lora as lora_mod
+
+        target = getattr(self, str(lora_cfg.get("target", "dynamics")))
+        return lora_mod.apply_lora(target, int(lora_cfg.get("rank", 1)), rngs, float(lora_cfg.get("scale", 1.0)))
+
+    def add_lora(self, lora_cfg: dict, rngs: nnx.Rngs) -> int:
+        """Attach zero-initialized low-rank adapters to a pretrained model (trainer, finetuning)."""
+        lora_cfg = dict(lora_cfg)
+        lora_cfg["enabled"] = True
+        self.model_cfg["lora"] = lora_cfg
+        return self._apply_lora(lora_cfg, rngs)
+
     # ---- context slot psi (design doc 13) --------------------------------------------
     def _build_context(self, ctx_cfg: dict, rngs: nnx.Rngs) -> None:
         H = self.model_cfg["dataset"]["history_length"]

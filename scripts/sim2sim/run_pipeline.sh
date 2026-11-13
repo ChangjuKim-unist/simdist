@@ -51,6 +51,9 @@ LONG_STEPS="${LONG_STEPS:-5000}"; LONG_SPEEDS="${LONG_SPEEDS:-0.3 0.6 0.9}"; LON
 LONG_CONDS="${LONG_CONDS:-$COND}"; LONG_EXTRA_MODELS="${LONG_EXTRA_MODELS:-}"  # extra checkpoint names for evaluate_long
 NOMINAL_DATASET="${NOMINAL_DATASET:-2026-10-02_01-18-59}"
 TERRAIN="${TERRAIN:-plane}"
+SEED_BASE="${SEED_BASE:-1000}"        # collection seeds = SEED_BASE + 10*round + speed index (design doc 20: held-out logs use another base)
+COLLECT_EXTRA="${COLLECT_EXTRA:-}"    # extra hydra overrides for the collection runs (e.g. control.prior_only=true)
+REPLAY_SYSTEM="${REPLAY_SYSTEM:-}"    # processed-data system name of NOMINAL_DATASET if not $SYSTEM (go1dr)
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUN="${RUN:-$HOME/simdist-docker/run.sh}"
@@ -89,6 +92,12 @@ variant_overrides() {
   case "$1" in
     dyn)         echo "loss=world_model_dynamics_only heads=world_model_dynamics_only" ;;
     dyn_pw)      echo "loss=world_model_dynamics_only heads=world_model_dynamics_only loss.prior_weight=true" ;;
+    # --- design doc 20: low-capacity dynamics updates and simulation replay (same loss/data as dyn) ---
+    lora1)       echo "loss=world_model_dynamics_only heads=lora adapt.lora.enabled=true adapt.lora.rank=1" ;;
+    lora4)       echo "loss=world_model_dynamics_only heads=lora adapt.lora.enabled=true adapt.lora.rank=4" ;;
+    affine)      echo "loss=world_model_dynamics_only heads=dynamics_affine" ;;
+    last)        echo "loss=world_model_dynamics_only heads=dynamics_last" ;;
+    dyn_replay)  echo "loss=world_model_dynamics_only heads=world_model_dynamics_only loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM}" ;;
     dynres)      echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true" ;;
     dynres_na)   echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true adapt.dynamics_residual.action_input=false" ;;
     res)         echo "loss=world_model_value_adapt heads=dynamics_value_residual adapt.value_residual.enabled=true adapt.value_anchor=false" ;;
@@ -124,8 +133,8 @@ stage_collect() {
     i=0
     for v in $SPEEDS; do
       i=$((i + 1))
-      sim "$COLLECT_CKPT" "$COND" "$((1000 + 10 * r + i))" "$COLLECT_STEPS" task.forward_vel="$v" \
-        sim.episode_length_s="$COLLECT_EPISODE_S" \
+      sim "$COLLECT_CKPT" "$COND" "$((SEED_BASE + 10 * r + i))" "$COLLECT_STEPS" task.forward_vel="$v" \
+        sim.episode_length_s="$COLLECT_EPISODE_S" $COLLECT_EXTRA \
         logging.enabled=true logging.dataset_name="$DATASET" | grep -E "^\{'total_reward|Error|Traceback" || true
     done
   done

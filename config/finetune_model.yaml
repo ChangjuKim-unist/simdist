@@ -35,6 +35,12 @@ adapt:
     noise_seed: 0
     xi_mean: [0.7, 0.7, 1.0]
     xi_std: [0.23, 0.29, 1.15]
+  # low-rank adapters on the latent dynamics (design doc 20): train with heads=lora
+  lora:
+    enabled: false
+    rank: 1
+    scale: 1.0
+    target: dynamics
   # learning rate for the residual head only (blank = same schedule as the rest)
   residual_lr:
   # data anchor: windows of a simulation dataset on which the adapted value is
@@ -43,6 +49,7 @@ adapt:
     dataset_name:
     batch_size: 64
     num_workers: 2
+    system_name:   # processed-data system of the replay dataset if it differs (e.g. go1dr)
 
 data:
   dataset_name:

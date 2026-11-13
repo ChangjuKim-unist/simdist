@@ -1,0 +1,3 @@
+# low-rank adapters only (design doc 20); the base weights stay frozen
+- lora_a
+- lora_b

@@ -87,6 +87,17 @@ class WorldModelLoss(Loss):
         )
 
         latents_error = y_pred["latents"] - fut_latents
+        # design doc 20: simulation replay for the latent-dynamics term. ``replay=(x_sim, y_sim)`` is a batch
+        # of the pretraining (simulation) windows; the term becomes (1 - w) * real + w * sim.
+        replay = kwargs.get("replay")
+        replay_w = float(self.loss_cfg.get("replay_weight", 0.0))
+        replay_latent_loss = None
+        if replay is not None and replay_w > 0.0:
+            xr, yr = replay
+            yr = jax.lax.stop_gradient(scaler.scale(yr))
+            yr_pred = model(xr, deterministic=deterministic)
+            fut_r = jax.lax.stop_gradient(model.encode_latent(yr["proprio_obs"], yr["extero_obs"], deterministic=True))
+            replay_latent_loss = jnp.mean((yr_pred["latents"] - fut_r) ** 2)
         bw = float(self.loss_cfg.get("boundary_weight", 1.0))
         if (self.loss_cfg.get("prior_weight", False) and "prior_weight" in y) or (bw != 1.0 and "steps_to_end" in y):
             # per-window weights: prior-consistency (design doc 9) and/or fall-boundary weight (design doc 10 §7:
@@ -101,6 +112,8 @@ class WorldModelLoss(Loss):
             latent_dynamics_loss = jnp.sum(w * per_window) / (jnp.sum(w) + 1e-8)
         else:
             latent_dynamics_loss = jnp.mean(latents_error**2)
+        if replay_latent_loss is not None:
+            latent_dynamics_loss = (1.0 - replay_w) * latent_dynamics_loss + replay_w * replay_latent_loss
 
         reward_error = y_pred["rewards"] - y["rewards"]
         reward_loss = jnp.mean(reward_error**2)

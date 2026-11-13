@@ -1,0 +1,4 @@
+# LayerNorm scale/shift of the latent dynamics only (design doc 20 V4)
+- dynamics/layernorm_1
+- dynamics/layernorm_2
+- dynamics/layernorm_3

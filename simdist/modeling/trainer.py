@@ -161,6 +161,14 @@ def train(cfg: dict):
                 model.add_context(ctx_cfg, nnx.Rngs(cfg["training"]["seed"]))
                 cfg["model"]["context"] = dict(model.model_cfg["context"])
                 print("Added a context slot psi (zero-initialized injections, design doc 13)")
+            lora_cfg = adapt_cfg.get("lora", {}) or {}
+            if lora_cfg.get("enabled", False) and not (model.model_cfg.get("lora", {}) or {}).get("enabled", False):
+                n = model.add_lora(lora_cfg, nnx.Rngs(cfg["training"]["seed"]))
+                cfg["model"]["lora"] = dict(model.model_cfg["lora"])
+                print(f"Attached rank-{lora_cfg.get('rank', 1)} LoRA adapters to {n} linear layers of {lora_cfg.get('target', 'dynamics')} (design doc 20)")
+            elif lora_cfg.get("enabled", False):
+                cfg["model"]["lora"] = dict(model.model_cfg["lora"])
+                print("Checkpoint already carries LoRA adapters; continuing to train them")
     elif finetuning:
         raise ValueError("checkpoint.resume_checkpoint must be given when finetuning.")
     else:
@@ -240,6 +248,10 @@ def train(cfg: dict):
     if replay_cfg.get("dataset_name"):
         replay_cfg_full = dict(cfg)
         replay_cfg_full["data"] = {"dataset_name": replay_cfg["dataset_name"]}
+        if replay_cfg.get("system_name"):
+            # the replay dataset was processed under another system name (e.g. go1dr: physics-labelled DR data)
+            replay_cfg_full["system"] = dict(cfg["system"])
+            replay_cfg_full["system"]["name"] = replay_cfg["system_name"]
         replay_dataset = get_dataset(replay_cfg_full)
         replay_dataset.train()
         replay_loader = DataLoader(
@@ -259,7 +271,7 @@ def train(cfg: dict):
                         yield b
 
         replay_iter = _cycle(replay_loader)
-        print(f"Value replay from simulation dataset: {replay_cfg['dataset_name']}")
+        print(f"Replay from simulation dataset: {replay_cfg['dataset_name']} (batch {replay_cfg.get('batch_size', 64)})")
     metrics = nnx.MultiMetric(
         loss=nnx.metrics.Average("loss"),
         **{k: nnx.metrics.Average(k) for k in loss_fn.loss_terms},
