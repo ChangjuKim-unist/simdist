@@ -61,7 +61,7 @@ print(f"windows: {n} (fit {n_fit}, held-out {n - n_fit})", flush=True)
 
 
 def batches(subset, bs, shuffle, seed):
-    loader = DataLoader(subset, batch_size=bs, shuffle=shuffle, num_workers=2, drop_last=shuffle,
+    loader = DataLoader(subset, batch_size=bs, shuffle=shuffle, num_workers=0, drop_last=shuffle,  # workers fork JAX -> corrupt batches
                         generator=None if not shuffle else __import__("torch").Generator().manual_seed(seed))
     for b in loader:
         yield mu.dataset_batch_to_jax(b)
