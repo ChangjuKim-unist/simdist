@@ -86,6 +86,14 @@ class BatchSim:
             xi_s = np.asarray(model.scale_xi(np.asarray(xi, np.float32)), np.float32)
             self.controller.extra_inputs["context_override"] = jnp.asarray(np.tile(xi_s[None], (self.N, 1)))
             print(f"Oracle context: xi={xi} -> standardized {xi_s.tolist()}")
+        # design doc 21 gate 0: a fixed, fitted context (standardized psi[:3]) instead of the inferred one
+        if cfg["sim"].get("context_override_xi") is not None:
+            assert getattr(model, "context", None) is not None, "sim.context_override_xi needs a model with a context slot"
+            assert not cfg["sim"].get("context_oracle", False), "context_oracle and context_override_xi are exclusive"
+            xi_s = np.asarray(list(cfg["sim"]["context_override_xi"]), np.float32)
+            assert xi_s.shape == (3,), "sim.context_override_xi must be 3 standardized values"
+            self.controller.extra_inputs["context_override"] = jnp.asarray(np.tile(xi_s[None], (self.N, 1)))
+            print(f"Fitted context override (standardized): {xi_s.tolist()}")
         # optional student prior (design doc 4): replaces the policy-head prior samples, or
         # acts alone when policy.use_as == "student_act"
         self.student = None

@@ -27,6 +27,8 @@ sim:
   motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
   # design doc 13: feed the true standardized physics into the context slot (oracle, P2)
   context_oracle: false
+  # design doc 21 gate 0: fixed fitted context, 3 standardized values [motor, friction, mass] (null = inferred)
+  context_override_xi:
   # design doc 13 P4: at this step switch every robot's torque cap to motor_switch_strength x nominal
   motor_switch_step:
   motor_switch_strength:
