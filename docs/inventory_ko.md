@@ -82,3 +82,16 @@ NAS 전체: 우리 몫 ≈ 290 GB (datasets 176, checkpoints 57, traces 32, resu
 | G gpu1 홈 | `~/simdist/results/` 372 MB, 로그 | — | 루트 디스크 압박의 원인이 아님. 그대로 |
 
 실행 규칙: 삭제는 그룹 단위로 승인받은 것만, 삭제 전 NAS 사본 확인, NAS 쓰기는 컨테이너를 통해(`~/simdist-docker/run.sh`), 로컬 root 소유 파일은 로컬 컨테이너로.
+
+## 7. 정리 실행 (2026-11-14, 사용자 승인)
+삭제 전 확인: 논문 데이터 gpu1 사본은 NAS 원본과 파일 단위 동일(12개), RL 37개는 로컬에 같은 크기(2026-11-05_06-23-44는 로컬이 더 완전), 로컬 stage14 트레이스는 NAS 집합에 포함.
+
+| 묶음 | 삭제한 것 | 회수 |
+|---|---|---|
+| gpu1 논문 데이터 사본 | `/mnt/newssd/cjkim/simdist/datasets/sim/2026-10-02_01-18-59` + 저장소 심볼릭 링크 | gpu1 데이터 디스크 150 GB (52 → 44 %) |
+| RL expert sweep NAS 사본 | NAS `checkpoints/rl/` 34개(teacher 2026-10-01_10-38-36·2026-10-20_07-40-06, go2_2026-02-11 유지). **로컬 사본 37개는 유지(유일본)** | NAS 51 GB |
+| planner 트레이스 | NAS `traces_stage13`(17 GB)·`traces_stage17`(9.3 GB), 로컬 `results/stage13/traces`(설계 13 go1_ctx 8개, NAS에 없던 것)·`results/stage14/traces`. **NAS `traces_stage14` 5.5 GB 유지**(설계 18 §9.7 모순 건 미해결) | NAS 26 GB, 로컬 4.8 GB |
+| sim2sim 적응 로그 | 설계 1~12 입력 `datasets/real/sim2sim_*` NAS 83개·로컬 85개. 유지 11개: `go1_simdist_controller`(실기), `sim2sim_{friction0.15,very_weak_motor,nominal}_go1_paper*`(설계 14·18·20 입력) | NAS 8 GB, 로컬 7 GB |
+| 잡동사니 | 로컬 `wandb/`, `outputs/`, `checkpoints/models/smoke20_*` 3개 | 로컬 0.9 GB |
+
+유지 결정: 설계 1~12 적응 변형 체크포인트(0.6 GB), 로컬 `results/stage16/traces`(0.3 GB, NAS 백업 안 함), student sweep. 결과: NAS 우리 몫 266 → 181 GB(datasets 169, traces_stage14 5.5, checkpoints 5.6, results 1.4), 로컬 datasets 29 GB·checkpoints 58 GB·results 1.7 GB. gpu1 root 100 %는 다른 사용자의 멈춘 컨테이너(≈105 GB)·미사용 이미지(68 GB) 때문이며 우리 홈은 3.4 GB — 관리자에게 prune 요청 필요.
