@@ -6,7 +6,8 @@
 Loss = latent MSE (as SimDist fine-tuning) + prior_w * ||xi||^2 (the training prior). Adam from xi = 0, all weights
 frozen. Time split: first 90 % of windows fit, last 10 % held out. Reports held-out latent MSE (lower is better) for
 xi = 0 and the fitted xi, and optionally for a comparison checkpoint (e.g. the SimDist adaptation of the control).
---usage: instead, on an episode-subset dataset, compare each window's own trained xi_e with xi = 0 (is the slot used?).
+--usage: instead, on an episode-subset dataset, compare each window's own trained xi_e with xi = 0 (is the slot used?),
+on the training range of windows (the held-out tail is reported separately: its rows were never trained).
 """
 import argparse, json, os
 import flax.nnx as nnx
@@ -29,6 +30,7 @@ ap.add_argument("--n_val", type=int, default=4096)
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--compare_ckpt", default="")
 ap.add_argument("--usage", action="store_true")
+ap.add_argument("--train_ratio", type=float, default=0.95, help="training_data_ratio of the FiLM run: rows of the held-out tail episodes were never trained")
 ap.add_argument("--out", required=True)
 args = ap.parse_args()
 
@@ -69,20 +71,33 @@ gd, st = nnx.split(model)
 res = {"ckpt": args.ckpt, "dataset": args.dataset}
 
 if args.usage:
-    idx = np.random.default_rng(args.seed).choice(n, size=min(args.n_val, n), replace=False)
-    sub = Subset(ds, np.sort(idx))
+    # windows of the trainer's held-out tail (index >= train_ratio * n) belong to episodes whose xi_e was never
+    # updated (still the random init), so the usage gate is computed on the training range only
+    n_tr = int(n * args.train_ratio)
 
     @jax.jit
     def f(x, y):
         m = nnx.merge(gd, st)
         xi = m.xi_table.value[jnp.asarray(y["episode_id"]).reshape(-1)]
         return latent_mse(m, x, y, xi), latent_mse(m, x, y, jnp.zeros((d,)))
-    a = b = cnt = 0.0
-    for bt in batches(sub, args.batch, False, 0):
-        k = bt["model_in"]["proprio_obs_hist"].shape[0]
-        u, v = f(bt["model_in"], bt["labels"]); a += float(u) * k; b += float(v) * k; cnt += k
+
+    def usage(lo, hi):
+        idx = np.random.default_rng(args.seed).choice(np.arange(lo, hi), size=min(args.n_val, hi - lo), replace=False)
+        a = b = cnt = 0.0
+        eps = []
+        for bt in batches(Subset(ds, np.sort(idx)), args.batch, False, 0):
+            k = bt["model_in"]["proprio_obs_hist"].shape[0]
+            u, v = f(bt["model_in"], bt["labels"]); a += float(u) * k; b += float(v) * k; cnt += k
+            eps.append(np.asarray(bt["labels"]["episode_id"]).reshape(-1))
+        return a / cnt, b / cnt, np.unique(np.concatenate(eps))
+
     tab = np.asarray(model.xi_table.value)
-    res.update({"mse_own_xi": a / cnt, "mse_xi0": b / cnt, "rel_gain": 1 - (a / cnt) / (b / cnt),
+    a, b, ep_tr = usage(0, n_tr)
+    ah, bh, ep_ho = usage(n_tr, n)
+    res.update({"mse_own_xi": a, "mse_xi0": b, "rel_gain": 1 - a / b, "n_train_windows": n_tr,
+                "heldout_mse_own_xi": ah, "heldout_mse_xi0": bh, "heldout_rel_gain": 1 - ah / bh,
+                "xi_norm_train_rows": float(np.linalg.norm(tab[ep_tr], axis=1).mean()),
+                "xi_norm_heldout_rows": float(np.linalg.norm(tab[ep_ho], axis=1).mean()),
                 "xi_table_norm_mean": float(np.linalg.norm(tab, axis=1).mean()), "xi_table_std": tab.std(0).tolist()})
     print("RESULT", json.dumps(res), flush=True)
 else:
