@@ -5,6 +5,9 @@ defaults:
 model:
   checkpoint: "go2_2026-02-12"
   step:  # leave blank for latest
+  # design doc 23: interpolate all parameters with another checkpoint: (1 - interp_alpha) x interp_from + interp_alpha x checkpoint
+  interp_from:
+  interp_alpha: 1.0
   # design doc 22 §12: reward / value head of another checkpoint (blank = the model's own)
   heads_from:
     reward:

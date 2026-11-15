@@ -59,7 +59,7 @@ class BatchedMppiController:
         assert self.init_mode in ("shift", "zero", "prior", "external")
         self.shift = int(controller_cfg["delay"])
         self.discounts = controller_cfg["discount"] ** jnp.arange(self.T)
-        self.final_discount = controller_cfg["discount"] ** (self.T + 1)
+        self.final_discount = controller_cfg["discount"] ** (self.T + 1) * float(controller_cfg.get("value_weight", 1.0))  # design doc 23: terminal value weight w
         self.dummy_actions = jnp.zeros((self.N, self.T, self.act_dim))
         # design doc 15: calibrated planner score.  control.calib = {enabled, weights, tau, fall_max}: candidates are
         # scored by the tau-quantile of the REALISED 25-step return predicted by a small head (trained on the planner's

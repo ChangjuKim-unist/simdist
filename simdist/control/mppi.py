@@ -42,7 +42,7 @@ class MppiController(ControllerBase):
 
         self.mppi_state = None
         self.discounts = self.ctrl_cfg["discount"] ** jnp.arange(self.T)
-        self.final_discount = self.ctrl_cfg["discount"] ** (self.T + 1)
+        self.final_discount = self.ctrl_cfg["discount"] ** (self.T + 1) * float(self.ctrl_cfg.get("value_weight", 1.0))  # design doc 23: terminal value weight w
         self.rngs = nnx.Rngs(self.ctrl_cfg["seed"])
         self.dummy_actions = jnp.zeros((self.T, self.act_dim))
 

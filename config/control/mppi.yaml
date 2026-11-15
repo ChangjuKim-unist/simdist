@@ -9,6 +9,7 @@ num_elites: 64
 temperature: 0.25
 momentum: 0.0
 discount: 0.99
+value_weight: 1.0  # design doc 23: weight w of the terminal value in the planner score (sum gamma^k r + w gamma^(T+1) V)
 seed: 42
 init_mode: shift  # sampling-mean initialization: shift (warm start) | zero | prior | external (batched planner only)
 prior_only: false  # true = execute the (external) prior's own plan without planning (student alone)

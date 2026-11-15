@@ -43,6 +43,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import numpy as np
 import flax.nnx as nnx
+import jax
 import jax.numpy as jnp
 import torch
 from tqdm import tqdm
@@ -67,6 +68,14 @@ class BatchSim:
 
         ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
         model, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
+        # design doc 23: weight interpolation theta = (1 - alpha) * theta_base + alpha * theta_model over all parameters
+        # (only the dynamics differ after a SimDist adaptation; scalers are identical)
+        if cfg["model"].get("interp_from"):
+            alpha = float(cfg["model"]["interp_alpha"])
+            base_m, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["interp_from"]))
+            s_m, s_b = nnx.state(model, nnx.Param), nnx.state(base_m, nnx.Param)
+            nnx.update(model, jax.tree.map(lambda a, b: (1.0 - alpha) * b + alpha * a, s_m, s_b))
+            print(f"Interpolated parameters: {1.0 - alpha:.2f} x {cfg['model']['interp_from']} + {alpha:.2f} x {cfg['model']['checkpoint']}", flush=True)
         # design doc 22 §12: take the reward and/or value head of another checkpoint (attribution of a head refit)
         _head_mods = {"reward": ("reward_emb", "reward", "reward_dec"), "value": ("value_emb", "value", "value_dec")}
         for part, src in ((cfg["model"].get("heads_from") or {}) or {}).items():
