@@ -75,7 +75,10 @@ def main():
     ap.add_argument("csvs", nargs="+")
     ap.add_argument("--pair", action="append", default=[], help="NAME:MODEL_A:MODEL_B (diff = B - A)")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--steps", type=float, default=5000.0, help="simulation steps per run (falls are reported per 1000 steps)")
     args = ap.parse_args()
+    global STEPS
+    STEPS = args.steps
     by = load(args.csvs)
     models = sorted({m for m, _ in by})
     conds = sorted({c for _, c in by})
