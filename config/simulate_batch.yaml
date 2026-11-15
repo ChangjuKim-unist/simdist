@@ -5,6 +5,10 @@ defaults:
 model:
   checkpoint: "go2_2026-02-12"
   step:  # leave blank for latest
+  # design doc 22 §12: reward / value head of another checkpoint (blank = the model's own)
+  heads_from:
+    reward:
+    value:
 
 task:
   forward_vel: 0.5

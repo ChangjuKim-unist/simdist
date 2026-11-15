@@ -42,6 +42,7 @@ import csv
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import numpy as np
+import flax.nnx as nnx
 import jax.numpy as jnp
 import torch
 from tqdm import tqdm
@@ -66,6 +67,16 @@ class BatchSim:
 
         ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
         model, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
+        # design doc 22 §12: take the reward and/or value head of another checkpoint (attribution of a head refit)
+        _head_mods = {"reward": ("reward_emb", "reward", "reward_dec"), "value": ("value_emb", "value", "value_dec")}
+        for part, src in ((cfg["model"].get("heads_from") or {}) or {}).items():
+            if not src:
+                continue
+            assert part in _head_mods, f"model.heads_from.{part}: only reward / value"
+            other, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), src))
+            for name in _head_mods[part]:
+                nnx.update(getattr(model, name), nnx.state(getattr(other, name)))
+            print(f"{part} head taken from {src}", flush=True)
         self.proprio_obs_names = config.proprio_obs_names_from_sys_config(model_cfg["system"])
         self.controller = BatchedMppiController(
             model, model_cfg, cfg["control"], self.N, [s for _, s in self.pairs]
