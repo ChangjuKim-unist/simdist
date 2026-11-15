@@ -335,6 +335,44 @@ class WorldModelValueAdaptLoss(Loss):
         return losses, {}
 
 
+@register_loss("head_refit")
+class HeadRefitLoss(Loss):
+    """Design doc 22: refit the reward and value heads of an adapted model on logged data (dynamics frozen
+    by the head config).
+
+    ``value_input``: "pred" - the heads read the latents predicted by the (adapted) dynamics, the same path
+    as pretraining and planning; "true" - the heads read the encoded true future latents (design doc 1).
+    Value labels: logged discounted reward-to-go (zero after a fall); steps of episodes that were cut by the
+    end of the run within ``trunc_mask`` steps are masked (their reward-to-go is truncated).
+    Reward labels: logged rewards.
+    """
+
+    def __init__(self, cfg: dict):
+        super().__init__(cfg)
+        self.value_input = self.loss_cfg.get("value_input", "pred")
+        assert self.value_input in ("pred", "true")
+        self.trunc_mask = float(self.loss_cfg.get("trunc_mask", 300))
+
+    def compute_losses(self, model, x, y, deterministic: bool, **kwargs):
+        scaler = model.get_scaler()
+        y_s = jax.lax.stop_gradient(scaler.scale(y))
+        if self.value_input == "pred":
+            y_pred = model(x, deterministic=deterministic)
+            v_s, r_s = y_pred["values"], y_pred["rewards"]
+        else:
+            x_s = jax.lax.stop_gradient(scaler.scale(x))
+            fut = jax.lax.stop_gradient(model.encode_latent(y_s["proprio_obs"], y_s["extero_obs"], deterministic=True))
+            v_s = model.value_from_latents(fut, x_s["fut_cmds"][:, 1:], deterministic=deterministic, use_residual=True)
+            r_s = model.reward_from_latents(x_s, fut, deterministic=deterministic)
+        vp = scaler.get_scaler_params()["values"]
+        target = jax.lax.stop_gradient((jnp.asarray(y["rtg"]) - vp["mean"]) / (vp["std"] + 1e-8))
+        valid = (jnp.asarray(y["terminated"]) > 0.5) | (jnp.asarray(y["steps_to_end"]) >= self.trunc_mask)
+        w = valid.astype(jnp.float32)
+        value_loss = jnp.sum(w * (v_s - target) ** 2) / (jnp.sum(w) + 1e-8)
+        reward_loss = jnp.mean((r_s - y_s["rewards"]) ** 2)
+        return {"reward": reward_loss, "value": value_loss}, {}
+
+
 @register_loss("policy_refresh")
 class PolicyRefreshLoss(Loss):
     """Re-optimize the base policy (planner prior) in imagination with the adapted dynamics.

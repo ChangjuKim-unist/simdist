@@ -1,0 +1,7 @@
+# design doc 22: reward and value heads only (dynamics, encoder and policy frozen)
+- reward_emb
+- reward
+- reward_dec
+- value_emb
+- value
+- value_dec

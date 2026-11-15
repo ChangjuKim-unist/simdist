@@ -1,0 +1,12 @@
+type: "head_refit"
+
+# design doc 22: input of the reward/value heads during the refit
+#   pred: latents predicted by the (adapted, frozen) dynamics - the planning path
+#   true: encoded true future latents (design doc 1)
+value_input: pred
+# mask value labels of steps whose episode was cut by the end of the run within this many steps
+trunc_mask: 300
+
+weights:
+  reward: 1.0
+  value: 1.0
