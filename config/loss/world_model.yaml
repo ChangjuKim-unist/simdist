@@ -6,4 +6,5 @@ weights:
   value: 1.0
   action: 4.0
   context: 1.0              # psi[:3] vs physics label (design doc 13; 0 without a context slot)
+  xi_prior: 0.01  # design doc 24: mean ||xi_e||^2 of the per-episode context (0 without a FiLM context)
   context_consistency: 0.1  # psi(history) vs psi(future segment of the same episode)

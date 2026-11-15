@@ -169,6 +169,12 @@ def train(cfg: dict):
                 model.add_context(ctx_cfg, nnx.Rngs(cfg["training"]["seed"]))
                 cfg["model"]["context"] = dict(model.model_cfg["context"])
                 print("Added a context slot psi (zero-initialized injections, design doc 13)")
+            film_cfg = adapt_cfg.get("film", {}) or {}
+            if film_cfg.get("enabled", False) and getattr(model, "film_proj", None) is None:
+                model.add_film(film_cfg, nnx.Rngs(cfg["training"]["seed"]))
+                cfg["model"]["film"] = dict(model.model_cfg["film"])
+                print(f"Added a FiLM context on the latent dynamics: dim {film_cfg.get('dim', 8)}, "
+                      f"{film_cfg.get('n_episodes', 0)} per-episode xi (design doc 24)")
             lora_cfg = adapt_cfg.get("lora", {}) or {}
             if lora_cfg.get("enabled", False) and not (model.model_cfg.get("lora", {}) or {}).get("enabled", False):
                 n = model.add_lora(lora_cfg, nnx.Rngs(cfg["training"]["seed"]))
@@ -246,6 +252,17 @@ def train(cfg: dict):
             {"res": optax.adam(float(residual_lr)), "rest": optax.adam(lr_sched)}, _labels
         )
         print(f"Residual value head learning rate: {residual_lr}")
+    elif (adapt_cfg.get("film", {}) or {}).get("xi_lr") is not None and getattr(model, "xi_table", None) is not None:
+        # design doc 24: the per-episode contexts are sparse (one row per episode) and start random; own constant lr
+        xi_lr = float(adapt_cfg["film"]["xi_lr"])
+
+        def _labels(params):
+            return jax.tree_util.tree_map_with_path(
+                lambda path, _: "xi" if any("xi_table" in str(k) for k in path) else "rest", params
+            )
+
+        tx = optax.multi_transform({"xi": optax.adam(xi_lr), "rest": optax.adam(lr_sched)}, _labels)
+        print(f"Per-episode context learning rate: {xi_lr}")
     else:
         tx = optax.adam(lr_sched)
     optimizer = nnx.Optimizer(model, tx, wrt=filt)

@@ -6,6 +6,7 @@ weights:
   value: 0.0
   action: 0.0
   context: 0.0
+  xi_prior: 0.0
   context_consistency: 0.0
 
 # design doc 9: weight each window by the prior-consistency of its logged actions (prior_weight.hdf5)

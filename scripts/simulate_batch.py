@@ -114,6 +114,13 @@ class BatchSim:
             assert xi_s.shape == (3,), "sim.context_override_xi must be 3 standardized values"
             self.controller.extra_inputs["context_override"] = jnp.asarray(np.tile(xi_s[None], (self.N, 1)))
             print(f"Fitted context override (standardized): {xi_s.tolist()}")
+        # design doc 24: a fixed context xi for the FiLM-modulated dynamics (JSON with "xi_fit"; blank = xi 0)
+        if cfg["sim"].get("xi_json"):
+            import json as _json
+            assert getattr(model, "film_proj", None) is not None, "sim.xi_json needs a model with a FiLM context"
+            xi = np.asarray(_json.load(open(cfg["sim"]["xi_json"]))["xi_fit"], np.float32)
+            self.controller.extra_inputs["xi"] = jnp.asarray(np.tile(xi[None], (self.N, 1)))
+            print(f"FiLM context xi from {cfg['sim']['xi_json']}: {np.round(xi, 3).tolist()}", flush=True)
         # optional student prior (design doc 4): replaces the policy-head prior samples, or
         # acts alone when policy.use_as == "student_act"
         self.student = None

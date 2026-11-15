@@ -74,6 +74,15 @@ class WorldModelLoss(Loss):
         deterministic: bool,
         **kwargs,
     ) -> Tuple[Losses, ExtraInfo]:
+        # design doc 24: per-episode context xi_e (auto-decoded table) for windows of an episode subset
+        xi_prior = jnp.zeros(())
+        xi_table = getattr(model, "xi_table", None)
+        if xi_table is not None and "episode_id" in y:
+            xi = xi_table.value[jnp.asarray(y["episode_id"]).reshape(-1)]
+            x = dict(x)
+            x["xi"] = xi
+            xi_prior = jnp.mean(jnp.sum(xi**2, axis=-1))
+
         # Compute the predicted outputs
         y_pred = model(x, deterministic=deterministic)
 
@@ -154,6 +163,7 @@ class WorldModelLoss(Loss):
             "action": action_loss,
             "context": context_loss,
             "context_consistency": context_consistency,
+            "xi_prior": xi_prior,
         }
 
         return losses, {}

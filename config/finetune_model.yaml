@@ -37,6 +37,15 @@ adapt:
     noise_seed: 0
     xi_mean: [0.7, 0.7, 1.0]
     xi_std: [0.23, 0.29, 1.15]
+  # per-episode context xi_e with FiLM on the latent dynamics (design doc 24): continue training with heads=all,
+  # loss=world_model on an episode subset that carries episode_id.hdf5 (scripts/sim2sim/stage24_subset.py)
+  film:
+    enabled: false
+    dim: 8
+    n_episodes: 0
+    init_std: 1.0
+    init_seed: 0
+    xi_lr: 0.01
   # low-rank adapters on the latent dynamics (design doc 20): train with heads=lora
   lora:
     enabled: false

@@ -155,7 +155,15 @@ class TransformerDecoderLayer(nnx.Module):
         encoder_outputs,
         mask=None,
         deterministic: bool | None = None,
+        film=None,
     ):
+        # design doc 24: film = (B, 3, 2, D) feature-wise modulation after the three layer norms,
+        # y -> y * (1 + gamma) + beta (None = unchanged)
+        def _mod(y, k):
+            if film is None:
+                return y
+            return y * (1.0 + film[:, k, 0][:, None, :]) + film[:, k, 1][:, None, :]
+
         if self.mask == "causal":
             causal_mask = nnx.make_causal_mask(inputs[:, :, 0])
         else:
@@ -173,7 +181,7 @@ class TransformerDecoderLayer(nnx.Module):
             mask=causal_mask,
             deterministic=deterministic,
         )
-        out_1 = self.layernorm_1(inputs + attention_output_1)
+        out_1 = _mod(self.layernorm_1(inputs + attention_output_1), 0)
 
         attention_output_2 = self.attention_2(
             inputs_q=out_1,
@@ -182,10 +190,10 @@ class TransformerDecoderLayer(nnx.Module):
             mask=padding_mask,
             deterministic=deterministic,
         )
-        out_2 = self.layernorm_2(out_1 + attention_output_2)
+        out_2 = _mod(self.layernorm_2(out_1 + attention_output_2), 1)
 
         proj_output = self.dense_proj(out_2, deterministic=deterministic)
-        return self.layernorm_3(out_2 + proj_output)
+        return _mod(self.layernorm_3(out_2 + proj_output), 2)
 
 
 class TransformerDecoder(nnx.Module):
@@ -217,10 +225,14 @@ class TransformerDecoder(nnx.Module):
         ]
 
     def __call__(
-        self, x, encoder_outputs, mask=None, deterministic: bool | None = None
+        self, x, encoder_outputs, mask=None, deterministic: bool | None = None, film=None
     ):
-        for layer in self.layers:
-            x = layer(x, encoder_outputs, mask=mask, deterministic=deterministic)
+        # film: (B, num_layers, 3, 2, D) or None (design doc 24)
+        for i, layer in enumerate(self.layers):
+            if film is None:
+                x = layer(x, encoder_outputs, mask=mask, deterministic=deterministic)
+            else:
+                x = layer(x, encoder_outputs, mask=mask, deterministic=deterministic, film=film[:, i])
         return x
 
 

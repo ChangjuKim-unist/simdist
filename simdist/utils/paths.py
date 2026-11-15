@@ -207,6 +207,11 @@ def get_prior_weight_path(processed_data_dir: str):
     return os.path.join(processed_data_dir, "prior_weight.hdf5")
 
 
+def get_episode_id_path(processed_data_dir: str):
+    """Per-step episode index of an episode subset (design doc 24, scripts/sim2sim/stage24_subset.py)."""
+    return os.path.join(processed_data_dir, "episode_id.hdf5")
+
+
 def get_terminal_path(processed_data_dir: str):
     """Per-step [steps to episode end, discounted reward-to-go, episode ended by termination]."""
     return os.path.join(processed_data_dir, _FILENAMES["TERMINAL_FILE_NAME"])

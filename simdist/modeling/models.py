@@ -222,11 +222,46 @@ class WorldModelBase(ModelBase):
         if ctx_cfg.get("enabled", False):
             self._build_context(ctx_cfg, rngs)
 
+        # design doc 24: per-episode context xi (auto-decoded table) modulating the latent dynamics (FiLM)
+        self.film_proj = None
+        self.xi_table = None
+        film_cfg = self.model_cfg.get("film", {}) or {}
+        if film_cfg.get("enabled", False):
+            self._build_film(film_cfg, rngs)
+
         # low-rank adapters on the latent dynamics (design doc 20): rebuilt here so that a checkpoint saved
         # with adapters restores into the same parameter structure. Off by default: the model is unchanged.
         lora_cfg = self.model_cfg.get("lora", {}) or {}
         if lora_cfg.get("enabled", False):
             self._apply_lora(lora_cfg, rngs)
+
+    # ---- per-episode context xi with FiLM on the latent dynamics (design doc 24) ----
+    def _build_film(self, film_cfg: dict, rngs: nnx.Rngs) -> None:
+        d = int(film_cfg.get("dim", 8))
+        n_layers = len(self.dynamics.layers)
+        self.film_dim = d
+        self.film_layers = n_layers
+        self.film_proj = nnx.Linear(d, n_layers * 3 * 2 * self.latent_dim, rngs=rngs)
+        self.film_proj.kernel.value = jnp.zeros_like(self.film_proj.kernel.value)  # starts as the unmodulated model
+        self.film_proj.bias.value = jnp.zeros_like(self.film_proj.bias.value)
+        n_ep = int(film_cfg.get("n_episodes", 0))
+        if n_ep > 0:
+            key = jax.random.PRNGKey(int(film_cfg.get("init_seed", 0)))
+            self.xi_table = nnx.Param(float(film_cfg.get("init_std", 1.0)) * jax.random.normal(key, (n_ep, d)))
+
+    def add_film(self, film_cfg: dict, rngs: nnx.Rngs) -> None:
+        """Attach the FiLM context to a pretrained model (zero-initialized projection: unchanged at start)."""
+        film_cfg = dict(film_cfg)
+        film_cfg["enabled"] = True
+        self.model_cfg["film"] = film_cfg
+        self._build_film(film_cfg, rngs)
+
+    def _film(self, xi, batch: int):
+        if self.film_proj is None:
+            return None
+        if xi is None:
+            xi = jnp.zeros((batch, self.film_dim), jnp.float32)
+        return self.film_proj(jnp.asarray(xi, jnp.float32)).reshape(batch, self.film_layers, 3, 2, self.latent_dim)
 
     # ---- low-rank adapters (design doc 20) ----------------------------------------
     def _apply_lora(self, lora_cfg: dict, rngs: nnx.Rngs) -> int:
@@ -359,9 +394,13 @@ class WorldModelBase(ModelBase):
         self.model_cfg["dynamics_residual"] = res_cfg
         self.dyn_res = self._build_dynamics_residual(res_cfg, rngs)
 
-    def _latent_dynamics(self, fut_acts_emb, context, deterministic=None):
-        """Pretrained latent dynamics plus the residual correction, if attached."""
-        latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+    def _latent_dynamics(self, fut_acts_emb, context, deterministic=None, xi=None):
+        """Pretrained latent dynamics plus the residual correction, if attached (xi: design doc 24 FiLM context)."""
+        film = self._film(xi, fut_acts_emb.shape[0])
+        if film is None:
+            latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic)
+        else:
+            latents = self.dynamics(fut_acts_emb, context, deterministic=deterministic, film=film)
         if self.dyn_res is not None:
             inp = jnp.concatenate((latents, fut_acts_emb), axis=-1) if self._dyn_res_action_input else latents
             latents = latents + self.dyn_res(inp, deterministic=deterministic)
@@ -434,7 +473,7 @@ class WorldModelBase(ModelBase):
             lat = self.policy(fut_cmds_emb, context, deterministic=deterministic)
             actions = self.policy_dec(lat, deterministic=deterministic)
         fut_acts_emb = self.fut_acts_embed(actions, deterministic=deterministic)
-        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic)
+        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic, xi=x.get("xi"))
         z_t_tm1 = jnp.concatenate((encoding["latent"][:, None, :], latents[:, :-1]), axis=1)
         rew_in = jnp.concatenate((z_t_tm1, actions, x["fut_cmds"][:, :-1]), axis=-1)
         rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
@@ -533,7 +572,7 @@ class WorldModelBase(ModelBase):
         )
 
         # dynamics (+ residual, design doc 7)
-        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic)
+        latents = self._latent_dynamics(fut_acts_emb, context, deterministic=deterministic, xi=x.get("xi"))
 
         # reward head
         # concatenate last latent with latent prediction

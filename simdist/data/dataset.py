@@ -154,6 +154,8 @@ class WorldModelDatasetBase(DatasetBase):
             "rtg": rtg,
             "terminated": terminated,
         }
+        if "episode_id" in self._data:  # design doc 24: index of the per-episode context xi_e
+            labels["episode_id"] = np.int32(self._data["episode_id"][t])
 
         item: DatasetItem = {
             "model_in": model_inputs,
@@ -196,6 +198,9 @@ class WorldModelDatasetBase(DatasetBase):
         # optional per-step prior-consistency weights (scripts/prior_consistency_weights.py, design doc 9)
         if os.path.exists(paths.get_prior_weight_path(data_dir)):
             self._files["prior_weight"] = h5py.File(paths.get_prior_weight_path(data_dir))
+        # optional per-step episode index (episode subset, design doc 24)
+        if os.path.exists(paths.get_episode_id_path(data_dir)):
+            self._files["episode_id"] = h5py.File(paths.get_episode_id_path(data_dir))
         # optional per-step physics condition (simulation data with the physics recorder; design doc 13)
         if os.path.exists(paths.get_physics_path(data_dir)):
             self._files["physics"] = h5py.File(paths.get_physics_path(data_dir))
