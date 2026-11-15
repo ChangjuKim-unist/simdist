@@ -74,7 +74,7 @@ C와 D는 입력만 다르고 라벨·데이터·스텝·학습률·replay가 �
 
 ## 11. 빠른 확인 (2026-11-15 등록, 사용자 요청 "빠르게 가능성 체크")
 본안(§3~§7)을 돌리기 전에, 모터 방향 한 칸만 작게 돌려 가능성을 본다. 본안의 판정을 대신하지 않는다.
-- 재적합: 시작 체크포인트 `go1_paper_very_weak_motor_dyn_b45000_s42`(SimDist 적응), 데이터 `sim2sim_very_weak_motor_go1_paper_b45000`, `loss=head_refit heads=reward_value`, `value_input` = pred(C) / true(D), 2000스텝, warmup 200, 학습률 기본, 시드 42, **replay 없음**(본안과 다른 점). 체크포인트 `go1_paper_very_weak_motor_hrpred_q`, `go1_paper_very_weak_motor_hrtrue_q`.
+- 재적합: 시작 체크포인트 `go1_paper_very_weak_motor_dyn_b45000_s42`(SimDist 적응), 데이터 `sim2sim_very_weak_motor_go1_paper_b45000`, `loss=head_refit heads=reward_value`, `value_input` = pred(C) / enc(D), 2000스텝, warmup 200, 학습률 기본, 시드 42, **replay 없음**(본안과 다른 점). 체크포인트 `go1_paper_very_weak_motor_hrpred_q`, `go1_paper_very_weak_motor_hrtrue_q`.
 - 오프라인(`scripts/sim2sim/stage22_offline.py`): held-out `sim2sim_very_weak_motor_go1_paper_ho_b15000`에서 B·C·D의 V̂(ẑ_T) 넘어짐 50스텝 예측 AUC, 블록 부트스트랩 CI. 기록만 한다.
 - 폐루프: 모터 0.4에서 B·C·D, 정상에서 C. 6시드 × 3속도 × **2000스텝**(본안 5000), gpu1 4장 병렬, `results/stage22q/`.
 - 판정(모터 0.4, C 대 B, 짝지은 CI):

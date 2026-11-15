@@ -20,7 +20,7 @@ ft() { local g=$1 name=$2 inp=$3
   echo "== refit $name done $(date +%H:%M)"; }
 echo "### stage22 quick start $(date)"
 ( ft 0 $C pred; ev 0 hr_pred $C motor0.4 ) &
-( ft 1 $D true; ev 1 hr_true $D motor0.4 ) &
+( ft 1 $D enc; ev 1 hr_true $D motor0.4 ) &
 ( ev 2 simdist_adapted $B motor0.4
   while [ ! -d checkpoints/models/$C ] || [ ! -d checkpoints/models/$D ] || ! ls -d checkpoints/models/$C/[0-9]* checkpoints/models/$D/[0-9]* >/dev/null 2>&1; do sleep 30; done
   sleep 60; echo "== offline $(date +%H:%M)"

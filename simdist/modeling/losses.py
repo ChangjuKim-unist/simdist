@@ -341,7 +341,7 @@ class HeadRefitLoss(Loss):
     by the head config).
 
     ``value_input``: "pred" - the heads read the latents predicted by the (adapted) dynamics, the same path
-    as pretraining and planning; "true" - the heads read the encoded true future latents (design doc 1).
+    as pretraining and planning; "enc" - the heads read the encoded true future latents (design doc 1).
     Value labels: logged discounted reward-to-go (zero after a fall); steps of episodes that were cut by the
     end of the run within ``trunc_mask`` steps are masked (their reward-to-go is truncated).
     Reward labels: logged rewards.
@@ -350,7 +350,7 @@ class HeadRefitLoss(Loss):
     def __init__(self, cfg: dict):
         super().__init__(cfg)
         self.value_input = self.loss_cfg.get("value_input", "pred")
-        assert self.value_input in ("pred", "true")
+        assert self.value_input in ("pred", "enc")
         self.trunc_mask = float(self.loss_cfg.get("trunc_mask", 300))
 
     def compute_losses(self, model, x, y, deterministic: bool, **kwargs):
