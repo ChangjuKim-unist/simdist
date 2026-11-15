@@ -6,7 +6,15 @@ type: "head_refit"
 value_input: pred
 # mask value labels of steps whose episode was cut by the end of the run within this many steps
 trunc_mask: 300
+discount: 0.99
+
+# design doc 22 §13 conservative term (weight cons > 0 needs adapt.head_anchor=true): K perturbed candidates per
+# window, raw action noise stds cycled over the candidates (MPPI samples start at std 2.0 and shrink)
+cons:
+  K: 16
+  sigmas: [0.1, 0.3, 1.0, 2.0]
 
 weights:
   reward: 1.0
   value: 1.0
+  cons: 0.0

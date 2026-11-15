@@ -179,6 +179,11 @@ class WorldModelBase(ModelBase):
         self.value_anchor = None
         if self.model_cfg.get("value_anchor", False):
             self.value_anchor = _ValueHead(*self._build_value_head(rngs))
+        # design doc 22 §13: frozen copy of the reward head (reference for the conservative head refit);
+        # built here with the current (random) weights, the checkpoint restores the frozen ones
+        self.reward_anchor = None
+        if self.model_cfg.get("reward_anchor", False):
+            self.reward_anchor = _ValueHead(nnx.clone(self.reward_emb), nnx.clone(self.reward), nnx.clone(self.reward_dec))
 
 
         # policy head
@@ -437,6 +442,11 @@ class WorldModelBase(ModelBase):
         values = self.value_from_latents(latents, x["fut_cmds"][:, 1:], deterministic, use_residual=True, psi=psi_in)
         return {"actions": actions, "latents": latents, "rewards": rewards, "values": values}
 
+    def add_reward_anchor(self) -> None:
+        """Freeze a copy of the current reward head (design doc 22 §13)."""
+        self.model_cfg["reward_anchor"] = True
+        self.reward_anchor = _ValueHead(nnx.clone(self.reward_emb), nnx.clone(self.reward), nnx.clone(self.reward_dec))
+
     def add_value_anchor(self) -> None:
         """Freeze a copy of the current value head as the adaptation bootstrap target."""
         self.model_cfg["value_anchor"] = True
@@ -481,8 +491,10 @@ class WorldModelBase(ModelBase):
         x_s: types.WorldModelSchema.Inputs,
         fut_latents: jnp.ndarray,
         deterministic: bool | None = None,
+        use_anchor: bool = False,
     ) -> jnp.ndarray:
         """Reward head evaluated on the encoded *true* latents (scaled units, (B, T)).
+        ``use_anchor``: the frozen reward head copy (design doc 22 §13) instead of the current one.
 
         ``x_s`` is the scaled model input and ``fut_latents`` the encoded true
         future latents (B, T, lat_dim). Reward r_j is predicted from the latent
@@ -497,6 +509,10 @@ class WorldModelBase(ModelBase):
         rew_in = jnp.concatenate(
             (z_t_tm1, x_s["fut_acts"], x_s["fut_cmds"][:, :-1]), axis=-1
         )
+        if use_anchor:
+            assert self.reward_anchor is not None, "model has no reward anchor"
+            h = self.reward_anchor
+            return h.dec(h.enc(h.emb(rew_in, deterministic=deterministic), deterministic=deterministic), deterministic=deterministic).squeeze(-1)
         rew_in_emb = self.reward_emb(rew_in, deterministic=deterministic)
         rew_pred = self.reward(rew_in_emb, deterministic=deterministic)
         return self.reward_dec(rew_pred, deterministic=deterministic).squeeze(-1)

@@ -352,6 +352,14 @@ class HeadRefitLoss(Loss):
         self.value_input = self.loss_cfg.get("value_input", "pred")
         assert self.value_input in ("pred", "enc")
         self.trunc_mask = float(self.loss_cfg.get("trunc_mask", 300))
+        # design doc 22 §13 conservative term (weight "cons"): K perturbed candidates per window (raw action noise
+        # with the stds below, like the MPPI samples); the refit may not raise a candidate's planner score J relative
+        # to the logged actions by more than the frozen heads (anchors, adapt.head_anchor=true) did:
+        #   cons = mean( relu( [J(c) - J(log)] - [J_anchor(c) - J_anchor(log)] )^2 ) / std_value^2
+        cons = self.loss_cfg.get("cons", {}) or {}
+        self.cons_K = int(cons.get("K", 16))
+        self.cons_sigmas = [float(v) for v in cons.get("sigmas", [0.1, 0.3, 1.0, 2.0])]
+        self.discount = float(self.loss_cfg.get("discount", 0.99))
 
     def compute_losses(self, model, x, y, deterministic: bool, **kwargs):
         scaler = model.get_scaler()
@@ -370,7 +378,40 @@ class HeadRefitLoss(Loss):
         w = valid.astype(jnp.float32)
         value_loss = jnp.sum(w * (v_s - target) ** 2) / (jnp.sum(w) + 1e-8)
         reward_loss = jnp.mean((r_s - y_s["rewards"]) ** 2)
-        return {"reward": reward_loss, "value": value_loss}, {}
+        losses = {"reward": reward_loss, "value": value_loss}
+        if "cons" in self.weights:
+            losses["cons"] = self._conservative(model, x, scaler) if float(self.weights["cons"]) > 0 else jnp.zeros(())
+        return losses, {}
+
+    def _conservative(self, model, x, scaler):
+        assert model.value_anchor is not None and model.reward_anchor is not None, "cons needs adapt.head_anchor=true"
+        B, T, A = x["fut_acts"].shape
+        K = self.cons_K
+        # a data-dependent key (losses get no rng); different batches give different candidates
+        seed = jnp.mod(jnp.sum(jnp.abs(x["fut_acts"])) * 1000.0, 2.0 ** 30).astype(jnp.int32)
+        key = jax.random.fold_in(jax.random.PRNGKey(22), seed)
+        sig = jnp.asarray([self.cons_sigmas[k % len(self.cons_sigmas)] for k in range(K)], jnp.float32)
+        noise = jax.random.normal(key, (K, B, T, A)) * sig[:, None, None, None]
+        xc = {k: jnp.concatenate([v[None], jnp.broadcast_to(v[None], (K,) + v.shape)], 0).reshape(((K + 1) * B,) + v.shape[1:])
+              for k, v in x.items()}
+        acts = jnp.concatenate([x["fut_acts"][None], x["fut_acts"][None] + noise], 0)  # index 0 = logged
+        xc["fut_acts"] = acts.reshape((K + 1) * B, T, A)
+        out = model(xc, deterministic=True)
+        xc_s = jax.lax.stop_gradient(scaler.scale(xc))
+        lat = jax.lax.stop_gradient(out["latents"])
+        r_old = model.reward_from_latents(xc_s, lat, deterministic=True, use_anchor=True)
+        v_old = model.value_from_latents(lat, xc_s["fut_cmds"][:, 1:], deterministic=True, use_residual=False, use_anchor=True)
+        sp = scaler.get_scaler_params()
+        r_std, v_std = sp["rewards"]["std"].reshape(()) + 1e-8, sp["values"]["std"].reshape(()) + 1e-8
+        disc = self.discount ** jnp.arange(T)
+
+        def J(r, v):  # raw-unit planner score up to a constant (means cancel in differences)
+            return (jnp.sum(r * disc, -1) * r_std + v[:, -1] * v_std * self.discount ** (T + 1)).reshape(K + 1, B)
+
+        j_new = J(out["rewards"], out["values"])
+        j_old = jax.lax.stop_gradient(J(r_old, v_old))
+        excess = (j_new[1:] - j_new[:1]) - (j_old[1:] - j_old[:1])
+        return jnp.mean(jax.nn.relu(excess) ** 2) / (v_std ** 2)
 
 
 @register_loss("policy_refresh")

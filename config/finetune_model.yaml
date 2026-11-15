@@ -23,6 +23,8 @@ adapt:
     type: mlp  # mlp (per-step MLP) or transformer (same architecture as the value head)
     hidden_dims: [128, 128]
   value_anchor: false
+  # design doc 22 §13: freeze copies of the reward and value heads (reference of the conservative head refit)
+  head_anchor: false
   # prior refresh (loss=policy_refresh heads=policy_only): freeze a copy of the base policy as anchor
   policy_anchor: false
   # context slot psi (design doc 13): attach to a pretrained model and train it together with

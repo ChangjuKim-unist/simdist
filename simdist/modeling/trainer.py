@@ -152,6 +152,14 @@ def train(cfg: dict):
                 model.add_value_anchor()
                 cfg["model"]["value_anchor"] = True
                 print("Froze a copy of the pretrained value head as the bootstrap anchor")
+            if adapt_cfg.get("head_anchor", False):  # design doc 22 §13: frozen reward + value heads (conservative refit)
+                if model.value_anchor is None:
+                    model.add_value_anchor()
+                if model.reward_anchor is None:
+                    model.add_reward_anchor()
+                cfg["model"]["value_anchor"] = True
+                cfg["model"]["reward_anchor"] = True
+                print("Froze copies of the reward and value heads as the conservative-refit reference")
             if adapt_cfg.get("policy_anchor", False) and model.prior_anchor is None:
                 model.add_policy_anchor()
                 cfg["model"]["policy_anchor"] = True
