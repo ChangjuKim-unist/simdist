@@ -1,0 +1,11 @@
+theta 0.9554 (stage 1)
+D6: all falls/1k 0.98, falls at s<300 14/88, mid falls/1k (1.3519823447513835, 1.0151353440157125, 1.7988886756218219), events/1k (5.109641292623955, 4.255490790596864, 6.078017606369703), P(fall|event) 0.424 (126/297)
+   mid means: dev 0.324 cmdvx 0.854 max cmdvx 2.191 slip_ma 0.429 lat 1.258
+   precursors n_falls 81 first {'dev': 0.01, 'dJ': 0.16, 'slip_ma': 0.19, 'cmdvx': 0.1, 'tilt_ma': 0.35, 'lat': 0.32, 'none': 0.0} surge fall/ctrl 0.54 0.09 AUC {'dev': 0.71, 'dJ': 0.5, 'slip_ma': 0.66, 'cmdvx': 0.8, 'tilt_ma': 0.74, 'lat': 0.81}
+C1D6: all falls/1k 0.66, falls at s<300 7/59, mid falls/1k (0.7972666037127722, 0.620351083252296, 0.9897469336254501), events/1k (4.356353709861844, 3.780512192214954, 4.944437206931361), P(fall|event) 0.228 (68/298)
+   mid means: dev 0.312 cmdvx 0.847 max cmdvx 0.9 slip_ma 0.421 lat 1.236
+   precursors n_falls 57 first {'dev': 0.02, 'dJ': 0.33, 'slip_ma': 0.04, 'cmdvx': 0.0, 'tilt_ma': 0.33, 'lat': 0.32, 'none': 0.0} surge fall/ctrl 0.0 0.0 AUC {'dev': 0.55, 'dJ': 0.46, 'slip_ma': 0.56, 'cmdvx': 0.71, 'tilt_ma': 0.61, 'lat': 0.71}
+D7: all falls/1k 0.20, falls at s<300 2/18, mid falls/1k (0.2238861112013059, 0.10285784676028578, 0.37534366790542645), events/1k (4.063073346887852, 3.040414457012273, 5.222305064859148), P(fall|event) 0.143 (45/314)
+   mid means: dev 0.0 cmdvx 0.849 max cmdvx 1.701 slip_ma 0.387 lat 1.197
+C1D7: all falls/1k 0.12, falls at s<300 0/11, mid falls/1k (0.14073663463907365, 0.07575757575757575, 0.20756343927075632), events/1k (5.102333663568745, 4.03849716023756, 6.135309700534142), P(fall|event) 0.065 (27/414)
+   mid means: dev 0.0 cmdvx 0.868 max cmdvx 0.9 slip_ma 0.435 lat 1.22

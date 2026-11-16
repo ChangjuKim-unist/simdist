@@ -1,0 +1,12 @@
+model,condition,speed,seed,step,steps_since_reset
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,18,586,586
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,26,625,625
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,23,1396,1396
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,13,1943,1943
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,16,2247,2247
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,12,2369,2369
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,19,3175,3175
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,15,3215,3215
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,17,3421,3421
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,21,3493,3493
+C1D7_broad_pol_r50_cap0.9,friction0.15,0.9,15,3803,588
