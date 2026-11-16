@@ -199,6 +199,10 @@ class BatchSim:
             self._effort_nominal = act.effort_limit.clone() / float(motor_strength)
         self.cmd_manager = self.env.command_manager
         self._patch_per_env_speed()
+        # design doc 25: sim.cmd_ramp_steps = R (blank = off). The command's target position stops during the
+        # post-reset phase and its speed then rises linearly from 0 to the robot's speed over R steps.
+        self.cmd_ramp_steps = cfg["sim"].get("cmd_ramp_steps")
+        self.cmd_term = self.cmd_manager.get_term("base_velocity")
         self.obs_dict, _ = self.env.reset()
 
         self.zero_action = np.zeros((self.N, 12), np.float32)
@@ -226,6 +230,9 @@ class BatchSim:
         self.terms_csv = (self.cfg.get("output", {}) or {}).get("terms_csv")
         self.term_names = list(self.env.reward_manager.active_terms)
         self.term_sums = np.zeros((self.N, len(self.term_names)))
+        # output.falls_csv (design doc 25): one row per fall with the number of steps since the last reset
+        self.falls_csv = (self.cfg.get("output", {}) or {}).get("falls_csv")
+        self.fall_events = []
 
     def _patch_per_env_speed(self):
         """Give every robot its own forward speed (the command term has one scalar)."""
@@ -246,7 +253,9 @@ class BatchSim:
                     "vx_error": fv[env_ids] - curr_vx}
 
         def _update_command(self):
-            self.x_des += fv * self._env.step_dt
+            # design doc 25: per-robot speed scale for a gentle start (None = original behaviour)
+            scale = getattr(self, "speed_scale", None)
+            self.x_des += (fv if scale is None else fv * scale) * self._env.step_dt
             errors = self._compute_errors(range(self.num_envs))
             self.vel_command_b[:, 0] = self.cfg.kx * errors["x_error"]
             self.vel_command_b[:, 1] = self.cfg.ky * errors["y_error"]
@@ -321,6 +330,11 @@ class BatchSim:
         if first_start.any():
             self.start_x[first_start] = self.root_x()[first_start]
 
+        if self.cmd_ramp_steps:
+            k = self.steps_since_reset - self.reset_steps + 1  # 1 at the first step after the post-reset phase
+            scale = np.clip(k / float(self.cmd_ramp_steps), 0.0, 1.0).astype(np.float32)
+            self.cmd_term.speed_scale = torch.from_numpy(scale).to(self.env.device)
+
         self.obs_dict, reward, terminated, truncated = self.env.step(torch.from_numpy(action).to(self.env.device))[0:4]
         reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
         tm = self.env.termination_manager
@@ -334,6 +348,9 @@ class BatchSim:
             self.trace["reset"].append(reset.copy()); self.trace["resetting"].append(resetting.copy())
         self.total += 1
         self.steps_since_reset += 1
+        if self.falls_csv and fall.any():
+            for i in np.where(fall)[0]:
+                self.fall_events.append((int(i), self.total, int(self.steps_since_reset[i])))
         active = ~resetting
         self.run_reward[active] += reward[active]
         if self.terms_csv:
@@ -391,6 +408,17 @@ class BatchSim:
                     w.writerow(["model", "condition", "speed", "seed"] + self.term_names)
                 for i, (v, s) in enumerate(self.pairs):
                     w.writerow([model_name, cond, v, s] + [float(x) for x in self.term_sums[i] / max(self.total, 1)])
+        if self.falls_csv:
+            os.makedirs(os.path.dirname(os.path.abspath(self.falls_csv)), exist_ok=True)
+            new = not os.path.exists(self.falls_csv)
+            with open(self.falls_csv, "a", newline="") as f:
+                w = csv.writer(f)
+                if new:
+                    w.writerow(["model", "condition", "speed", "seed", "step", "steps_since_reset"])
+                for i, step, since in self.fall_events:
+                    v, s = self.pairs[i]
+                    w.writerow([model_name, cond, v, s, step, since])
+            print(f"falls written to {self.falls_csv} ({len(self.fall_events)} rows)")
         if out.get("csv"):
             path = out["csv"]
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

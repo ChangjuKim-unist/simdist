@@ -41,6 +41,9 @@ sim:
   # design doc 13 P4: at this step switch every robot's torque cap to motor_switch_strength x nominal
   motor_switch_step:
   motor_switch_strength:
+  # design doc 25: gentle start. R steps (blank = off): the command's target position does not advance during
+  # the post-reset phase, then its speed rises linearly from 0 to the robot's speed over R steps
+  cmd_ramp_steps:
 
 # Act with an exported RL policy instead of the planner (privileged expert, see
 # checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.
@@ -79,3 +82,4 @@ output:
   context_csv:    # design doc 13: per-robot online physics estimate every 25 steps
   trace_npz:      # design doc 14: per-step model prediction for the executed plan vs. realized reward/fall (npz)
   terms_csv: null  # per-robot mean of every reward term (design 16 supplement)
+  falls_csv: null  # design doc 25: one row per fall with the steps since the last reset
