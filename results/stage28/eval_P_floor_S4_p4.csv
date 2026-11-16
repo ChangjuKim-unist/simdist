@@ -1,0 +1,3 @@
+model,condition,speed,seed,run_reward_per_step,num_resets,first_episode_length,first_episode_reward,forward_progress,num_falls,num_timeouts
+P_floor_S4_p4,friction0.8,0.9,27,0.03414652529449086,0,2000,68.83277217642171,34.36967259272933,0,0
+P_floor_S4_p4,friction0.8,0.9,28,0.03421085632618633,0,2000,68.96143213991309,34.359781205654144,0,0

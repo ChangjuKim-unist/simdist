@@ -1,0 +1,9 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ice_S4_p3,friction0.15,0.9,24,421,421
+B_ice_S4_p3,friction0.15,0.9,23,1623,1623
+B_ice_S4_p3,friction0.15,0.9,25,2970,2970
+B_ice_S4_p3,friction0.15,0.9,24,3542,3121
+B_ice_S4_p3,friction0.15,0.9,23,3632,2009
+B_ice_S4_p3,friction0.15,0.9,25,3685,715
+B_ice_S4_p3,friction0.15,0.9,26,4046,4046
+B_ice_S4_p3,friction0.15,0.9,23,4577,945

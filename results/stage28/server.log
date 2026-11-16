@@ -1,0 +1,128 @@
+### stage28 start Mon Nov 16 23:32:14 KST 2026
+== B_ice_S4_p0 gpu0 23:32
+== B_ice_S4_p1 gpu1 23:32
+== B_ice_S4_p2 gpu2 23:32
+== B_ice_S4_p3 gpu3 23:33
+[2026-11-16 14:32:43,805][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_S4_p0.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_S4_p0.csv (12 rows)
+-- B_ice_S4_p0 done gpu0 00:19
+== B_ice_S4_p4 gpu0 00:19
+[2026-11-16 14:33:02,895][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_S4_p1.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_S4_p1.csv (17 rows)
+-- B_ice_S4_p1 done gpu1 00:19
+== B_ice_V0 gpu1 00:19
+[2026-11-16 14:33:22,572][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_S4_p2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_S4_p2.csv (13 rows)
+-- B_ice_S4_p2 done gpu2 00:19
+== B_ice_Sq gpu2 00:19
+[2026-11-16 14:33:43,253][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_S4_p3.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_S4_p3.csv (8 rows)
+-- B_ice_S4_p3 done gpu3 00:21
+== B_floor_S4_p0 gpu3 00:21
+[2026-11-16 15:20:09,795][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_Sq.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_Sq.csv (150 rows)
+-- B_ice_Sq done gpu2 00:36
+== B_floor_S4_p1 gpu2 00:36
+[2026-11-16 15:22:07,597][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_S4_p0.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_S4_p0.csv (0 rows)
+-- B_floor_S4_p0 done gpu3 00:41
+== B_floor_S4_p2 gpu3 00:41
+[2026-11-16 15:19:33,297][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_S4_p4.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_S4_p4.csv (4 rows)
+-- B_ice_S4_p4 done gpu0 00:45
+== B_floor_S4_p3 gpu0 00:45
+[2026-11-16 15:36:58,564][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_S4_p1.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_S4_p1.csv (0 rows)
+-- B_floor_S4_p1 done gpu2 00:55
+== B_floor_S4_p4 gpu2 00:55
+[2026-11-16 15:41:31,661][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_S4_p2.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_S4_p2.csv (0 rows)
+-- B_floor_S4_p2 done gpu3 01:00
+== P_floor_S4_p0 gpu3 01:00
+[2026-11-16 15:45:29,824][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_S4_p3.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_S4_p3.csv (0 rows)
+-- B_floor_S4_p3 done gpu0 01:04
+== P_floor_S4_p1 gpu0 01:04
+[2026-11-16 15:56:14,209][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_S4_p4.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_S4_p4.csv (0 rows)
+-- B_floor_S4_p4 done gpu2 01:06
+== P_floor_S4_p2 gpu2 01:06
+[2026-11-16 15:20:02,332][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_ice_V0.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_ice_V0.csv (43 rows)
+-- B_ice_V0 done gpu1 01:11
+== P_floor_S4_p3 gpu1 01:11
+[2026-11-16 16:00:59,169][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_S4_p0.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_S4_p0.csv (0 rows)
+-- P_floor_S4_p0 done gpu3 01:19
+== P_floor_S4_p4 gpu3 01:19
+[2026-11-16 16:04:46,515][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_S4_p1.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_S4_p1.csv (0 rows)
+-- P_floor_S4_p1 done gpu0 01:23
+== B_floor_V0 gpu0 01:23
+[2026-11-16 16:07:05,085][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_S4_p2.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_S4_p2.csv (0 rows)
+-- P_floor_S4_p2 done gpu2 01:25
+== P_floor_V0 gpu2 01:25
+[2026-11-16 16:12:00,746][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_S4_p3.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_S4_p3.csv (0 rows)
+-- P_floor_S4_p3 done gpu1 01:30
+== B_floor_Sq gpu1 01:30
+[2026-11-16 16:20:26,886][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_S4_p4.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_S4_p4.csv (0 rows)
+-- P_floor_S4_p4 done gpu3 01:30
+== P_floor_Sq gpu3 01:30
+[2026-11-16 16:31:17,989][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_Sq.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_Sq.csv (0 rows)
+-- B_floor_Sq done gpu1 01:38
+[2026-11-16 16:31:25,856][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_Sq.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_Sq.csv (0 rows)
+-- P_floor_Sq done gpu3 01:38
+[2026-11-16 16:23:59,343][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_B_floor_V0.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_B_floor_V0.csv (0 rows)
+-- B_floor_V0 done gpu0 01:44
+[2026-11-16 16:26:19,553][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage28/diag_P_floor_V0.npz: 2000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage28/falls_P_floor_V0.csv (0 rows)
+-- P_floor_V0 done gpu2 01:47
+### stage28 done Tue Nov 17 01:47:03 KST 2026
