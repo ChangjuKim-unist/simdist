@@ -244,7 +244,10 @@ class BatchSim:
             self.foot_names = list(names_r); self.foot_ids = list(ids_r); self.foot_ids_cs = [ids_c[k] for k in order]
             self.diag = {k: [] for k in ("since", "resetting", "cmd", "lin_vel", "ang_vel", "grav", "height", "foot_speed", "contact",
                                          "act", "act_pol", "R_exec", "V_exec", "R_pol", "V_pol", "r0_exec", "lat_err",
-                                         "reward", "fall", "reset", "terms")}
+                                         "reward", "fall", "reset", "terms",
+                                         # design doc 27: joint velocity, applied torque (articulation joint order), foot force
+                                         "joint_vel", "torque", "foot_force")}
+            self.joint_names = list(robot.joint_names)
             self.prev_pred = None
             print(f"diagnostics on: feet {self.foot_names}", flush=True)
 
@@ -297,7 +300,10 @@ class BatchSim:
         robot = self.env.scene["robot"].data; cs = self.env.scene.sensors["contact_forces"].data
         g = lambda t: t.detach().cpu().numpy()  # noqa: E731
         foot_speed = np.linalg.norm(g(robot.body_lin_vel_w[:, self.foot_ids, :2]), axis=-1)
-        contact = np.linalg.norm(g(cs.net_forces_w[:, self.foot_ids_cs]), axis=-1) > 1.0
+        foot_force = np.linalg.norm(g(cs.net_forces_w[:, self.foot_ids_cs]), axis=-1)
+        contact = foot_force > 1.0
+        d["joint_vel"].append(g(robot.joint_vel).astype(np.float16)); d["torque"].append(g(robot.applied_torque).astype(np.float16))
+        d["foot_force"].append(foot_force.astype(np.float16))
         d["since"].append(self.steps_since_reset.astype(np.int16).copy()); d["resetting"].append(resetting.copy())
         d["cmd"].append(cmd.astype(np.float16)); d["lin_vel"].append(g(robot.root_lin_vel_b).astype(np.float16))
         d["ang_vel"].append(g(robot.root_ang_vel_b).astype(np.float16)); d["grav"].append(g(robot.projected_gravity_b).astype(np.float16))
@@ -456,8 +462,12 @@ class BatchSim:
             arrs = {k: np.stack(v[:n]) for k, v in self.diag.items()}
             arrs.update(speeds=np.array([v for v, _ in self.pairs], np.float32), seeds=np.array([s for _, s in self.pairs], np.int64),
                         model=np.array(model_name), condition=np.array(cond), term_names=np.array(self.term_names),
-                        foot_names=np.array(self.foot_names), reset_steps=np.array(self.reset_steps),
+                        foot_names=np.array(self.foot_names), joint_names=np.array(self.joint_names), reset_steps=np.array(self.reset_steps),
                         discount=np.array(float(self.controller.ctrl_cfg["discount"])), T=np.array(self.controller.T))
+            try:  # design doc 27: total robot mass per robot (cost of transport)
+                arrs["robot_mass"] = self.env.scene["robot"].root_physx_view.get_masses().cpu().numpy().sum(-1).astype(np.float32)
+            except Exception as e:  # noqa: BLE001
+                print(f"robot mass not recorded: {e}", flush=True)
             os.makedirs(os.path.dirname(os.path.abspath(self.diag_path)), exist_ok=True)
             np.savez_compressed(self.diag_path, **arrs)
             print(f"diagnostics written to {self.diag_path}: {n} steps", flush=True)

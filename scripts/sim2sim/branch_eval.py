@@ -37,6 +37,9 @@ from simdist.utils import model as model_utils, paths  # noqa: E402
 CMD_VARIANTS = [("vx0.5", 0, 0.5, "mul"), ("vx0.75", 0, 0.75, "mul"), ("yaw+0.3", 2, 0.3, "add"),
                 ("yaw-0.3", 2, -0.3, "add"), ("vy+0.15", 1, 0.15, "add"), ("vy-0.15", 1, -0.15, "add")]
 GAUSS_STDS = [2.0] * 4 + [0.5] * 4
+PLAN_GROUPS = ("Fcl", "Pcalfpol", "Ponlycalf")  # candidates that act with the separate replanning planner
+CALF = np.array([2, 5, 8, 11])  # calf joints in the action order (FR, FL, RR, RL x hip, thigh, calf)
+NONCALF = np.array([j for j in range(12) if j not in CALF])
 N_GEN = 8
 PERTURB = {"joint_pos": 0.002, "joint_vel": 0.02, "lin_vel": 0.005, "ang_vel": 0.005}
 
@@ -79,12 +82,47 @@ class GenBase:
         return gen_decode_b(self.g, P, Ah, C, np.zeros((len(P), self.g["du"]), np.float32))
 
 
+def foot_indices(env):
+    """Foot body ids in the robot and in the contact sensor, both in the robot's foot order (design doc 26/27)."""
+    robot = env.scene["robot"]; cs = env.scene.sensors["contact_forces"]
+    ids_r, names_r = robot.find_bodies(".*_foot"); ids_c, names_c = cs.find_bodies(".*_foot")
+    order = [names_c.index(n) for n in names_r]
+    return list(ids_r), [ids_c[k] for k in order], list(names_r)
+
+
+def contact_slip(env, feet, feet_cs):
+    """(N,) mean horizontal speed of the feet in contact (contact force > 1 N; 0 if none), (N, 4) contact flags."""
+    robot = env.scene["robot"].data; cs = env.scene.sensors["contact_forces"].data
+    fs = torch.linalg.norm(robot.body_lin_vel_w[:, feet, :2], dim=-1)
+    c = (torch.linalg.norm(cs.net_forces_w[:, feet_cs], dim=-1) > 1.0).float()
+    slip = (fs * c).sum(-1) / torch.clamp(c.sum(-1), min=1.0)
+    return slip.cpu().numpy(), c.cpu().numpy().astype(bool)
+
+
 class AnchorSim(sb.BatchSim):
     def __init__(self, cfg):
-        assert cfg["control"].get("prior_only", False), "anchor mode drives with the policy head: control.prior_only=true"
+        b = cfg["branch"]
+        # design doc 27: the anchor run can also be driven by the SimDist planner (its own plan is then the warm start F)
+        self.drive = str(b.get("drive", "policy")); assert self.drive in ("policy", "planner")
+        if self.drive == "policy":
+            assert cfg["control"].get("prior_only", False), "drive=policy acts with the policy head: control.prior_only=true"
+        else:
+            assert not cfg["control"].get("prior_only", False), "drive=planner acts with the SimDist planner: control.prior_only=false"
+            b["shadow"] = False
         super().__init__(cfg)
-        b = cfg["branch"]; self.b = b
+        self.b = b
         self.every, self.warmup, self.horizon = int(b["every"]), int(b["warmup"]), int(b["horizon"])
+        # design doc 27: trigger=slip snapshots at the detection of a slip event (10-step trailing mean of the contact-foot
+        # slip above slip_theta for 5 consecutive released steps, run start >= min_since steps after the reset; the same
+        # definition as design doc 26 §5) plus quiet control points every ctrl_every steps (mean slip <= theta for ctrl_quiet steps)
+        self.trigger = str(b.get("trigger", "every")); assert self.trigger in ("every", "slip")
+        if self.trigger == "slip":
+            self.theta = float(b["slip_theta"]); self.min_since = int(b.get("min_since", 300))
+            self.ctrl_every, self.ctrl_quiet = int(b.get("ctrl_every", 100)), int(b.get("ctrl_quiet", 50))
+            self.feet, self.feet_cs, _ = foot_indices(self.env)
+            self.slip_buf = np.zeros((self.N, 10)); self.slip_n = np.zeros(self.N, np.int64)
+            self.over = np.zeros(self.N, np.int64); self.quiet = np.zeros(self.N, np.int64)
+            self.n_events = 0; self.n_ctrl = 0
         self.max_ep = int(self.env.max_episode_length)
         ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
         _, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
@@ -124,15 +162,40 @@ class AnchorSim(sb.BatchSim):
 
     def _hooked_run_control(self):
         plan = self.gen_base.plan() if self.gen_base is not None else self._run_control()
-        F = self.shadow.run_control() if self.shadow is not None else np.zeros_like(plan)  # every step: keeps the shift warm start alive
-        if self.total % self.every == 0:
-            ep = self.env.episode_length_buf.cpu().numpy()
-            ok = (self.steps_since_reset >= self.warmup) & (ep + self.horizon < self.max_ep) & (self.total + self.horizon <= self.total_steps)
-            if ok.any():
-                self._snapshot(np.where(ok)[0], F)
+        if self.drive == "planner":
+            F = plan  # the acting planner's own plan
+        else:
+            F = self.shadow.run_control() if self.shadow is not None else np.zeros_like(plan)  # every step: keeps the shift warm start alive
+        ep = self.env.episode_length_buf.cpu().numpy()
+        room = (ep + self.horizon < self.max_ep) & (self.total + self.horizon <= self.total_steps)
+        if self.trigger == "every":
+            if self.total % self.every == 0:
+                ok = (self.steps_since_reset >= self.warmup) & room
+                if ok.any():
+                    self._snapshot(np.where(ok)[0], F)
+        else:
+            self._slip_trigger(F, room)
         return plan
 
-    def _snapshot(self, ids, F):
+    def _slip_trigger(self, F, room):
+        released = self.steps_since_reset >= self.reset_steps
+        slip, _ = contact_slip(self.env, self.feet, self.feet_cs)
+        self.slip_n[~released] = 0; self.over[~released] = 0; self.quiet[~released] = 0
+        self.slip_buf[released] = np.roll(self.slip_buf[released], 1, axis=1); self.slip_buf[released, 0] = slip[released]
+        self.slip_n[released] += 1
+        k = np.clip(self.slip_n, 1, 10)
+        ma = np.array([self.slip_buf[i, :k[i]].mean() for i in range(self.N)])
+        hi = released & (ma > self.theta)
+        self.over = np.where(hi, self.over + 1, 0); self.quiet = np.where(released & ~hi, self.quiet + 1, 0)
+        ev = hi & (self.over == 5) & (self.steps_since_reset - 4 >= self.min_since) & room
+        if ev.any():
+            self._snapshot(np.where(ev)[0], F, is_event=1, ma=ma); self.n_events += int(ev.sum())
+        if self.total % self.ctrl_every == 0:
+            ct = released & (self.quiet >= self.ctrl_quiet) & (self.steps_since_reset >= self.min_since) & room & ~ev
+            if ct.any():
+                self._snapshot(np.where(ct)[0], F, is_event=0, ma=ma); self.n_ctrl += int(ct.sum())
+
+    def _snapshot(self, ids, F, is_event=-1, ma=None):
         st = self.env.scene.get_state(is_relative=True)["articulation"]["robot"]
         term = self.cmd_manager.get_term("base_velocity"); am = self.env.action_manager; jt = am.get_term("joint_pos")
         cs = self.env.scene.sensors["contact_forces"]; _ = cs.data  # refresh
@@ -153,6 +216,7 @@ class AnchorSim(sb.BatchSim):
                 "forces_hist": g(cs._data.net_forces_w_history[i]),
                 "hist_p": self.controller.proprio_hist[i].copy(), "hist_a": self.controller.acts_hist[i].copy(), "fut_cmds": self.controller.fut_cmds[i].copy(),
                 "F": np.asarray(F[i], np.float32),
+                "is_event": int(is_event), "slip_ma": float(ma[i]) if ma is not None else np.nan,
             })
 
     def report(self):
@@ -173,6 +237,8 @@ class AnchorSim(sb.BatchSim):
         os.makedirs(os.path.dirname(os.path.abspath(self.b["out"])), exist_ok=True)
         np.savez(self.b["out"], **out)
         print(f"{n} branch points written to {self.b['out']} (anchor return mean {ret.mean():.3f}, fell {fell.mean():.3f})", flush=True)
+        if self.trigger == "slip":
+            print(f"slip trigger: {self.n_events} events, {self.n_ctrl} control points", flush=True)
 
 
 class BranchSim(sb.BatchSim):
@@ -187,6 +253,18 @@ class BranchSim(sb.BatchSim):
         if b.get("seeds"):
             sel &= np.isin(self.A["seed"], [int(s) for s in b["seeds"]])
         idx = np.where(sel)[0]
+        if "is_event" in self.A and (b.get("max_events") or b.get("max_ctrl")):
+            # design doc 27: seeded random subsets of the slip events / quiet control points (the same subset on a restart)
+            rng = np.random.default_rng(int(b["seed"]) + 555)
+            ev = idx[self.A["is_event"][idx] == 1]; ct = idx[self.A["is_event"][idx] == 0]
+            if b.get("max_events") and len(ev) > int(b["max_events"]):
+                ev = np.sort(rng.choice(ev, int(b["max_events"]), replace=False))
+            if b.get("max_ctrl") and len(ct) > int(b["max_ctrl"]):
+                ct = np.sort(rng.choice(ct, int(b["max_ctrl"]), replace=False))
+            print(f"slip events {int((self.A['is_event'][idx] == 1).sum())} -> {len(ev)}, control points {int((self.A['is_event'][idx] == 0).sum())} -> {len(ct)}", flush=True)
+            idx = np.sort(np.concatenate([ev, ct]))
+            if b.get("only_events"):  # design doc 27 stage 2 K: the same capped events, no control points
+                idx = np.sort(ev)
         if b.get("max_points"):
             idx = idx[: int(b["max_points"])]
         done = set()
@@ -215,6 +293,10 @@ class BranchSim(sb.BatchSim):
                 self.cands.append(("Fcl", 0, "Fcl"))
             elif gname == "Ccl":  # section 8.2: generator mean (u = 0) re-decoded every step (closed loop)
                 self.cands.append(("Ccl", 0, "Ccl"))
+            elif gname in ("Ncl", "Nrep", "Pcalfpol", "Ponlycalf"):
+                # design doc 27: Ncl = policy head + AR(1) noise matched to the planner's deviation (branch.noise_json);
+                # Pcalfpol = planner with the four calf joints from the policy head; Ponlycalf = policy head with the calves from the planner
+                self.cands.append((gname, 0, gname))
             else:
                 raise ValueError(gname)
         self.K = len(self.cands); self.N_env = self.W * self.K * self.J
@@ -237,7 +319,7 @@ class BranchSim(sb.BatchSim):
         self.gen = load_gen(b["gen_weights"]) if (set(groups) & {"C", "G", "Ccl"} or self.base == "gen") else None
         self.gen_base = GenBase(self.gen, self.controller) if self.base == "gen" else None
         # section 8.2 F_cl: a separate planner over the F_cl robots only (W x J), same config as the shadow planner
-        self.fcl = None; self.fcl_ids = np.array([e for e in range(self.N) if self.cands[self.e_cand[e]][0] == "Fcl"], np.int64)
+        self.fcl = None; self.fcl_ids = np.array([e for e in range(self.N) if self.cands[self.e_cand[e]][0] in PLAN_GROUPS], np.int64)
         if len(self.fcl_ids):
             ckpt_dir = os.path.join(paths.get_model_checkpoints_dir(), cfg["model"]["checkpoint"])
             _, model_cfg, _ = model_utils.load_model_from_ckpt(ckpt_dir, cfg["model"]["step"])
@@ -249,6 +331,24 @@ class BranchSim(sb.BatchSim):
         self.log_terms = bool(b.get("terms", False))
         self.term_names = list(self.env.reward_manager.active_terms)
         self.rows_written = 0
+        # design doc 27: AR(1) noise for Ncl, per joint (action order), from the planner's measured deviation after slips
+        self.noise_sigma = self.noise_rho = None
+        if "Ncl" in groups:
+            import json
+            nj = json.load(open(b["noise_json"]))[str(b["noise_key"])]
+            self.noise_sigma = np.asarray(nj["sigma"], np.float32); self.noise_rho = np.asarray(nj["rho"], np.float32)
+            print(f"Ncl noise ({b['noise_key']}): sigma {np.round(self.noise_sigma, 3)}, rho {np.round(self.noise_rho, 3)}", flush=True)
+        # design doc 27: Nrep = policy head + a replayed stretch of the planner's own deviation (a - a_pol) recorded after other
+        # slip events (branch.dev_bank npz, key branch.noise_key): same size, tails and persistence, no link to the current state
+        self.dev_bank = None
+        if "Nrep" in groups:
+            self.dev_bank = np.asarray(np.load(b["dev_bank"])[str(b["noise_key"])], np.float32)
+            print(f"Nrep deviation bank ({b['noise_key']}): {len(self.dev_bank)} steps, mean |delta| {np.linalg.norm(self.dev_bank, axis=-1).mean():.3f}", flush=True)
+        # design doc 27: per-step record of every branch (one npz per round in branch.steps_dir)
+        self.steps_dir = b.get("steps_dir"); self.round_idx = 0
+        if self.steps_dir:
+            os.makedirs(self.steps_dir, exist_ok=True)
+            self.feet, self.feet_cs, _ = foot_indices(self.env)
 
     def _patch_per_env_speed(self):
         """Per-robot forward speed as in BatchSim, but kept in self.fv so that it can be set per round."""
@@ -331,6 +431,20 @@ class BranchSim(sb.BatchSim):
         chunks = np.zeros((self.N, self.chunk, 12), np.float32); u_cl = np.zeros((self.N, self.gen["du"] if self.gen else 1), np.float32)
         ret = np.zeros(self.N); alive = np.ones(self.N, bool); fell = np.zeros(self.N, bool); fall_step = np.full(self.N, -1)
         nt = len(self.term_names); term_sum = np.zeros((self.N, nt)); term_chunk = np.zeros((self.N, nt))
+        # design doc 27 candidates
+        ncl = np.where(grp == "Ncl")[0]; pcp = np.where(grp == "Pcalfpol")[0]; poc = np.where(grp == "Ponlycalf")[0]
+        nstate = np.zeros((self.N, 12), np.float32)
+        rngn = np.random.default_rng(int(self.b["seed"]) + 104729 * int(pts[0]) + 31)
+        nrep = np.where(grp == "Nrep")[0]
+        rep_start = rngn.integers(0, len(self.dev_bank) - self.horizon, len(nrep)) if len(nrep) else None
+        rec = None; prev_pred = None
+        if self.steps_dir:
+            H = self.horizon
+            rec = {"tilt": np.zeros((H, self.N), np.float32), "slip": np.zeros((H, self.N), np.float32), "contact": np.zeros((H, self.N, 4), bool),
+                   "lin_vel": np.zeros((H, self.N, 3), np.float16), "ang_vel": np.zeros((H, self.N, 3), np.float16), "height": np.zeros((H, self.N), np.float16),
+                   "act": np.zeros((H, self.N, 12), np.float16), "act_pol": np.zeros((H, self.N, 12), np.float16), "cmdvx": np.zeros((H, self.N), np.float16),
+                   "lat_err": np.full((H, self.N), np.nan, np.float32), "tau2": np.zeros((H, self.N), np.float32), "power": np.zeros((H, self.N), np.float32),
+                   "alive": np.zeros((H, self.N), bool)}
         for t in range(self.horizon):
             cmd = self.cmd_manager.get_command("base_velocity").cpu().numpy().copy()
             if t < self.chunk and is_D.any():
@@ -375,12 +489,40 @@ class BranchSim(sb.BatchSim):
                 if self.fcl is not None:
                     # t = 0 executes the shadow plan's first action (the planner already planned at this state); then replan
                     action[self.fcl_ids] = A["F"][bp[self.fcl_ids]][:, 0] if t == 0 else self.fcl.run_control()[:, 0]
+                    pol0 = np.asarray(plan[:, 0], np.float32)
+                    if len(pcp):
+                        action[pcp[:, None], CALF[None, :]] = pol0[pcp][:, CALF]
+                    if len(poc):
+                        action[poc[:, None], NONCALF[None, :]] = pol0[poc][:, NONCALF]
+                if len(ncl):
+                    eps = rngn.normal(size=(len(ncl), 12)).astype(np.float32)
+                    if t == 0:
+                        nstate[ncl] = self.noise_sigma * eps  # stationary start
+                    else:
+                        nstate[ncl] = self.noise_rho * nstate[ncl] + np.sqrt(1.0 - self.noise_rho ** 2) * self.noise_sigma * eps
+                    action[ncl] = action[ncl] + nstate[ncl]
+                if len(nrep):
+                    action[nrep] = action[nrep] + self.dev_bank[rep_start + t]
                 for k, pol in enumerate(self.experts):
                     e = np.where(is_E & (cid == k))[0]
                     if len(e):
                         with torch.no_grad():
                             action[e] = pol(self.obs_dict["policy"][torch.as_tensor(e, device=self.env.device)].to("cuda:0")).cpu().numpy()
             self.last_action = action
+            if rec is not None:
+                rd = self.env.scene["robot"].data; gg = lambda x: x.detach().cpu().numpy()  # noqa: E731
+                slip, con = contact_slip(self.env, self.feet, self.feet_cs)
+                pe = np.asarray(plan, np.float32).copy(); pe[:, 0] = action
+                z, pl, _, _ = self.controller.trace(pe)
+                z = np.asarray(z, np.float32)
+                if prev_pred is not None:
+                    rec["lat_err"][t] = np.linalg.norm(z - prev_pred, axis=-1)
+                prev_pred = np.asarray(pl, np.float32)[:, 0].copy()
+                tau, qd = gg(rd.applied_torque), gg(rd.joint_vel)
+                rec["tilt"][t] = np.linalg.norm(gg(rd.projected_gravity_b)[:, :2], axis=-1); rec["slip"][t] = slip; rec["contact"][t] = con
+                rec["lin_vel"][t] = gg(rd.root_lin_vel_b); rec["ang_vel"][t] = gg(rd.root_ang_vel_b); rec["height"][t] = gg(rd.root_pos_w[:, 2])
+                rec["act"][t] = action; rec["act_pol"][t] = np.asarray(plan[:, 0], np.float32); rec["cmdvx"][t] = cmd[:, 0]
+                rec["tau2"][t] = (tau ** 2).sum(-1); rec["power"][t] = np.abs(tau * qd).sum(-1); rec["alive"][t] = alive
             self.obs_dict, reward, terminated, truncated = self.env.step(torch.from_numpy(action).to(self.env.device))[0:4]
             reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
             tm = self.env.termination_manager; fall = np.zeros(self.N, bool)
@@ -401,10 +543,18 @@ class BranchSim(sb.BatchSim):
             rows.append({"model": model_name, "condition": cond, "speed": float(A["speed"][q]), "seed": int(A["seed"][q]), "step": int(A["step"][q]),
                          "group": grp[e], "cand": int(cid[e]), "label": self.cands[self.e_cand[e]][2], "clone": int(self.e_clone[e]),
                          "ret": float(ret[e]), "fell": int(fell[e]), "fall_step": int(fall_step[e]), "alive_steps": int(self.horizon if fall_step[e] < 0 else fall_step[e] + 1),
-                         "anchor_ret": float(A["anchor_ret"][q]), "anchor_fell": int(A["anchor_fell"][q]), "anchor_len": int(A["anchor_len"][q])})
+                         "anchor_ret": float(A["anchor_ret"][q]), "anchor_fell": int(A["anchor_fell"][q]), "anchor_len": int(A["anchor_len"][q]),
+                         "is_event": int(A["is_event"][q]) if "is_event" in A else -1})
             if self.log_terms:
                 rows[-1].update({f"t_{n}": f"{term_sum[e, k]:.4g}" for k, n in enumerate(self.term_names)})
                 rows[-1].update({f"c_{n}": f"{term_chunk[e, k]:.4g}" for k, n in enumerate(self.term_names)})
+        if rec is not None:
+            v = np.where(valid)[0]
+            meta = {"speed": np.asarray(A["speed"][bp[v]], np.float32), "seed": np.asarray(A["seed"][bp[v]]), "step": np.asarray(A["step"][bp[v]]),
+                    "group": grp[v], "cand": cid[v], "clone": self.e_clone[v], "fell": fell[v], "fall_step": fall_step[v],
+                    "is_event": np.asarray(A["is_event"][bp[v]]) if "is_event" in A else np.full(len(v), -1)}
+            arrs = {k: np.swapaxes(x[:, v], 0, 1) for k, x in rec.items()}  # (rows, H, ...)
+            np.savez_compressed(os.path.join(self.steps_dir, f"pts_{int(pts[0]):06d}.npz"), **arrs, **meta)
         return rows
 
     def run(self):

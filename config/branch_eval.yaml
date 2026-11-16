@@ -30,3 +30,17 @@ branch:
   seeds:          # optional filter of anchors (list), e.g. [11, 12]
   max_points:     # optional cap on the number of branch points (smoke tests)
   seed: 0         # rng seed for Gaussian / generator candidates and perturbations
+  # design doc 27
+  drive: policy   # anchor mode: policy (control.prior_only=true, shadow planner) | planner (control.prior_only=false, F = its own plan)
+  trigger: every  # anchor mode: every (every `every` steps) | slip (slip-event detection + quiet control points)
+  slip_theta:     # trigger=slip: threshold of the 10-step trailing mean contact-foot slip [m/s] (design 26 theta)
+  min_since: 300  # trigger=slip: event run start / control point at least this many steps after the reset
+  ctrl_every: 100 # trigger=slip: control points every N steps ...
+  ctrl_quiet: 50  # ... for robots whose mean slip stayed <= theta for this many steps
+  noise_json:     # branch mode, Ncl: JSON with per-joint sigma / rho of the planner's deviation
+  noise_key:      # branch mode, Ncl / Nrep: key in noise_json / dev_bank (broad | paper)
+  dev_bank:       # branch mode, Nrep: npz of the planner's recorded deviations after slips (one (L, 12) array per key)
+  steps_dir:      # branch mode: per-step record of every branch, one npz per round
+  max_events:     # branch mode: seeded random subset of at most N slip-event points (anchors with is_event)
+  max_ctrl:       # branch mode: ... and of at most N quiet control points
+  only_events: false  # branch mode: keep only the (capped) slip events
