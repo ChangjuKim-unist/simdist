@@ -44,6 +44,8 @@ sim:
   # design doc 25: gentle start. R steps (blank = off): the command's target position does not advance during
   # the post-reset phase, then its speed rises linearly from 0 to the robot's speed over R steps
   cmd_ramp_steps:
+  # design doc 26 stage 2: upper bound of the forward velocity command [m/s] (blank = off)
+  cmd_vx_max:
 
 # Act with an exported RL policy instead of the planner (privileged expert, see
 # checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.
@@ -83,3 +85,4 @@ output:
   trace_npz:      # design doc 14: per-step model prediction for the executed plan vs. realized reward/fall (npz)
   terms_csv: null  # per-robot mean of every reward term (design 16 supplement)
   falls_csv: null  # design doc 25: one row per fall with the steps since the last reset
+  diag_npz: null  # design doc 26: per-step diagnostics (state, foot slip, executed vs policy-head action, model scores)

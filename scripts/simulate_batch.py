@@ -233,6 +233,20 @@ class BatchSim:
         # output.falls_csv (design doc 25): one row per fall with the number of steps since the last reset
         self.falls_csv = (self.cfg.get("output", {}) or {}).get("falls_csv")
         self.fall_events = []
+        # output.diag_npz (design doc 26): per-step diagnostics. Body state, foot slip, executed action vs the policy head's
+        # action on the same inputs, the model's score of both plans, one-step latent prediction error, realized reward.
+        self.diag_path = (self.cfg.get("output", {}) or {}).get("diag_npz")
+        self.diag = None
+        if self.diag_path:
+            robot = self.env.scene["robot"]; cs = self.env.scene.sensors["contact_forces"]
+            ids_r, names_r = robot.find_bodies(".*_foot"); ids_c, names_c = cs.find_bodies(".*_foot")
+            order = [names_c.index(n) for n in names_r]  # sensor feet in the robot's foot order
+            self.foot_names = list(names_r); self.foot_ids = list(ids_r); self.foot_ids_cs = [ids_c[k] for k in order]
+            self.diag = {k: [] for k in ("since", "resetting", "cmd", "lin_vel", "ang_vel", "grav", "height", "foot_speed", "contact",
+                                         "act", "act_pol", "R_exec", "V_exec", "R_pol", "V_pol", "r0_exec", "lat_err",
+                                         "reward", "fall", "reset", "terms")}
+            self.prev_pred = None
+            print(f"diagnostics on: feet {self.foot_names}", flush=True)
 
     def _patch_per_env_speed(self):
         """Give every robot its own forward speed (the command term has one scalar)."""
@@ -258,11 +272,41 @@ class BatchSim:
             self.x_des += (fv if scale is None else fv * scale) * self._env.step_dt
             errors = self._compute_errors(range(self.num_envs))
             self.vel_command_b[:, 0] = self.cfg.kx * errors["x_error"]
+            if vx_max is not None:  # design doc 26 stage 2: cap the forward command (no catch-up surge above the speed)
+                self.vel_command_b[:, 0] = torch.clamp(self.vel_command_b[:, 0], max=vx_max)
             self.vel_command_b[:, 1] = self.cfg.ky * errors["y_error"]
             self.vel_command_b[:, 2] = self.cfg.kyaw * errors["yaw_error"]
 
+        vx_max = self.cfg["sim"].get("cmd_vx_max")
+        vx_max = None if vx_max is None else float(vx_max)
         term._compute_errors = pytypes.MethodType(_compute_errors, term)
         term._update_command = pytypes.MethodType(_update_command, term)
+
+    def _diag_pre(self, plan, resetting, cmd):
+        """Design doc 26: record the state at step t and the model's view of the executed plan and of the policy head's plan."""
+        c = self.controller; d = self.diag
+        plan_exec = np.where(resetting[:, None, None], 0.0, plan).astype(np.float32)
+        base = np.asarray(c.last_base_actions, np.float32)
+        z, pl, pr, pv = c.trace(plan_exec)
+        _, _, br, bv = c.trace(base)
+        disc = np.asarray(c.discounts, np.float32); fd = float(c.final_discount)
+        lat_err = np.full(self.N, np.nan, np.float32)
+        if self.prev_pred is not None:
+            lat_err = np.linalg.norm(z.astype(np.float32) - self.prev_pred, axis=-1).astype(np.float32)
+        self.prev_pred = pl[:, 0].astype(np.float32).copy()  # pl[:, 0] predicts the latent of the next step
+        robot = self.env.scene["robot"].data; cs = self.env.scene.sensors["contact_forces"].data
+        g = lambda t: t.detach().cpu().numpy()  # noqa: E731
+        foot_speed = np.linalg.norm(g(robot.body_lin_vel_w[:, self.foot_ids, :2]), axis=-1)
+        contact = np.linalg.norm(g(cs.net_forces_w[:, self.foot_ids_cs]), axis=-1) > 1.0
+        d["since"].append(self.steps_since_reset.astype(np.int16).copy()); d["resetting"].append(resetting.copy())
+        d["cmd"].append(cmd.astype(np.float16)); d["lin_vel"].append(g(robot.root_lin_vel_b).astype(np.float16))
+        d["ang_vel"].append(g(robot.root_ang_vel_b).astype(np.float16)); d["grav"].append(g(robot.projected_gravity_b).astype(np.float16))
+        d["height"].append(g(robot.root_pos_w[:, 2]).astype(np.float16))
+        d["foot_speed"].append(foot_speed.astype(np.float16)); d["contact"].append(contact)
+        d["act"].append(plan_exec[:, 0].astype(np.float16)); d["act_pol"].append(base[:, 0].astype(np.float16))
+        d["R_exec"].append((pr @ disc).astype(np.float32)); d["V_exec"].append((pv[:, -1] * fd).astype(np.float32))
+        d["R_pol"].append((br @ disc).astype(np.float32)); d["V_pol"].append((bv[:, -1] * fd).astype(np.float32))
+        d["r0_exec"].append(pr[:, 0].astype(np.float32)); d["lat_err"].append(lat_err)
 
     def get_obs(self):
         proprio = np.concatenate([self.obs_dict["obs"][n].cpu().numpy() for n in self.proprio_obs_names], axis=-1)
@@ -323,6 +367,8 @@ class BatchSim:
                 self.trace["z"].append(z.astype(np.float16)); self.trace["pred_latents"].append(pl.astype(np.float16))
                 self.trace["pred_rewards"].append(pr.astype(np.float32)); self.trace["pred_values"].append(pv.astype(np.float32))
                 self.trace["action"].append(plan_exec[:, 0].astype(np.float16))
+            if self.diag is not None:
+                self._diag_pre(plan, resetting, cmd)
         action = np.where(resetting[:, None], 0.0, action).astype(np.float32)
         self.last_action = action
 
@@ -346,6 +392,12 @@ class BatchSim:
         if self.trace is not None and len(self.trace["z"]) > len(self.trace["reward"]):
             self.trace["reward"].append(reward.astype(np.float32)); self.trace["fall"].append(fall.copy())
             self.trace["reset"].append(reset.copy()); self.trace["resetting"].append(resetting.copy())
+        if self.diag is not None and len(self.diag["act"]) > len(self.diag["reward"]):
+            d = self.diag
+            d["reward"].append(reward.astype(np.float32)); d["fall"].append(fall.copy()); d["reset"].append(reset.copy())
+            d["terms"].append((self.env.reward_manager._step_reward.cpu().numpy() * float(self.env.step_dt)).astype(np.float16))
+            if reset.any() and self.prev_pred is not None:
+                self.prev_pred[reset] = np.nan  # no one-step prediction across a reset
         self.total += 1
         self.steps_since_reset += 1
         if self.falls_csv and fall.any():
@@ -399,6 +451,16 @@ class BatchSim:
             os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
             np.savez(self.trace_path, **arrs)
             print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
+        if self.diag is not None and self.diag["act"]:
+            n = min(len(v) for v in self.diag.values())
+            arrs = {k: np.stack(v[:n]) for k, v in self.diag.items()}
+            arrs.update(speeds=np.array([v for v, _ in self.pairs], np.float32), seeds=np.array([s for _, s in self.pairs], np.int64),
+                        model=np.array(model_name), condition=np.array(cond), term_names=np.array(self.term_names),
+                        foot_names=np.array(self.foot_names), reset_steps=np.array(self.reset_steps),
+                        discount=np.array(float(self.controller.ctrl_cfg["discount"])), T=np.array(self.controller.T))
+            os.makedirs(os.path.dirname(os.path.abspath(self.diag_path)), exist_ok=True)
+            np.savez_compressed(self.diag_path, **arrs)
+            print(f"diagnostics written to {self.diag_path}: {n} steps", flush=True)
         if self.terms_csv:
             os.makedirs(os.path.dirname(os.path.abspath(self.terms_csv)), exist_ok=True)
             new = not os.path.exists(self.terms_csv)

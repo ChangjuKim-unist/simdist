@@ -201,6 +201,7 @@ class BatchedMppiController:
             base_actions = jnp.asarray(self.external_prior(x), jnp.float32)
         else:
             base_actions = self._base_policy_actions(x)
+        self.last_base_actions = base_actions  # design doc 26: the policy head's plan on the same inputs (diagnostics only)
         if self.ctrl_cfg.get("prior_only", False):
             # execute the prior's own plan (policy head or external prior), no planning
             self.state = BatchedMppiState(base_actions.astype(jnp.float32), self.state.std, self.state.key_data)
