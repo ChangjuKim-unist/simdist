@@ -1,0 +1,10 @@
+model,condition,speed,seed,step,steps_since_reset
+AB_pi,friction0.15,0.9,16,561,561
+AB_pi,friction0.15,0.9,24,642,642
+AB_pi,friction0.15,0.9,22,1091,1091
+AB_pi,friction0.15,0.9,20,1440,1440
+AB_pi,friction0.15,0.9,28,2535,2535
+AB_pi,friction0.15,0.9,11,2878,2878
+AB_pi,friction0.15,0.9,21,3939,3939
+AB_pi,friction0.15,0.9,21,4729,790
+AB_pi,friction0.15,0.9,13,4903,4903
