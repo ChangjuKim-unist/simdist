@@ -1,0 +1,3 @@
+model,condition,speed,seed,step,steps_since_reset
+B_PRE_nom,nom,0.3,11,1421,1421
+B_PRE_nom,nom,0.3,11,4239,2818

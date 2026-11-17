@@ -1,0 +1,12 @@
+model,condition,speed,seed,step,steps_since_reset
+B_PRE_mot_ramp,mot,0.6,14,194,194
+B_PRE_mot_ramp,mot,0.9,14,1146,1146
+B_PRE_mot_ramp,mot,0.6,15,1270,1270
+B_PRE_mot_ramp,mot,0.9,16,1493,1493
+B_PRE_mot_ramp,mot,0.9,15,1907,1907
+B_PRE_mot_ramp,mot,0.9,14,2345,1199
+B_PRE_mot_ramp,mot,0.6,16,3057,3057
+B_PRE_mot_ramp,mot,0.6,12,3336,3336
+B_PRE_mot_ramp,mot,0.6,16,3967,910
+B_PRE_mot_ramp,mot,0.6,16,4173,206
+B_PRE_mot_ramp,mot,0.9,14,4559,2214
