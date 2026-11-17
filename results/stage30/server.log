@@ -1,0 +1,174 @@
+### stage30 start Tue Nov 17 23:58:47 KST 2026
+== finetune go1_paper_friction0.15_dyn_b45000_s44 gpu0 23:58
+== finetune go1_broadwm_friction0.15_dyn_b45000_s44 gpu2 23:58
+== finetune go1_paper_very_weak_motor_dyn_b45000_s44 gpu1 23:58
+== finetune go1_broadwm_very_weak_motor_dyn_b45000_s44 gpu3 23:58
+== finetune: go1_paper_friction0.15_dyn_b45000_s44
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 72.23717607351823, 'train/loss': 0.16408060491085052, 'train/latent_dynamics': 0.16408060491085052, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 371920, Metrics: {'steps_per_second': 12.732192320439145, 'train/loss': 0.11970163881778717, 'train/latent_dynamics': 0.11970163881778717, 'train/reward': 0.0, 'train/value': 0.0, 'train/action
+== finetune go1_paper_friction0.15_dyn_b45000_s45 gpu0 00:04
+== finetune: go1_broadwm_friction0.15_dyn_b45000_s44
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 72.36260942671194, 'train/loss': 0.02182704024016857, 'train/latent_dynamics': 0.02182704024016857, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 431920, Metrics: {'steps_per_second': 12.74616365318444, 'train/loss': 0.00756434490904212, 'train/latent_dynamics': 0.00756434490904212, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+== finetune go1_broadwm_friction0.15_dyn_b45000_s45 gpu2 00:04
+== finetune: go1_paper_very_weak_motor_dyn_b45000_s44
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 71.54815656758956, 'train/loss': 0.10539644956588745, 'train/latent_dynamics': 0.10539644956588745, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 371920, Metrics: {'steps_per_second': 12.719986620781285, 'train/loss': 0.0404151976108551, 'train/latent_dynamics': 0.0404151976108551, 'train/reward': 0.0, 'train/value': 0.0, 'train/action':
+== finetune go1_paper_very_weak_motor_dyn_b45000_s45 gpu1 00:04
+== finetune: go1_broadwm_very_weak_motor_dyn_b45000_s44
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 71.95412836482113, 'train/loss': 0.03529468551278114, 'train/latent_dynamics': 0.03529468551278114, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 431920, Metrics: {'steps_per_second': 12.638900712376536, 'train/loss': 0.014311692677438259, 'train/latent_dynamics': 0.014311692677438259, 'train/reward': 0.0, 'train/value': 0.0, 'train/acti
+== finetune go1_broadwm_very_weak_motor_dyn_b45000_s45 gpu3 00:04
+== finetune: go1_paper_very_weak_motor_dyn_b45000_s45
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 73.58936051936591, 'train/loss': 0.10684055089950562, 'train/latent_dynamics': 0.10684055089950562, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 371920, Metrics: {'steps_per_second': 12.678868874718829, 'train/loss': 0.04046016186475754, 'train/latent_dynamics': 0.04046016186475754, 'train/reward': 0.0, 'train/value': 0.0, 'train/action
+== finetune go1_paper_very_weak_motor_dyn_b45000_s46 gpu1 00:09
+== finetune: go1_paper_friction0.15_dyn_b45000_s45
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 73.10135392055679, 'train/loss': 0.2760290801525116, 'train/latent_dynamics': 0.2760290801525116, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 
+Steps: 371920, Metrics: {'steps_per_second': 12.609215352813013, 'train/loss': 0.11847319453954697, 'train/latent_dynamics': 0.11847319453954697, 'train/reward': 0.0, 'train/value': 0.0, 'train/action
+== finetune go1_paper_friction0.15_dyn_b45000_s46 gpu0 00:09
+== finetune: go1_broadwm_friction0.15_dyn_b45000_s45
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 72.8533587173356, 'train/loss': 0.02245514467358589, 'train/latent_dynamics': 0.02245514467358589, 'train/reward': 0.0, 'train/value': 0.0, 'train/action':
+Steps: 431920, Metrics: {'steps_per_second': 12.670025865127938, 'train/loss': 0.0075616128742694855, 'train/latent_dynamics': 0.0075616128742694855, 'train/reward': 0.0, 'train/value': 0.0, 'train/ac
+== finetune go1_broadwm_friction0.15_dyn_b45000_s46 gpu2 00:09
+== finetune: go1_broadwm_very_weak_motor_dyn_b45000_s45
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 73.37168046510565, 'train/loss': 0.03745327144861221, 'train/latent_dynamics': 0.03745327144861221, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 431920, Metrics: {'steps_per_second': 12.656262813952221, 'train/loss': 0.014312765561044216, 'train/latent_dynamics': 0.014312765561044216, 'train/reward': 0.0, 'train/value': 0.0, 'train/acti
+== finetune go1_broadwm_very_weak_motor_dyn_b45000_s46 gpu3 00:09
+== finetune: go1_broadwm_friction0.15_dyn_b45000_s46
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 74.73497955238916, 'train/loss': 0.02191944420337677, 'train/latent_dynamics': 0.02191944420337677, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 431920, Metrics: {'steps_per_second': 12.858660010362643, 'train/loss': 0.007570155896246433, 'train/latent_dynamics': 0.007570155896246433, 'train/reward': 0.0, 'train/value': 0.0, 'train/acti
+== finetune: go1_paper_friction0.15_dyn_b45000_s46
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 72.61490191128571, 'train/loss': 0.25224772095680237, 'train/latent_dynamics': 0.25224772095680237, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 371920, Metrics: {'steps_per_second': 12.641541090970195, 'train/loss': 0.11775068938732147, 'train/latent_dynamics': 0.11775068938732147, 'train/reward': 0.0, 'train/value': 0.0, 'train/action
+== finetune: go1_paper_very_weak_motor_dyn_b45000_s46
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 72.77829597338291, 'train/loss': 0.10709265619516373, 'train/latent_dynamics': 0.10709265619516373, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 371920, Metrics: {'steps_per_second': 12.32664119126677, 'train/loss': 0.04042517766356468, 'train/latent_dynamics': 0.04042517766356468, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+== finetune: go1_broadwm_very_weak_motor_dyn_b45000_s46
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 69.76057816960302, 'train/loss': 0.03578568249940872, 'train/latent_dynamics': 0.03578568249940872, 'train/reward': 0.0, 'train/value': 0.0, 'train/action'
+Steps: 431920, Metrics: {'steps_per_second': 12.464557387950652, 'train/loss': 0.014316408894956112, 'train/latent_dynamics': 0.014316408894956112, 'train/reward': 0.0, 'train/value': 0.0, 'train/acti
+== phase F done 00:15
+== collect sim2sim_nominal_go1_broadwm 00:15
+== collect: sim2sim_nominal_go1_broadwm (nominal, 3 round(s) over speeds: 0.3 0.6 0.9, 5000 steps each)
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+== process: sim2sim_nominal_go1_broadwm_b45000 (budget 45000 steps)
+Total steps: 44775
+Total episodes: 9
+== phase C done 01:12
+== sig_P_ice gpu0 01:12
+== sig_P_mot gpu1 01:12
+== sig_B_ice gpu2 01:12
+== sig_B_mot gpu3 01:13
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRena
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s45/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s46/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+sim2sim_friction0.15_go1_paper_b45000: windows 20000, episodes 66, e_pre 0.2262, e_ad 0.1079, dis 0.00056
+sim2sim_nominal_go1_paper_b45000: windows 14460, episodes 9, e_pre 0.2786, e_ad 0.1554, dis 0.00067
+sim2sim_friction0.15_go1_paper_ho_b15000: windows 14308, episodes 8, e_pre 0.0535, e_ad 0.0171, dis 0.00069
+sim2sim_nominal_go1_paper_ho_b15000: windows 14820, episodes 3, e_pre 0.0457, e_ad 0.0186, dis 0.00061
+sim2sim_very_weak_motor_go1_paper_ho_b15000: windows 11675, episodes 53, e_pre 0.1670, e_ad 0.1544, dis 0.00331
+sim2sim_payload_go1_paper_ho_b15000: windows 14820, episodes 3, e_pre 0.0559, e_ad 0.0241, dis 0.00042
+written /mnt/newssd/cjkim/simdist/results/stage30/sig_P_ice.md
+-- sig_P_ice done 01:14
+== adp_P_ice gpu0 01:14
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRena
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s45/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s46/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+sim2sim_very_weak_motor_go1_paper_b45000: windows 20000, episodes 120, e_pre 0.1215, e_ad 0.0219, dis 0.00047
+sim2sim_nominal_go1_paper_b45000: windows 14460, episodes 9, e_pre 0.2786, e_ad 0.3414, dis 0.00034
+sim2sim_very_weak_motor_go1_paper_ho_b15000: windows 11675, episodes 53, e_pre 0.1670, e_ad 0.0483, dis 0.00044
+sim2sim_nominal_go1_paper_ho_b15000: windows 14820, episodes 3, e_pre 0.0457, e_ad 0.0497, dis 0.00033
+sim2sim_friction0.15_go1_paper_ho_b15000: windows 14308, episodes 8, e_pre 0.0535, e_ad 0.0475, dis 0.00034
+sim2sim_payload_go1_paper_ho_b15000: windows 14820, episodes 3, e_pre 0.0559, e_ad 0.0426, dis 0.00033
+written /mnt/newssd/cjkim/simdist/results/stage30/sig_P_mot.md
+-- sig_P_mot done 01:14
+== adp_P_mot gpu1 01:14
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRe
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s45/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s46/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+sim2sim_friction0.15_go1_broadwm_b45000: windows 20000, episodes 26, e_pre 0.0307, e_ad 0.0051, dis 0.00011
+sim2sim_nominal_go1_broadwm_b45000: windows 20000, episodes 9, e_pre 0.0249, e_ad 0.0087, dis 0.00010
+sim2sim_friction0.15_go1_broadwm_ho_b15000: windows 14092, episodes 14, e_pre 0.0333, e_ad 0.0066, dis 0.00012
+sim2sim_nominal_go1_broadwm_ho_b15000: windows 14820, episodes 3, e_pre 0.0251, e_ad 0.0089, dis 0.00010
+sim2sim_very_weak_motor_go1_broadwm_ho_b15000: windows 14700, episodes 5, e_pre 0.0416, e_ad 0.0223, dis 0.00016
+sim2sim_payload_go1_broadwm_ho_b15000: windows 14760, episodes 4, e_pre 0.0257, e_ad 0.0099, dis 0.00010
+written /mnt/newssd/cjkim/simdist/results/stage30/sig_B_ice.md
+-- sig_B_ice done 01:15
+== adp_B_ice gpu2 01:15
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRe
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s45/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s46/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+sim2sim_very_weak_motor_go1_broadwm_b45000: windows 20000, episodes 18, e_pre 0.0446, e_ad 0.0086, dis 0.00025
+sim2sim_nominal_go1_broadwm_b45000: windows 20000, episodes 9, e_pre 0.0249, e_ad 0.0091, dis 0.00020
+sim2sim_very_weak_motor_go1_broadwm_ho_b15000: windows 14700, episodes 5, e_pre 0.0416, e_ad 0.0081, dis 0.00023
+sim2sim_nominal_go1_broadwm_ho_b15000: windows 14820, episodes 3, e_pre 0.0251, e_ad 0.0093, dis 0.00020
+sim2sim_friction0.15_go1_broadwm_ho_b15000: windows 14092, episodes 14, e_pre 0.0333, e_ad 0.0141, dis 0.00022
+sim2sim_payload_go1_broadwm_ho_b15000: windows 14760, episodes 4, e_pre 0.0257, e_ad 0.0082, dis 0.00020
+written /mnt/newssd/cjkim/simdist/results/stage30/sig_B_mot.md
+-- sig_B_mot done 01:15
+== adp_B_mot gpu3 01:15
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRena
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._s
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+  A1 step 2999 loss 0.23650
+  A2 step 2999 loss 0.21925
+written /mnt/newssd/cjkim/simdist/results/stage30/adp_P_ice.md
+-- adp_P_ice done 01:20
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRena
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+  A1 step 2999 loss 0.10026
+  A2 step 2999 loss 0.07702
+written /mnt/newssd/cjkim/simdist/results/stage30/adp_P_mot.md
+-- adp_P_mot done 01:20
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRe
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint.
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+  A1 step 2999 loss 0.02637
+  A2 step 2999 loss 0.02005
+written /mnt/newssd/cjkim/simdist/results/stage30/adp_B_ice.md
+-- adp_B_ice done 01:21
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRe
+WARNING:absl:Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoi
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+  A1 step 2999 loss 0.03961
+  A2 step 2999 loss 0.02930
+written /mnt/newssd/cjkim/simdist/results/stage30/adp_B_mot.md
+-- adp_B_mot done 01:21
+### stage30 done Wed Nov 18 01:21:54 KST 2026
