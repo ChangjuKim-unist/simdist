@@ -1,0 +1,43 @@
+{
+ "note": "exploratory, not registered",
+ "scenes": {
+  "startup": {
+   "lambda_C3": 10.0,
+   "lambda_C5": 1000.0,
+   "mse_C3": 0.031060166450917154,
+   "mse_C5": 0.03222537648860655,
+   "mse_C4b": 0.03458894416689873,
+   "share_true_physics": -0.03751461021726077,
+   "ci_true_physics": [
+    -0.040788864388141104,
+    -0.03434128729225493
+   ],
+   "share_group_cv": -0.11361103687444585,
+   "ci_group_cv": [
+    -0.11932460274906545,
+    -0.10775528084554237
+   ],
+   "share_true_physics_lowfric": -0.035816139472832464,
+   "share_true_physics_lowmotor": -0.03867516893696754
+  },
+  "steady": {
+   "lambda_C3": 10.0,
+   "lambda_C5": 100.0,
+   "mse_C3": 0.04105545975914523,
+   "mse_C5": 0.04194479292413771,
+   "mse_C4b": 0.04460424929857254,
+   "share_true_physics": -0.021661751450594346,
+   "ci_true_physics": [
+    -0.023402857510756832,
+    -0.01987291800271223
+   ],
+   "share_group_cv": -0.08643891848359608,
+   "ci_group_cv": [
+    -0.08987064696640408,
+    -0.08304773299326546
+   ],
+   "share_true_physics_lowfric": -0.024209900263588047,
+   "share_true_physics_lowmotor": -0.023370289734646832
+  }
+ }
+}
