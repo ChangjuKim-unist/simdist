@@ -91,6 +91,15 @@ class BatchedMppiController:
             self.gen["u_max"] = float(self.gen_cfg.get("u_max", 2.5))
             self.B = 0
 
+        # design doc 29 G1: robust-until-confident scoring over a model library. control.robust = {enabled, models, hold,
+        # decay}: the caller loads the extra models into self.robust_models and sets self.robust_gamma (N,) every step;
+        # score = (1 - gamma) * own score + gamma * min over (own + extra models) of the score of the SAME candidate.
+        self.robust_cfg = dict(controller_cfg.get("robust", {}) or {})
+        self.robust_models = []
+        self.robust_gamma = np.zeros(self.N, np.float32)
+        assert not (self.robust_cfg.get("enabled", False) and (self.gen_cfg.get("enabled", False) or self.calib_cfg.get("enabled", False))), \
+            "control.robust cannot be combined with gen / calib"
+
         # history buffers (oldest -> newest along axis 1)
         self.proprio_hist = np.zeros((self.N, self.H + 1, self.proprio_dim), np.float32)
         self.acts_hist = np.zeros((self.N, self.H, self.act_dim), np.float32)
@@ -206,7 +215,7 @@ class BatchedMppiController:
             # execute the prior's own plan (policy head or external prior), no planning
             self.state = BatchedMppiState(base_actions.astype(jnp.float32), self.state.std, self.state.key_data)
         else:
-            self.state = self._mppi_step(self.state, base_actions, x)
+            self.state = self._mppi_step(self.state, base_actions, x, jnp.asarray(self.robust_gamma, jnp.float32))
         actions = self.state.mean
         if self.gate_cfg.get("enabled", False):
             z_now = self._encode_now(x)
@@ -256,7 +265,7 @@ class BatchedMppiController:
         return self.model.inference(x)["actions"]  # (N, T, A)
 
     @functools.partial(nnx.jit, static_argnames=["self"])
-    def _mppi_step(self, state: BatchedMppiState, base_actions, x) -> BatchedMppiState:
+    def _mppi_step(self, state: BatchedMppiState, base_actions, x, gamma=None) -> BatchedMppiState:
         N, S, B, T, A = self.N, self.S, self.B, self.T, self.act_dim
         keys = jax.random.wrap_key_data(state.key_data)  # (N,)
 
@@ -373,6 +382,15 @@ class BatchedMppiController:
             returns = (rewards + y["values"][:, -1] * self.final_discount).reshape(N, S + B)
             if self.calib is not None:
                 returns = calibrated_scores(y, returns)
+            if self.robust_models and gamma is not None:
+                def robust(ret):
+                    worst = ret
+                    for m in self.robust_models:  # same candidates, each model fixed over the horizon
+                        ym = m.inference(xx)
+                        rm = (jnp.sum(ym["rewards"] * self.discounts, axis=-1) + ym["values"][:, -1] * self.final_discount).reshape(N, S + B)
+                        worst = jnp.minimum(worst, rm)
+                    return (1.0 - gamma)[:, None] * ret + gamma[:, None] * worst
+                returns = jax.lax.cond(jnp.any(gamma > 0), robust, lambda r: r, returns)
 
             elite_returns, elite_idxs = jax.lax.top_k(returns, self.ctrl_cfg["num_elites"])  # (N, k)
             elite_acts = jnp.take_along_axis(acts, elite_idxs[:, :, None, None], axis=1)  # (N, k, T, A)

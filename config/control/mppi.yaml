@@ -36,3 +36,9 @@ gen:
   dec_noise: 0.0   # multiply the decoder's per-dimension sigma for extra sampling noise (0 = candidates vary only through u)
   min_std_u: 0.05  # lower bound of the latent sampling std across CEM iterations
   u_max: 2.5       # latent samples are clipped to [-u_max, u_max] (decoder trained on posterior u ~ N(0, 1))
+# design doc 29 G1: robust-until-confident scoring over a model library (extra checkpoints scored on the same candidates)
+robust:
+  enabled: false
+  models: []   # checkpoint names besides model.checkpoint
+  hold: 50     # gamma = 1 for this many steps after the post-reset phase
+  decay: 50    # then linear to 0 over this many steps

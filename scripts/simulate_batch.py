@@ -90,6 +90,14 @@ class BatchSim:
         self.controller = BatchedMppiController(
             model, model_cfg, cfg["control"], self.N, [s for _, s in self.pairs]
         )
+        # design doc 29 G1: extra models scored together with this one during the first seconds after every reset
+        rb = dict(cfg["control"].get("robust", {}) or {})
+        self.robust_hold = int(rb.get("hold", 50)); self.robust_decay = int(rb.get("decay", 50))
+        if rb.get("enabled", False):
+            for name in list(rb.get("models", []) or []):
+                m_extra, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), str(name)))
+                self.controller.robust_models.append(m_extra)
+                print(f"robust scoring: + {name} (hold {self.robust_hold}, decay {self.robust_decay})", flush=True)
         # design doc 13: oracle context (psi[:3] := standardized true physics of this run) and
         # logging of the model's own online physics estimate (output.context_csv, every 25 steps)
         self.ctx_rows = []
@@ -364,6 +372,9 @@ class BatchSim:
                     a_exp = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy().astype(np.float32)
                 mean = np.repeat(a_exp[:, None, :], self.controller.T, axis=1)
                 self.controller.state = self.controller.state.replace(mean=jnp.asarray(mean))
+            if self.controller.robust_models:
+                k = (self.steps_since_reset - self.reset_steps - self.robust_hold).astype(np.float32)  # < 0 inside the hold
+                self.controller.robust_gamma = np.clip(1.0 - np.maximum(k, 0.0) / max(self.robust_decay, 1), 0.0, 1.0).astype(np.float32)
             plan = self.controller.run_control()
             action = plan[:, 0]
             if self.trace is not None:
