@@ -98,6 +98,20 @@ class BatchSim:
                 m_extra, _, _ = model_utils.load_model_from_ckpt(os.path.join(paths.get_model_checkpoints_dir(), str(name)))
                 self.controller.robust_models.append(m_extra)
                 print(f"robust scoring: + {name} (hold {self.robust_hold}, decay {self.robust_decay})", flush=True)
+        # design doc 33: policy start and online one-step error switch (config/control/mppi.yaml)
+        self.ps_steps = int(cfg["control"].get("policy_start_steps", 0) or 0)
+        sw = dict(cfg["control"].get("err_switch", {}) or {})
+        self.sw_on = bool(sw.get("enabled", False)); self.sw_window = int(sw.get("window", 50)); self.sw_fallback = str(sw.get("fallback", "model"))
+        self.sw_theta = float(sw["theta"]) if self.sw_on else float("inf")
+        if self.sw_on and self.sw_fallback == "model":
+            assert self.controller.robust_models and rb.get("mode", "min") == "select", \
+                "control.err_switch.fallback=model needs control.robust.enabled=true control.robust.mode=select"
+        self.err_buf = np.zeros((self.N, self.sw_window), np.float32); self.err_cnt = np.zeros(self.N, np.int64)
+        self.prev_pred = None
+        self.mode_steps = np.zeros(4, np.int64)  # controlled steps as 0 planner, 1 policy start, 2 fallback model, 3 fallback policy
+        if self.ps_steps or self.sw_on:
+            print(f"design 33: policy start {self.ps_steps} steps, error switch {'on' if self.sw_on else 'off'} "
+                  f"(theta {self.sw_theta:.4f}, window {self.sw_window}, fallback {self.sw_fallback})", flush=True)
         # design doc 13: oracle context (psi[:3] := standardized true physics of this run) and
         # logging of the model's own online physics estimate (output.context_csv, every 25 steps)
         self.ctx_rows = []
@@ -254,9 +268,11 @@ class BatchSim:
                                          "act", "act_pol", "R_exec", "V_exec", "R_pol", "V_pol", "r0_exec", "lat_err",
                                          "reward", "fall", "reset", "terms",
                                          # design doc 27: joint velocity, applied torque (articulation joint order), foot force
-                                         "joint_vel", "torque", "foot_force")}
+                                         "joint_vel", "torque", "foot_force",
+                                         # design doc 33: who acted (0 planner, 1 policy start, 2 fallback model, 3 fallback policy)
+                                         # and the window mean of the one-step error that the switch saw at this step
+                                         "mode", "err_mean")}
             self.joint_names = list(robot.joint_names)
-            self.prev_pred = None
             print(f"diagnostics on: feet {self.foot_names}", flush=True)
 
     def _patch_per_env_speed(self):
@@ -293,18 +309,15 @@ class BatchSim:
         term._compute_errors = pytypes.MethodType(_compute_errors, term)
         term._update_command = pytypes.MethodType(_update_command, term)
 
-    def _diag_pre(self, plan, resetting, cmd):
+    def _diag_pre(self, plan, resetting, cmd, tr, lat_err, mode, err_mean):
         """Design doc 26: record the state at step t and the model's view of the executed plan and of the policy head's plan."""
         c = self.controller; d = self.diag
         plan_exec = np.where(resetting[:, None, None], 0.0, plan).astype(np.float32)
         base = np.asarray(c.last_base_actions, np.float32)
-        z, pl, pr, pv = c.trace(plan_exec)
+        z, pl, pr, pv = tr  # model.checkpoint's view of the executed plan (computed in step)
         _, _, br, bv = c.trace(base)
         disc = np.asarray(c.discounts, np.float32); fd = float(c.final_discount)
-        lat_err = np.full(self.N, np.nan, np.float32)
-        if self.prev_pred is not None:
-            lat_err = np.linalg.norm(z.astype(np.float32) - self.prev_pred, axis=-1).astype(np.float32)
-        self.prev_pred = pl[:, 0].astype(np.float32).copy()  # pl[:, 0] predicts the latent of the next step
+        d["mode"].append(mode.copy()); d["err_mean"].append(err_mean.copy())
         robot = self.env.scene["robot"].data; cs = self.env.scene.sensors["contact_forces"].data
         g = lambda t: t.detach().cpu().numpy()  # noqa: E731
         foot_speed = np.linalg.norm(g(robot.body_lin_vel_w[:, self.foot_ids, :2]), axis=-1)
@@ -372,11 +385,36 @@ class BatchSim:
                     a_exp = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy().astype(np.float32)
                 mean = np.repeat(a_exp[:, None, :], self.controller.T, axis=1)
                 self.controller.state = self.controller.state.replace(mean=jnp.asarray(mean))
-            if self.controller.robust_models:
+            # design doc 33: policy start (first ps_steps controlled steps) and the online one-step error switch
+            since_ctrl = self.steps_since_reset - self.reset_steps  # 0 at the first step after the post-reset phase
+            pol_phase = (since_ctrl < self.ps_steps) & (~resetting)
+            err_mean = np.where(self.err_cnt >= self.sw_window, self.err_buf.sum(1) / self.sw_window, np.nan).astype(np.float32)
+            alarm = np.zeros(self.N, bool)
+            if self.sw_on:
+                alarm = (np.nan_to_num(err_mean, nan=-np.inf) > self.sw_theta) & (~pol_phase) & (~resetting)
+                if self.sw_fallback == "model":
+                    self.controller.robust_gamma = alarm.astype(np.float32)
+            elif self.controller.robust_models:
                 k = (self.steps_since_reset - self.reset_steps - self.robust_hold).astype(np.float32)  # < 0 inside the hold
                 self.controller.robust_gamma = np.clip(1.0 - np.maximum(k, 0.0) / max(self.robust_decay, 1), 0.0, 1.0).astype(np.float32)
             plan = self.controller.run_control()
+            use_pol = pol_phase | (alarm & (self.sw_fallback == "policy"))
+            if use_pol.any():
+                # execute the policy head's plan and restart the planner's mean from it
+                plan = np.where(use_pol[:, None, None], np.asarray(self.controller.last_base_actions, np.float32), plan).astype(np.float32)
+                self.controller.state = self.controller.state.replace(mean=jnp.asarray(plan))
+            mode = np.where(pol_phase, 1, np.where(alarm, 2 if self.sw_fallback == "model" else 3, 0)).astype(np.int8)
+            self.mode_steps += np.bincount(mode[~resetting], minlength=4)[:4]
             action = plan[:, 0]
+            tr = None; lat_err = np.full(self.N, np.nan, np.float32)
+            if self.diag is not None or self.sw_on:
+                # one-step latent error of model.checkpoint for the action that was really executed at the previous step
+                tr = self.controller.trace(np.where(resetting[:, None, None], 0.0, plan).astype(np.float32))
+                if self.prev_pred is not None:
+                    lat_err = np.linalg.norm(tr[0].astype(np.float32) - self.prev_pred, axis=-1).astype(np.float32)
+                self.prev_pred = tr[1][:, 0].astype(np.float32).copy()  # predicts the latent of the next step
+                ok = np.isfinite(lat_err) & (~resetting)
+                self.err_buf[ok, :-1] = self.err_buf[ok, 1:]; self.err_buf[ok, -1] = lat_err[ok]; self.err_cnt[ok] += 1
             if self.trace is not None:
                 # the plan that is really executed: zeros during the post-reset phase (code review 2026-11-06)
                 plan_exec = np.where(resetting[:, None, None], 0.0, plan).astype(np.float32)
@@ -385,7 +423,7 @@ class BatchSim:
                 self.trace["pred_rewards"].append(pr.astype(np.float32)); self.trace["pred_values"].append(pv.astype(np.float32))
                 self.trace["action"].append(plan_exec[:, 0].astype(np.float16))
             if self.diag is not None:
-                self._diag_pre(plan, resetting, cmd)
+                self._diag_pre(plan, resetting, cmd, tr, lat_err, mode, err_mean)
         action = np.where(resetting[:, None], 0.0, action).astype(np.float32)
         self.last_action = action
 
@@ -413,8 +451,10 @@ class BatchSim:
             d = self.diag
             d["reward"].append(reward.astype(np.float32)); d["fall"].append(fall.copy()); d["reset"].append(reset.copy())
             d["terms"].append((self.env.reward_manager._step_reward.cpu().numpy() * float(self.env.step_dt)).astype(np.float16))
-            if reset.any() and self.prev_pred is not None:
+        if reset.any():
+            if self.prev_pred is not None:
                 self.prev_pred[reset] = np.nan  # no one-step prediction across a reset
+            self.err_cnt[reset] = 0  # the switch's error window starts again in the new episode
         self.total += 1
         self.steps_since_reset += 1
         if self.falls_csv and fall.any():
@@ -460,6 +500,10 @@ class BatchSim:
             print("RESULT", row, flush=True)
         if getattr(self.controller, "gate_steps", 0):
             print(f"consistency gate rate: {self.controller.gated_steps / self.controller.gate_steps:.4f} (design doc 7)")
+        if self.ps_steps or self.sw_on:
+            ms = self.mode_steps / max(1, int(self.mode_steps.sum()))
+            print(f"design 33 modes (share of controlled steps): planner {ms[0]:.3f}, policy start {ms[1]:.3f}, "
+                  f"fallback model {ms[2]:.3f}, fallback policy {ms[3]:.3f}", flush=True)
         if self.trace is not None and self.trace["z"]:
             n = min(len(v) for v in self.trace.values())
             arrs = {k: np.stack(v[:n]) for k, v in self.trace.items()}

@@ -383,12 +383,14 @@ class BatchedMppiController:
             if self.calib is not None:
                 returns = calibrated_scores(y, returns)
             if self.robust_models and gamma is not None:
+                select = self.robust_cfg.get("mode", "min") == "select"  # design doc 33: gamma = 1 -> the extra model's score alone
+
                 def robust(ret):
                     worst = ret
                     for m in self.robust_models:  # same candidates, each model fixed over the horizon
                         ym = m.inference(xx)
                         rm = (jnp.sum(ym["rewards"] * self.discounts, axis=-1) + ym["values"][:, -1] * self.final_discount).reshape(N, S + B)
-                        worst = jnp.minimum(worst, rm)
+                        worst = rm if select else jnp.minimum(worst, rm)
                     return (1.0 - gamma)[:, None] * ret + gamma[:, None] * worst
                 returns = jax.lax.cond(jnp.any(gamma > 0), robust, lambda r: r, returns)
 

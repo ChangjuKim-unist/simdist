@@ -42,3 +42,15 @@ robust:
   models: []   # checkpoint names besides model.checkpoint
   hold: 50     # gamma = 1 for this many steps after the post-reset phase
   decay: 50    # then linear to 0 over this many steps
+  mode: min    # min = worst score over (own + extra models); select = the first extra model's score alone where gamma = 1 (design doc 33)
+# design doc 33: execute the policy head's action for this many steps after the post-reset phase (0 = off); the planner
+# keeps running and its mean is reset to the policy head's plan, so the hand-over starts from the executed plan
+policy_start_steps: 0
+# design doc 33: online one-step error switch. After the policy start, when the mean of the last `window` one-step
+# latent errors of model.checkpoint exceeds theta, fall back: model = score candidates with control.robust.models[0]
+# alone (needs control.robust.enabled=true control.robust.mode=select), policy = execute the policy head's action
+err_switch:
+  enabled: false
+  theta:
+  window: 50
+  fallback: model
