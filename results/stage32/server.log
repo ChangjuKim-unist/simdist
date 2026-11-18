@@ -1,0 +1,519 @@
+### stage32 start Wed Nov 18 15:40:25 KST 2026
+== finetune go1_paper_friction0.15_dyn_replay2_b45000_s42 gpu0 15:40
+== finetune go1_paper_friction0.15_tok_b45000_s43 gpu1 15:40
+== finetune go1_paper_friction0.15_tok_b45000_s44 gpu2 15:41
+== finetune go1_paper_friction0.15_dyn_replay_b45000_d32s42 gpu3 15:41
+== finetune: go1_paper_friction0.15_dyn_replay_b45000_d32s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 52.95247460074058, 'train/loss': 0.11336338520050049, 'train/latent_dynamics': 0.11336338520050049, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 9.642087485298395, 'train/loss': 0.0860242024064064, 'train/latent_dynamics': 0.0860242024064064, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/con
+-- go1_paper_friction0.15_dyn_replay_b45000_d32s42 done 15:48
+== finetune go1_paper_friction0.15_tok_noplan_b45000_s42 gpu3 15:48
+== finetune: go1_paper_friction0.15_dyn_replay2_b45000_s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 42.02277148524983, 'train/loss': 0.1629628688097, 'train/latent_dynamics': 0.1629628688097, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/context_c
+Steps: 371920, Metrics: {'steps_per_second': 7.5631013059585, 'train/loss': 0.1130022257566452, 'train/latent_dynamics': 0.1130022257566452, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/conte
+-- go1_paper_friction0.15_dyn_replay2_b45000_s42 done 15:49
+== finetune go1_paper_very_weak_motor_dyn_replay2_b45000_s42 gpu0 15:49
+== finetune: go1_paper_friction0.15_tok_b45000_s43
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 39.368314565088916, 'train/loss': 0.16211293637752533, 'train/latent_dynamics': 0.16211293637752533, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/
+Steps: 371920, Metrics: {'steps_per_second': 7.355286567063925, 'train/loss': 0.10265113413333893, 'train/latent_dynamics': 0.10265113413333893, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_paper_friction0.15_tok_b45000_s43 done 15:49
+== finetune go1_paper_very_weak_motor_tok_b45000_s43 gpu1 15:49
+== finetune: go1_paper_friction0.15_tok_b45000_s44
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 39.19012521287413, 'train/loss': 0.15712571144104004, 'train/latent_dynamics': 0.15712571144104004, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 7.457539874108213, 'train/loss': 0.1025543063879013, 'train/latent_dynamics': 0.1025543063879013, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/con
+-- go1_paper_friction0.15_tok_b45000_s44 done 15:50
+== finetune go1_paper_very_weak_motor_tok_b45000_s44 gpu2 15:50
+== finetune: go1_paper_friction0.15_tok_noplan_b45000_s42
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 50.28101220497291, 'train/loss': 0.11259465664625168, 'train/latent_dynamics': 0.11259465664625168, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 9.447540821750025, 'train/loss': 0.07987085729837418, 'train/latent_dynamics': 0.07987085729837418, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_paper_friction0.15_tok_noplan_b45000_s42 done 15:55
+== finetune go1_paper_very_weak_motor_dyn_replay_b45000_d32s42 gpu3 15:55
+== finetune: go1_paper_very_weak_motor_dyn_replay2_b45000_s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 40.91699945685011, 'train/loss': 0.1363384872674942, 'train/latent_dynamics': 0.1363384872674942, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/con
+Steps: 371920, Metrics: {'steps_per_second': 7.4906053070706715, 'train/loss': 0.07909185439348221, 'train/latent_dynamics': 0.07909185439348221, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/
+-- go1_paper_very_weak_motor_dyn_replay2_b45000_s42 done 15:58
+== finetune go1_paper_very_weak_motor_tok_noplan_b45000_s42 gpu0 15:58
+== finetune: go1_paper_very_weak_motor_tok_b45000_s44
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 40.309923103550695, 'train/loss': 0.12824414670467377, 'train/latent_dynamics': 0.12824414670467377, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/
+Steps: 371920, Metrics: {'steps_per_second': 7.5191887657048495, 'train/loss': 0.07520521432161331, 'train/latent_dynamics': 0.07520521432161331, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/
+-- go1_paper_very_weak_motor_tok_b45000_s44 done 15:58
+== finetune go1_broadwm_friction0.15_dyn_replay2_b45000_s42 gpu2 15:58
+== finetune: go1_paper_very_weak_motor_tok_b45000_s43
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_paper_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 37.55025518923655, 'train/loss': 0.11952733993530273, 'train/latent_dynamics': 0.11952733993530273, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 7.370490610798844, 'train/loss': 0.07564102113246918, 'train/latent_dynamics': 0.07564102113246918, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_paper_very_weak_motor_tok_b45000_s43 done 15:58
+== finetune go1_broadwm_friction0.15_tok_b45000_s43 gpu1 15:58
+== finetune: go1_paper_very_weak_motor_dyn_replay_b45000_d32s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 50.30851031117173, 'train/loss': 0.07509659975767136, 'train/latent_dynamics': 0.07509659975767136, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 9.572905847058502, 'train/loss': 0.04606093466281891, 'train/latent_dynamics': 0.04606093466281891, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_paper_very_weak_motor_dyn_replay_b45000_d32s42 done 16:02
+== finetune go1_broadwm_friction0.15_tok_b45000_s44 gpu3 16:02
+== finetune: go1_paper_very_weak_motor_tok_noplan_b45000_s42
+Parameters to be optimized: 137344
+Replay from simulation dataset: paper_sub8192 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 369000, Metrics: {'steps_per_second': 48.51099878063554, 'train/loss': 0.07574313133955002, 'train/latent_dynamics': 0.07574313133955002, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 371920, Metrics: {'steps_per_second': 9.436640635873026, 'train/loss': 0.04489568993449211, 'train/latent_dynamics': 0.04489568993449211, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_paper_very_weak_motor_tok_noplan_b45000_s42 done 16:05
+== finetune go1_broadwm_friction0.15_dyn_replay_b45000_d32s42 gpu0 16:05
+== finetune: go1_broadwm_friction0.15_dyn_replay2_b45000_s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 41.38014560348812, 'train/loss': 0.027786999940872192, 'train/latent_dynamics': 0.027786999940872192, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+Steps: 431920, Metrics: {'steps_per_second': 7.608349142813011, 'train/loss': 0.018650908023118973, 'train/latent_dynamics': 0.018650908023118973, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_friction0.15_dyn_replay2_b45000_s42 done 16:07
+== finetune go1_broadwm_friction0.15_tok_noplan_b45000_s42 gpu2 16:07
+== finetune: go1_broadwm_friction0.15_tok_b45000_s43
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 37.05229622338671, 'train/loss': 0.027913972735404968, 'train/latent_dynamics': 0.027913972735404968, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+Steps: 431920, Metrics: {'steps_per_second': 7.371837144481154, 'train/loss': 0.018361199647188187, 'train/latent_dynamics': 0.018361199647188187, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_friction0.15_tok_b45000_s43 done 16:08
+== finetune go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42 gpu1 16:08
+== finetune: go1_broadwm_friction0.15_tok_b45000_s44
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 37.379311072941874, 'train/loss': 0.027752717956900597, 'train/latent_dynamics': 0.027752717956900597, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'trai
+Steps: 431920, Metrics: {'steps_per_second': 7.433400943471592, 'train/loss': 0.018345214426517487, 'train/latent_dynamics': 0.018345214426517487, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_friction0.15_tok_b45000_s44 done 16:12
+== finetune go1_broadwm_very_weak_motor_tok_b45000_s43 gpu3 16:12
+== finetune: go1_broadwm_friction0.15_dyn_replay_b45000_d32s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 49.00966941093393, 'train/loss': 0.03556683287024498, 'train/latent_dynamics': 0.03556683287024498, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 431920, Metrics: {'steps_per_second': 8.994448590793757, 'train/loss': 0.028994718566536903, 'train/latent_dynamics': 0.028994718566536903, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_friction0.15_dyn_replay_b45000_d32s42 done 16:12
+== finetune go1_broadwm_very_weak_motor_tok_b45000_s44 gpu0 16:12
+== finetune: go1_broadwm_friction0.15_tok_noplan_b45000_s42
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 46.46867301160218, 'train/loss': 0.03659370541572571, 'train/latent_dynamics': 0.03659370541572571, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 431920, Metrics: {'steps_per_second': 8.827811384806413, 'train/loss': 0.028592834249138832, 'train/latent_dynamics': 0.028592834249138832, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_friction0.15_tok_noplan_b45000_s42 done 16:15
+== finetune go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42 gpu2 16:15
+== finetune: go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 40.619316064456264, 'train/loss': 0.03469853475689888, 'train/latent_dynamics': 0.03469853475689888, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/
+Steps: 431920, Metrics: {'steps_per_second': 7.841336425431816, 'train/loss': 0.02249905839562416, 'train/latent_dynamics': 0.02249905839562416, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42 done 16:16
+== finetune go1_broadwm_very_weak_motor_tok_noplan_b45000_s42 gpu1 16:16
+== finetune: go1_broadwm_very_weak_motor_tok_b45000_s43
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 37.47609798676386, 'train/loss': 0.035098738968372345, 'train/latent_dynamics': 0.035098738968372345, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+Steps: 431920, Metrics: {'steps_per_second': 7.3908630194892995, 'train/loss': 0.022188199684023857, 'train/latent_dynamics': 0.022188199684023857, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'trai
+-- go1_broadwm_very_weak_motor_tok_b45000_s43 done 16:21
+== finetune: go1_broadwm_very_weak_motor_tok_b45000_s44
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Replay from simulation dataset: sim2sim_nominal_go1_broadwm_b45000 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 37.62080974708629, 'train/loss': 0.03473095968365669, 'train/latent_dynamics': 0.03473095968365669, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 431920, Metrics: {'steps_per_second': 7.416277458739041, 'train/loss': 0.02218443714082241, 'train/latent_dynamics': 0.02218443714082241, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+-- go1_broadwm_very_weak_motor_tok_b45000_s44 done 16:22
+== finetune: go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42
+Parameters to be optimized: 133504
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 50.45760693884486, 'train/loss': 0.04225164279341698, 'train/latent_dynamics': 0.04225164279341698, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 431920, Metrics: {'steps_per_second': 9.129450451574886, 'train/loss': 0.033204417675733566, 'train/latent_dynamics': 0.033204417675733566, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train
+-- go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42 done 16:22
+== finetune: go1_broadwm_very_weak_motor_tok_noplan_b45000_s42
+Parameters to be optimized: 137344
+Replay from simulation dataset: 2026-11-05_11-39-08 (batch 32)
+Could not load symbol cuStreamGetGreenCtx. Error: /usr/lib/x86_64-linux-gnu/libcuda.so.1: undefined symbol: cuStreamGetGreenCtx
+Steps: 429000, Metrics: {'steps_per_second': 48.57992020297537, 'train/loss': 0.04167689010500908, 'train/latent_dynamics': 0.04167689010500908, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/c
+Steps: 431920, Metrics: {'steps_per_second': 9.25132108086898, 'train/loss': 0.03256165236234665, 'train/latent_dynamics': 0.03256165236234665, 'train/reward': 0.0, 'train/value': 0.0, 'train/action': 0.0, 'train/context': 0.0, 'train/xi_prior': 0.0, 'train/co
+-- go1_broadwm_very_weak_motor_tok_noplan_b45000_s42 done 16:24
+== phase F done 16:24
+== P_ICEn2_ice gpu0 go1_paper_friction0.15_dyn_replay2_b45000_s42 16:24
+== B_ICEn2_ice gpu1 go1_broadwm_friction0.15_dyn_replay2_b45000_s42 16:24
+== P_MOTn2_mot gpu2 go1_paper_very_weak_motor_dyn_replay2_b45000_s42 16:24
+== B_MOTn2_mot gpu3 go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42 16:25
+[2026-11-18 07:24:37,629][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEn2_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEn2_ice.csv (14 rows)
+-- P_ICEn2_ice done gpu0 17:16
+== P_ICEn2_mot gpu0 go1_paper_friction0.15_dyn_replay2_b45000_s42 17:16
+[2026-11-18 07:24:57,268][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEn2_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEn2_ice.csv (58 rows)
+-- B_ICEn2_ice done gpu1 17:16
+== B_ICEn2_mot gpu1 go1_broadwm_friction0.15_dyn_replay2_b45000_s42 17:16
+[2026-11-18 07:25:16,360][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTn2_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTn2_mot.csv (250 rows)
+-- P_MOTn2_mot done gpu2 17:16
+== P_MOTn2_ice gpu2 go1_paper_very_weak_motor_dyn_replay2_b45000_s42 17:16
+[2026-11-18 07:25:35,784][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTn2_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTn2_mot.csv (21 rows)
+-- B_MOTn2_mot done gpu3 17:17
+== B_MOTn2_ice gpu3 go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42 17:17
+[2026-11-18 08:16:59,247][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEn2_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEn2_mot.csv (15 rows)
+-- B_ICEn2_mot done gpu1 18:08
+== P_ICEt43A_ice gpu1 go1_paper_friction0.15_tok_b45000_s43 18:08
+[2026-11-18 08:16:37,550][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEn2_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEn2_mot.csv (339 rows)
+-- P_ICEn2_mot done gpu0 18:08
+== B_ICEt43A_ice gpu0 go1_broadwm_friction0.15_tok_b45000_s43 18:08
+[2026-11-18 08:17:24,739][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTn2_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTn2_ice.csv (129 rows)
+-- P_MOTn2_ice done gpu2 18:09
+== P_MOTt43A_mot gpu2 go1_paper_very_weak_motor_tok_b45000_s43 18:09
+[2026-11-18 08:17:57,137][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTn2_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTn2_ice.csv (61 rows)
+-- B_MOTn2_ice done gpu3 18:09
+== B_MOTt43A_mot gpu3 go1_broadwm_very_weak_motor_tok_b45000_s43 18:09
+[2026-11-18 09:08:52,749][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt43A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt43A_ice.csv (33 rows)
+-- B_ICEt43A_ice done gpu0 19:00
+== P_ICEt43S_mot gpu0 go1_paper_friction0.15_tok_b45000_s43 19:00
+[2026-11-18 09:08:52,066][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt43A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt43A_ice.csv (11 rows)
+-- P_ICEt43A_ice done gpu1 19:00
+== B_ICEt43S_mot gpu1 go1_broadwm_friction0.15_tok_b45000_s43 19:00
+[2026-11-18 09:09:33,988][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt43A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt43A_mot.csv (270 rows)
+-- P_MOTt43A_mot done gpu2 19:01
+== P_MOTt43S_ice gpu2 go1_paper_very_weak_motor_tok_b45000_s43 19:01
+[2026-11-18 09:10:16,862][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt43A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt43A_mot.csv (46 rows)
+-- B_MOTt43A_mot done gpu3 19:02
+== B_MOTt43S_ice gpu3 go1_broadwm_very_weak_motor_tok_b45000_s43 19:02
+[2026-11-18 10:01:03,685][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt43S_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt43S_mot.csv (369 rows)
+-- P_ICEt43S_mot done gpu0 19:52
+== P_ICEt44A_ice gpu0 go1_paper_friction0.15_tok_b45000_s44 19:52
+[2026-11-18 10:01:16,476][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt43S_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt43S_mot.csv (16 rows)
+-- B_ICEt43S_mot done gpu1 19:53
+== B_ICEt44A_ice gpu1 go1_broadwm_friction0.15_tok_b45000_s44 19:53
+[2026-11-18 10:01:59,911][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt43S_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt43S_ice.csv (340 rows)
+-- P_MOTt43S_ice done gpu2 19:53
+== P_MOTt44A_mot gpu2 go1_paper_very_weak_motor_tok_b45000_s44 19:53
+[2026-11-18 10:02:52,902][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt43S_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt43S_ice.csv (66 rows)
+-- B_MOTt43S_ice done gpu3 19:55
+== B_MOTt44A_mot gpu3 go1_broadwm_very_weak_motor_tok_b45000_s44 19:55
+[2026-11-18 10:53:13,642][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt44A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt44A_ice.csv (7 rows)
+-- P_ICEt44A_ice done gpu0 20:44
+== P_ICEt44S_mot gpu0 go1_paper_friction0.15_tok_b45000_s44 20:44
+[2026-11-18 10:53:31,533][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt44A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt44A_ice.csv (30 rows)
+-- B_ICEt44A_ice done gpu1 20:45
+== B_ICEt44S_mot gpu1 go1_broadwm_friction0.15_tok_b45000_s44 20:45
+[2026-11-18 10:54:09,005][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt44A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt44A_mot.csv (268 rows)
+-- P_MOTt44A_mot done gpu2 20:46
+== P_MOTt44S_ice gpu2 go1_paper_very_weak_motor_tok_b45000_s44 20:46
+[2026-11-18 10:55:43,883][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt44A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt44A_mot.csv (46 rows)
+-- B_MOTt44A_mot done gpu3 20:47
+== B_MOTt44S_ice gpu3 go1_broadwm_very_weak_motor_tok_b45000_s44 20:47
+[2026-11-18 11:45:19,420][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt44S_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt44S_mot.csv (330 rows)
+-- P_ICEt44S_mot done gpu0 21:36
+== P_ICEn1_ice gpu0 go1_paper_friction0.15_dyn_replay_b45000_d32s42 21:36
+[2026-11-18 11:45:37,075][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt44S_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt44S_mot.csv (15 rows)
+-- B_ICEt44S_mot done gpu1 21:37
+== B_ICEn1_ice gpu1 go1_broadwm_friction0.15_dyn_replay_b45000_d32s42 21:37
+[2026-11-18 11:46:29,444][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt44S_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt44S_ice.csv (372 rows)
+-- P_MOTt44S_ice done gpu2 21:38
+== P_MOTn1_mot gpu2 go1_paper_very_weak_motor_dyn_replay_b45000_d32s42 21:38
+[2026-11-18 11:48:15,732][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokS.json: [0.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt44S_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt44S_ice.csv (37 rows)
+-- B_MOTt44S_ice done gpu3 21:40
+== B_MOTn1_mot gpu3 go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42 21:40
+[2026-11-18 12:37:27,622][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEn1_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEn1_ice.csv (25 rows)
+-- P_ICEn1_ice done gpu0 22:28
+== P_ICEn1_mot gpu0 go1_paper_friction0.15_dyn_replay_b45000_d32s42 22:28
+[2026-11-18 12:37:51,554][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEn1_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEn1_ice.csv (42 rows)
+-- B_ICEn1_ice done gpu1 22:29
+== B_ICEn1_mot gpu1 go1_broadwm_friction0.15_dyn_replay_b45000_d32s42 22:29
+[2026-11-18 12:38:43,783][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTn1_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTn1_mot.csv (311 rows)
+-- P_MOTn1_mot done gpu2 22:29
+== P_MOTn1_ice gpu2 go1_paper_very_weak_motor_dyn_replay_b45000_d32s42 22:29
+[2026-11-18 12:40:43,126][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTn1_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTn1_mot.csv (18 rows)
+-- B_MOTn1_mot done gpu3 22:32
+== B_MOTn1_ice gpu3 go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42 22:32
+[2026-11-18 13:29:10,965][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEn1_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEn1_mot.csv (365 rows)
+-- P_ICEn1_mot done gpu0 23:20
+== P_ICEt1A_ice gpu0 go1_paper_friction0.15_tok_noplan_b45000_s42 23:20
+[2026-11-18 13:29:38,013][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEn1_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEn1_mot.csv (11 rows)
+-- B_ICEn1_mot done gpu1 23:21
+== B_ICEt1A_ice gpu1 go1_broadwm_friction0.15_tok_noplan_b45000_s42 23:21
+[2026-11-18 13:30:23,669][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTn1_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTn1_ice.csv (112 rows)
+-- P_MOTn1_ice done gpu2 23:21
+== P_MOTt1A_mot gpu2 go1_paper_very_weak_motor_tok_noplan_b45000_s42 23:21
+[2026-11-18 13:33:11,663][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay_b45000_d32s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTn1_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTn1_ice.csv (44 rows)
+-- B_MOTn1_ice done gpu3 23:25
+== B_MOTt1A_mot gpu3 go1_broadwm_very_weak_motor_tok_noplan_b45000_s42 23:25
+[2026-11-18 14:21:15,918][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt1A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt1A_ice.csv (24 rows)
+-- P_ICEt1A_ice done gpu0 00:12
+== P_ICEt1A_mot gpu0 go1_paper_friction0.15_tok_noplan_b45000_s42 00:12
+[2026-11-18 14:21:36,141][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt1A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt1A_ice.csv (36 rows)
+-- B_ICEt1A_ice done gpu1 00:13
+== B_ICEt1A_mot gpu1 go1_broadwm_friction0.15_tok_noplan_b45000_s42 00:13
+[2026-11-18 14:22:22,725][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt1A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt1A_mot.csv (258 rows)
+-- P_MOTt1A_mot done gpu2 00:14
+== P_MOTt1A_ice gpu2 go1_paper_very_weak_motor_tok_noplan_b45000_s42 00:14
+[2026-11-18 14:25:38,774][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt1A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt1A_mot.csv (23 rows)
+-- B_MOTt1A_mot done gpu3 00:17
+== B_MOTt1A_ice gpu3 go1_broadwm_very_weak_motor_tok_noplan_b45000_s42 00:17
+[2026-11-18 15:13:12,761][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt1A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt1A_mot.csv (337 rows)
+-- P_ICEt1A_mot done gpu0 01:04
+== P_ICEt43A_mot gpu0 go1_paper_friction0.15_tok_b45000_s43 01:04
+[2026-11-18 15:13:57,623][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt1A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt1A_mot.csv (14 rows)
+-- B_ICEt1A_mot done gpu1 01:05
+== B_ICEt43A_mot gpu1 go1_broadwm_friction0.15_tok_b45000_s43 01:05
+[2026-11-18 15:14:37,790][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt1A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt1A_ice.csv (262 rows)
+-- P_MOTt1A_ice done gpu2 01:06
+== P_MOTt43A_ice gpu2 go1_paper_very_weak_motor_tok_b45000_s43 01:06
+[2026-11-18 15:18:19,069][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_noplan_b45000_s42/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt1A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt1A_ice.csv (77 rows)
+-- B_MOTt1A_ice done gpu3 01:10
+== B_MOTt43A_ice gpu3 go1_broadwm_very_weak_motor_tok_b45000_s43 01:10
+[2026-11-18 16:05:11,319][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt43A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt43A_mot.csv (351 rows)
+-- P_ICEt43A_mot done gpu0 01:56
+== P_ICEt44A_mot gpu0 go1_paper_friction0.15_tok_b45000_s44 01:56
+[2026-11-18 16:06:11,040][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt43A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt43A_mot.csv (24 rows)
+-- B_ICEt43A_mot done gpu1 01:57
+== B_ICEt44A_mot gpu1 go1_broadwm_friction0.15_tok_b45000_s44 01:57
+[2026-11-18 16:06:44,882][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt43A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt43A_ice.csv (220 rows)
+-- P_MOTt43A_ice done gpu2 01:58
+== P_MOTt44A_ice gpu2 go1_paper_very_weak_motor_tok_b45000_s44 01:58
+[2026-11-18 16:10:51,813][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s43/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt43A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt43A_ice.csv (115 rows)
+-- B_MOTt43A_ice done gpu3 02:02
+== B_MOTt44A_ice gpu3 go1_broadwm_very_weak_motor_tok_b45000_s44 02:02
+[2026-11-18 16:57:17,998][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEt44A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEt44A_mot.csv (321 rows)
+-- P_ICEt44A_mot done gpu0 02:49
+== P_ICEn2_nom gpu0 go1_paper_friction0.15_dyn_replay2_b45000_s42 02:49
+[2026-11-18 16:58:26,590][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEt44A_mot.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEt44A_mot.csv (22 rows)
+-- B_ICEt44A_mot done gpu1 02:50
+== B_ICEn2_nom gpu1 go1_broadwm_friction0.15_dyn_replay2_b45000_s42 02:50
+[2026-11-18 16:58:54,158][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTt44A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTt44A_ice.csv (141 rows)
+-- P_MOTt44A_ice done gpu2 02:50
+== P_MOTn2_nom gpu2 go1_paper_very_weak_motor_dyn_replay2_b45000_s42 02:50
+[2026-11-18 17:03:18,250][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_tok_b45000_s44/model_config.yaml) to be a directory.
+FiLM context xi from /mnt/newssd/cjkim/simdist/results/stage32/tokA.json: [1.0, 0.0, 0.0, 0.0]
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTt44A_ice.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTt44A_ice.csv (64 rows)
+-- B_MOTt44A_ice done gpu3 02:55
+== B_MOTn2_nom gpu3 go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42 02:55
+[2026-11-18 17:49:28,624][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_ICEn2_nom.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_ICEn2_nom.csv (0 rows)
+-- P_ICEn2_nom done gpu0 03:40
+[2026-11-18 17:50:36,216][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_friction0.15_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_ICEn2_nom.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_ICEn2_nom.csv (0 rows)
+-- B_ICEn2_nom done gpu1 03:41
+[2026-11-18 17:51:08,138][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_P_MOTn2_nom.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_P_MOTn2_nom.csv (0 rows)
+-- P_MOTn2_nom done gpu2 03:42
+[2026-11-18 17:55:48,778][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm_very_weak_motor_dyn_replay2_b45000_s42/model_config.yaml) to be a directory.
+Could not load symbol cuStreamGetGreenCtx. Error: /lib/x86_64-linux-gnu/libcuda.so: undefined symbol: cuStreamGetGreenCtx
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage32/diag_B_MOTn2_nom.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage32/falls_B_MOTn2_nom.csv (0 rows)
+-- B_MOTn2_nom done gpu3 03:47
+### stage32 done Thu Nov 19 03:47:33 KST 2026

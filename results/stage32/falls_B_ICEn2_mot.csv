@@ -1,0 +1,16 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ICEn2_mot,mot,0.9,14,336,336
+B_ICEn2_mot,mot,0.9,14,386,50
+B_ICEn2_mot,mot,0.9,15,506,506
+B_ICEn2_mot,mot,0.9,15,1062,556
+B_ICEn2_mot,mot,0.9,16,2637,2637
+B_ICEn2_mot,mot,0.9,13,2947,2947
+B_ICEn2_mot,mot,0.9,13,3020,73
+B_ICEn2_mot,mot,0.9,16,3641,1004
+B_ICEn2_mot,mot,0.6,11,3758,3758
+B_ICEn2_mot,mot,0.9,13,3940,920
+B_ICEn2_mot,mot,0.9,14,4156,3770
+B_ICEn2_mot,mot,0.9,11,4360,4360
+B_ICEn2_mot,mot,0.6,15,4631,4631
+B_ICEn2_mot,mot,0.9,13,4659,719
+B_ICEn2_mot,mot,0.6,15,4702,71

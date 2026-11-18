@@ -1,0 +1,8 @@
+model,condition,speed,seed,step,steps_since_reset
+P_ICEt44A_ice,ice,0.9,14,337,337
+P_ICEt44A_ice,ice,0.9,11,586,586
+P_ICEt44A_ice,ice,0.9,16,1712,1712
+P_ICEt44A_ice,ice,0.9,11,3066,2480
+P_ICEt44A_ice,ice,0.9,11,3147,81
+P_ICEt44A_ice,ice,0.9,11,3240,93
+P_ICEt44A_ice,ice,0.9,11,4941,1701

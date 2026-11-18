@@ -1,0 +1,12 @@
+model,condition,speed,seed,step,steps_since_reset
+P_ICEt43A_ice,ice,0.9,15,299,299
+P_ICEt43A_ice,ice,0.9,15,382,83
+P_ICEt43A_ice,ice,0.9,15,522,140
+P_ICEt43A_ice,ice,0.9,15,1660,1138
+P_ICEt43A_ice,ice,0.9,15,3563,1903
+P_ICEt43A_ice,ice,0.9,15,3646,83
+P_ICEt43A_ice,ice,0.9,14,3764,3764
+P_ICEt43A_ice,ice,0.9,12,4090,4090
+P_ICEt43A_ice,ice,0.9,16,4488,4488
+P_ICEt43A_ice,ice,0.9,16,4566,78
+P_ICEt43A_ice,ice,0.9,16,4584,18

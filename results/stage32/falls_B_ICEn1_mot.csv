@@ -1,0 +1,12 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ICEn1_mot,mot,0.6,13,219,219
+B_ICEn1_mot,mot,0.6,12,798,798
+B_ICEn1_mot,mot,0.9,16,2085,2085
+B_ICEn1_mot,mot,0.9,15,2099,2099
+B_ICEn1_mot,mot,0.9,13,2812,2812
+B_ICEn1_mot,mot,0.9,15,3036,937
+B_ICEn1_mot,mot,0.9,16,3421,1336
+B_ICEn1_mot,mot,0.9,11,3471,3471
+B_ICEn1_mot,mot,0.9,13,4496,1684
+B_ICEn1_mot,mot,0.9,14,4496,4496
+B_ICEn1_mot,mot,0.9,12,4499,4499

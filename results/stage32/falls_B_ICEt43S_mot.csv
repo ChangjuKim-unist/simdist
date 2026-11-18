@@ -1,0 +1,17 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ICEt43S_mot,mot,0.9,14,279,279
+B_ICEt43S_mot,mot,0.9,12,1252,1252
+B_ICEt43S_mot,mot,0.3,14,1730,1730
+B_ICEt43S_mot,mot,0.9,13,1777,1777
+B_ICEt43S_mot,mot,0.9,13,1883,106
+B_ICEt43S_mot,mot,0.9,13,2090,207
+B_ICEt43S_mot,mot,0.9,13,2207,117
+B_ICEt43S_mot,mot,0.6,12,2324,2324
+B_ICEt43S_mot,mot,0.9,16,2639,2639
+B_ICEt43S_mot,mot,0.9,14,2687,2408
+B_ICEt43S_mot,mot,0.9,14,2723,36
+B_ICEt43S_mot,mot,0.9,16,2807,168
+B_ICEt43S_mot,mot,0.6,16,3479,3479
+B_ICEt43S_mot,mot,0.6,15,3640,3640
+B_ICEt43S_mot,mot,0.9,12,4769,3517
+B_ICEt43S_mot,mot,0.6,12,4798,2474

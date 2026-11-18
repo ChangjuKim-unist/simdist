@@ -1,0 +1,15 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ICEt1A_mot,mot,0.9,11,175,175
+B_ICEt1A_mot,mot,0.9,12,591,591
+B_ICEt1A_mot,mot,0.9,14,818,818
+B_ICEt1A_mot,mot,0.9,14,872,54
+B_ICEt1A_mot,mot,0.9,11,1805,1630
+B_ICEt1A_mot,mot,0.9,13,2153,2153
+B_ICEt1A_mot,mot,0.9,12,3038,2447
+B_ICEt1A_mot,mot,0.9,11,3170,1365
+B_ICEt1A_mot,mot,0.9,12,3228,190
+B_ICEt1A_mot,mot,0.9,15,3764,3764
+B_ICEt1A_mot,mot,0.9,12,3806,578
+B_ICEt1A_mot,mot,0.9,13,3816,1663
+B_ICEt1A_mot,mot,0.9,13,4511,695
+B_ICEt1A_mot,mot,0.9,13,4723,212
