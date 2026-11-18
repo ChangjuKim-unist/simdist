@@ -61,6 +61,12 @@ adapt:
     batch_size: 64
     num_workers: 2
     system_name:   # processed-data system of the replay dataset if it differs (e.g. go1dr)
+  # design doc 31: a second replay dataset (simulation planner windows), same options as replay
+  replay2:
+    dataset_name:
+    batch_size: 64
+    num_workers: 2
+    system_name:
 
 data:
   dataset_name:

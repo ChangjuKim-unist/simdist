@@ -14,3 +14,5 @@ prior_weight: false
 boundary_weight: 1.0  # weight of windows ending within 25 steps of a fall (0 = exclude)
 # design doc 20: weight of the simulation-replay latent-dynamics term (adapt.replay.dataset_name); 0 = off
 replay_weight: 0.0
+# design doc 31: fixed condition token of the adaptation batch, fed as the FiLM context xi (blank = none)
+token_real:

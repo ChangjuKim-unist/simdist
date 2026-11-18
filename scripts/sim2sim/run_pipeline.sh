@@ -54,6 +54,7 @@ TERRAIN="${TERRAIN:-plane}"
 SEED_BASE="${SEED_BASE:-1000}"        # collection seeds = SEED_BASE + 10*round + speed index (design doc 20: held-out logs use another base)
 COLLECT_EXTRA="${COLLECT_EXTRA:-}"    # extra hydra overrides for the collection runs (e.g. control.prior_only=true)
 REPLAY_SYSTEM="${REPLAY_SYSTEM:-}"    # processed-data system name of NOMINAL_DATASET if not $SYSTEM (go1dr)
+REPLAY2="${REPLAY2:-}"                # second replay dataset of the tok variant (simulation planner windows, design doc 31)
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUN="${RUN:-$HOME/simdist-docker/run.sh}"
@@ -98,6 +99,9 @@ variant_overrides() {
     affine)      echo "loss=world_model_dynamics_only heads=dynamics_affine" ;;
     last)        echo "loss=world_model_dynamics_only heads=dynamics_last" ;;
     dyn_replay)  echo "loss=world_model_dynamics_only heads=world_model_dynamics_only loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM}" ;;
+    # --- design doc 31: one model with a condition token (FiLM context, xi = [1,0,0,0] on the adaptation batch, xi = 0 on
+    #     the replay batches); replay = pretraining windows ($NOMINAL_DATASET) + simulation planner windows ($REPLAY2) ---
+    tok)         echo "loss=world_model_dynamics_only heads=dynamics_film adapt.film.enabled=true adapt.film.dim=4 adapt.film.n_episodes=0 loss.token_real=[1,0,0,0] loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM} adapt.replay2.dataset_name=$REPLAY2 adapt.replay2.batch_size=32" ;;
     dynres)      echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true" ;;
     dynres_na)   echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true adapt.dynamics_residual.action_input=false" ;;
     res)         echo "loss=world_model_value_adapt heads=dynamics_value_residual adapt.value_residual.enabled=true adapt.value_anchor=false" ;;

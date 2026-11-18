@@ -8,3 +8,5 @@ weights:
   context: 1.0              # psi[:3] vs physics label (design doc 13; 0 without a context slot)
   xi_prior: 0.01  # design doc 24: mean ||xi_e||^2 of the per-episode context (0 without a FiLM context)
   context_consistency: 0.1  # psi(history) vs psi(future segment of the same episode)
+# design doc 31: fixed condition token of the adaptation batch, fed as the FiLM context xi (blank = none)
+token_real:

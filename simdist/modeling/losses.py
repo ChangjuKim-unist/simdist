@@ -83,6 +83,13 @@ class WorldModelLoss(Loss):
             x["xi"] = xi
             xi_prior = jnp.mean(jnp.sum(xi**2, axis=-1))
 
+        # design doc 31: a fixed condition token for the adaptation (real) batch, fed through the FiLM context of
+        # design doc 24 (loss.token_real, e.g. [1, 0, 0, 0]); replay batches carry no token (xi = 0 = "simulation")
+        token_real = self.loss_cfg.get("token_real")
+        if token_real is not None and getattr(model, "film_proj", None) is not None and "xi" not in x:
+            x = dict(x)
+            x["xi"] = jnp.tile(jnp.asarray(list(token_real), jnp.float32)[None], (x["fut_acts"].shape[0], 1))
+
         # Compute the predicted outputs
         y_pred = model(x, deterministic=deterministic)
 
@@ -102,11 +109,15 @@ class WorldModelLoss(Loss):
         replay_w = float(self.loss_cfg.get("replay_weight", 0.0))
         replay_latent_loss = None
         if replay is not None and replay_w > 0.0:
-            xr, yr = replay
-            yr = jax.lax.stop_gradient(scaler.scale(yr))
-            yr_pred = model(xr, deterministic=deterministic)
-            fut_r = jax.lax.stop_gradient(model.encode_latent(yr["proprio_obs"], yr["extero_obs"], deterministic=True))
-            replay_latent_loss = jnp.mean((yr_pred["latents"] - fut_r) ** 2)
+            # one (x, y) batch, or a list of them (design doc 31: pretraining windows + simulation planner windows);
+            # the replay term is the mean over the batches
+            terms = []
+            for xr, yr in ([replay] if isinstance(replay, tuple) else list(replay)):
+                yr = jax.lax.stop_gradient(scaler.scale(yr))
+                yr_pred = model(xr, deterministic=deterministic)
+                fut_r = jax.lax.stop_gradient(model.encode_latent(yr["proprio_obs"], yr["extero_obs"], deterministic=True))
+                terms.append(jnp.mean((yr_pred["latents"] - fut_r) ** 2))
+            replay_latent_loss = sum(terms) / len(terms)
         bw = float(self.loss_cfg.get("boundary_weight", 1.0))
         if (self.loss_cfg.get("prior_weight", False) and "prior_weight" in y) or (bw != 1.0 and "steps_to_end" in y):
             # per-window weights: prior-consistency (design doc 9) and/or fall-boundary weight (design doc 10 §7:

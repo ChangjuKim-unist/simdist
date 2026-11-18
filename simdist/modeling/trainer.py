@@ -268,9 +268,10 @@ def train(cfg: dict):
     optimizer = nnx.Optimizer(model, tx, wrt=filt)
 
     # optional simulation replay for the value data anchor (see losses.WorldModelValueAdaptLoss)
-    replay_cfg = adapt_cfg.get("replay", {}) or {}
-    replay_iter = None
-    if replay_cfg.get("dataset_name"):
+    replay_iters = []
+    for replay_cfg in (adapt_cfg.get("replay", {}) or {}, adapt_cfg.get("replay2", {}) or {}):  # replay2: design doc 31
+        if not replay_cfg.get("dataset_name"):
+            continue
         replay_cfg_full = dict(cfg)
         replay_cfg_full["data"] = {"dataset_name": replay_cfg["dataset_name"]}
         if replay_cfg.get("system_name"):
@@ -295,7 +296,7 @@ def train(cfg: dict):
                     if b is not None:
                         yield b
 
-        replay_iter = _cycle(replay_loader)
+        replay_iters.append(_cycle(replay_loader))
         print(f"Replay from simulation dataset: {replay_cfg['dataset_name']} (batch {replay_cfg.get('batch_size', 64)})")
     metrics = nnx.MultiMetric(
         loss=nnx.metrics.Average("loss"),
@@ -324,11 +325,11 @@ def train(cfg: dict):
         metrics: nnx.MultiMetric,
         x: types.ModelInputs,
         y: types.TrainingLabels,
-        xr: types.ModelInputs,
-        yr: types.TrainingLabels,
+        replays,
     ):
+        # replays: tuple of (x_sim, y_sim) batches; a single one is passed as the plain tuple the losses expect
         def loss_with_replay(model, x, y, deterministic):
-            return loss_fn(model, x, y, deterministic, replay=(xr, yr))
+            return loss_fn(model, x, y, deterministic, replay=replays[0] if len(replays) == 1 else list(replays))
 
         grad_fn = nnx.value_and_grad(loss_with_replay, argnums=diff_state, has_aux=True)
         (loss, losses), grads = grad_fn(model, x, y, False)
@@ -362,11 +363,11 @@ def train(cfg: dict):
             if batch is None:
                 continue
             batch = model_utils.dataset_batch_to_jax(batch)
-            if replay_iter is not None:
-                rb = model_utils.dataset_batch_to_jax(next(replay_iter))
+            if replay_iters:
+                rbs = [model_utils.dataset_batch_to_jax(next(it)) for it in replay_iters]
                 loss = train_step_replay(
                     model, optimizer, metrics, batch["model_in"], batch["labels"],
-                    rb["model_in"], rb["labels"],
+                    tuple((rb["model_in"], rb["labels"]) for rb in rbs),
                 )
             else:
                 loss = train_step(
