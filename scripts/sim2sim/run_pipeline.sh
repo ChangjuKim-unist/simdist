@@ -102,6 +102,10 @@ variant_overrides() {
     # --- design doc 31: one model with a condition token (FiLM context, xi = [1,0,0,0] on the adaptation batch, xi = 0 on
     #     the replay batches); replay = pretraining windows ($NOMINAL_DATASET) + simulation planner windows ($REPLAY2) ---
     tok)         echo "loss=world_model_dynamics_only heads=dynamics_film adapt.film.enabled=true adapt.film.dim=4 adapt.film.n_episodes=0 loss.token_real=[1,0,0,0] loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM} adapt.replay2.dataset_name=$REPLAY2 adapt.replay2.batch_size=32" ;;
+    # --- design doc 32 ablations of the tok recipe: dyn_replay2 = no token, both replay sets; tok_noplan = token, pretraining
+    #     windows only (dyn_replay above = no token, pretraining windows only) ---
+    dyn_replay2) echo "loss=world_model_dynamics_only heads=world_model_dynamics_only loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM} adapt.replay2.dataset_name=$REPLAY2 adapt.replay2.batch_size=32" ;;
+    tok_noplan)  echo "loss=world_model_dynamics_only heads=dynamics_film adapt.film.enabled=true adapt.film.dim=4 adapt.film.n_episodes=0 loss.token_real=[1,0,0,0] loss.replay_weight=0.5 adapt.replay.dataset_name=$NOMINAL_DATASET adapt.replay.batch_size=32 ${REPLAY_SYSTEM:+adapt.replay.system_name=$REPLAY_SYSTEM}" ;;
     dynres)      echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true" ;;
     dynres_na)   echo "loss=world_model_dynamics_only heads=dynamics_residual_only adapt.dynamics_residual.enabled=true adapt.dynamics_residual.action_input=false" ;;
     res)         echo "loss=world_model_value_adapt heads=dynamics_value_residual adapt.value_residual.enabled=true adapt.value_anchor=false" ;;
@@ -168,7 +172,7 @@ stage_finetune() {
       "$RUN" python scripts/finetune_model.py data.dataset_name="${DATASET}_b${b}" system="$SYSTEM" \
         checkpoint.resume_checkpoint="$RESUME_CKPT" run_name="$name" training.max_steps="$FT_STEPS" \
         training.eval_interval="$FT_STEPS" $(variant_overrides "$var") $FT_EXTRA 2>&1 \
-        | grep -E "Parameters to be optimized|Steps: |Stopping|Error|Traceback" | cut -c1-300 || true
+        | grep -E "Parameters to be optimized|Replay from|Steps: |Stopping|Error|Traceback" | cut -c1-300 || true
     done
   done
 }
