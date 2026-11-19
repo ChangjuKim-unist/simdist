@@ -1,0 +1,12 @@
+model,condition,speed,seed,step,steps_since_reset
+P_ICEcal43,ice,0.9,24,560,560
+P_ICEcal43,ice,0.6,26,658,658
+P_ICEcal43,ice,0.3,26,861,861
+P_ICEcal43,ice,0.3,23,1344,1344
+P_ICEcal43,ice,0.9,24,1425,865
+P_ICEcal43,ice,0.9,23,1564,1564
+P_ICEcal43,ice,0.9,24,1635,210
+P_ICEcal43,ice,0.9,23,1700,136
+P_ICEcal43,ice,0.9,22,1765,1765
+P_ICEcal43,ice,0.3,21,1794,1794
+P_ICEcal43,ice,0.9,22,1975,210

@@ -1,0 +1,11 @@
+model,condition,speed,seed,step,steps_since_reset
+B_ICEcal42,ice,0.9,24,168,168
+B_ICEcal42,ice,0.9,24,334,166
+B_ICEcal42,ice,0.9,21,683,683
+B_ICEcal42,ice,0.9,25,739,739
+B_ICEcal42,ice,0.9,25,1123,384
+B_ICEcal42,ice,0.9,21,1363,680
+B_ICEcal42,ice,0.9,21,1524,161
+B_ICEcal42,ice,0.9,25,1675,552
+B_ICEcal42,ice,0.9,22,1785,1785
+B_ICEcal42,ice,0.9,24,1924,1590

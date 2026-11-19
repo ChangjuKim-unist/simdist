@@ -1,0 +1,14 @@
+model,condition,speed,seed,step,steps_since_reset
+P_MOTR44_ice,ice,0.9,14,739,739
+P_MOTR44_ice,ice,0.9,12,969,969
+P_MOTR44_ice,ice,0.9,12,1640,671
+P_MOTR44_ice,ice,0.9,12,1784,144
+P_MOTR44_ice,ice,0.9,16,2170,2170
+P_MOTR44_ice,ice,0.9,15,2328,2328
+P_MOTR44_ice,ice,0.9,15,2472,144
+P_MOTR44_ice,ice,0.9,15,2588,116
+P_MOTR44_ice,ice,0.9,13,2987,2987
+P_MOTR44_ice,ice,0.9,15,3316,728
+P_MOTR44_ice,ice,0.9,12,3537,1753
+P_MOTR44_ice,ice,0.9,15,3878,562
+P_MOTR44_ice,ice,0.9,12,4395,858

@@ -1,0 +1,16 @@
+model,condition,speed,seed,step,steps_since_reset
+B_MOTR42_ice,ice,0.9,11,721,721
+B_MOTR42_ice,ice,0.9,11,937,216
+B_MOTR42_ice,ice,0.9,15,970,970
+B_MOTR42_ice,ice,0.9,16,1186,1186
+B_MOTR42_ice,ice,0.9,16,1356,170
+B_MOTR42_ice,ice,0.9,13,1594,1594
+B_MOTR42_ice,ice,0.9,16,2058,702
+B_MOTR42_ice,ice,0.9,11,2362,1425
+B_MOTR42_ice,ice,0.9,11,2653,291
+B_MOTR42_ice,ice,0.9,11,3072,419
+B_MOTR42_ice,ice,0.9,11,3587,515
+B_MOTR42_ice,ice,0.9,11,3764,177
+B_MOTR42_ice,ice,0.9,15,3876,2906
+B_MOTR42_ice,ice,0.9,12,3917,3917
+B_MOTR42_ice,ice,0.9,13,4609,3015

@@ -1,0 +1,13 @@
+model,condition,speed,seed,step,steps_since_reset
+B_POL_ice,ice,0.9,16,165,165
+B_POL_ice,ice,0.9,12,184,184
+B_POL_ice,ice,0.9,14,185,185
+B_POL_ice,ice,0.9,16,520,355
+B_POL_ice,ice,0.9,14,981,796
+B_POL_ice,ice,0.9,13,1243,1243
+B_POL_ice,ice,0.9,13,1428,185
+B_POL_ice,ice,0.9,12,1518,1334
+B_POL_ice,ice,0.9,12,1651,133
+B_POL_ice,ice,0.9,13,2535,1107
+B_POL_ice,ice,0.9,12,4134,2483
+B_POL_ice,ice,0.9,12,4683,549
