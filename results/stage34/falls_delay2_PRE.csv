@@ -1,0 +1,4 @@
+model,condition,speed,seed,step,steps_since_reset
+delay2_PRE,delay2,0.9,12,419,419
+delay2_PRE,delay2,0.9,14,1443,1443
+delay2_PRE,delay2,0.9,11,1690,1690

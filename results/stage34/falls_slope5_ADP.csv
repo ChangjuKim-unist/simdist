@@ -1,0 +1,15 @@
+model,condition,speed,seed,step,steps_since_reset
+slope5_ADP,slope5,0.9,13,76,76
+slope5_ADP,slope5,0.9,11,90,90
+slope5_ADP,slope5,0.9,14,129,129
+slope5_ADP,slope5,0.9,13,157,81
+slope5_ADP,slope5,0.9,16,190,190
+slope5_ADP,slope5,0.9,13,308,151
+slope5_ADP,slope5,0.9,11,328,238
+slope5_ADP,slope5,0.9,16,335,145
+slope5_ADP,slope5,0.9,14,371,242
+slope5_ADP,slope5,0.9,16,438,103
+slope5_ADP,slope5,0.9,14,444,73
+slope5_ADP,slope5,0.9,13,480,172
+slope5_ADP,slope5,0.9,14,623,179
+slope5_ADP,slope5,0.9,16,703,265

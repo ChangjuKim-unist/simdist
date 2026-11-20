@@ -1,0 +1,3 @@
+model,condition,speed,seed,step,steps_since_reset
+tow20_POL,tow20,0.9,12,202,202
+tow20_POL,tow20,0.9,13,268,268

@@ -1,0 +1,6 @@
+model,condition,speed,seed,step,steps_since_reset
+tow20_ADP,tow20,0.9,13,151,151
+tow20_ADP,tow20,0.6,12,153,153
+tow20_ADP,tow20,0.9,14,270,270
+tow20_ADP,tow20,0.6,12,308,155
+tow20_ADP,tow20,0.9,12,4645,4645

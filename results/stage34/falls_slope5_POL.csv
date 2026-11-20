@@ -1,0 +1,17 @@
+model,condition,speed,seed,step,steps_since_reset
+slope5_POL,slope5,0.9,14,287,287
+slope5_POL,slope5,0.9,13,376,376
+slope5_POL,slope5,0.9,12,452,452
+slope5_POL,slope5,0.9,14,483,196
+slope5_POL,slope5,0.9,12,512,60
+slope5_POL,slope5,0.9,13,546,170
+slope5_POL,slope5,0.9,12,688,176
+slope5_POL,slope5,0.9,14,715,232
+slope5_POL,slope5,0.9,15,1018,1018
+slope5_POL,slope5,0.9,15,1290,272
+slope5_POL,slope5,0.9,13,1505,959
+slope5_POL,slope5,0.9,16,1618,1618
+slope5_POL,slope5,0.9,13,1659,154
+slope5_POL,slope5,0.9,13,1979,320
+slope5_POL,slope5,0.9,13,3078,1099
+slope5_POL,slope5,0.9,13,3141,63

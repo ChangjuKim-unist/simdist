@@ -1,0 +1,4 @@
+model,condition,speed,seed,step,steps_since_reset
+slope3_PRE,slope3,0.9,14,4800,4800
+slope3_PRE,slope3,0.9,14,4860,60
+slope3_PRE,slope3,0.9,14,4987,127

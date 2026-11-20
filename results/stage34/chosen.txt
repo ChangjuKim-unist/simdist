@@ -1,0 +1,5 @@
+leg legR50 walks
+delay delay2 walks
+slope slope5 walks
+tow tow20 walks
+motor mot50 walks
