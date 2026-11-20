@@ -84,6 +84,17 @@ condition_overrides() {
     friction0.15) echo "sim.friction=0.15 sim.add_mass=0.0 sim.motor_strength=1.0" ;;
     combo)        echo "sim.friction=0.4 sim.add_mass=2.0 sim.motor_strength=0.8" ;;
     combo_hard)   echo "sim.friction=0.3 sim.add_mass=3.0 sim.motor_strength=0.6" ;;
+    # --- design doc 34: mid-difficulty candidates (simdist/rl/conditions.py) ---
+    legF70)       echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.leg_strength=[0.7,1,1,1]" ;;
+    legF50)       echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.leg_strength=[0.5,1,1,1]" ;;
+    legR50)       echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.leg_strength=[1,1,0.5,1]" ;;
+    delay1)       echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.act_delay_steps=1" ;;
+    delay2)       echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.act_delay_steps=2" ;;
+    slope3)       echo "sim.friction=0.3 sim.add_mass=0.0 sim.motor_strength=1.0 sim.slope_deg=3" ;;
+    slope5)       echo "sim.friction=0.3 sim.add_mass=0.0 sim.motor_strength=1.0 sim.slope_deg=5" ;;
+    tow10)        echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.tow_force=10" ;;
+    tow20)        echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=1.0 sim.tow_force=20" ;;
+    mot50)        echo "sim.friction=0.8 sim.add_mass=0.0 sim.motor_strength=0.5" ;;
     *) echo "unknown condition: $1" >&2; exit 1 ;;
   esac
 }

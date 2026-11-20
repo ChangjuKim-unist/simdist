@@ -25,6 +25,11 @@ sim:
   restitution: 0.05
   add_mass: 0.0
   motor_strength: 1.0  # scales the motor torque limits (1.0 = nominal)
+  # design doc 34 (simdist/rl/conditions.py); blank = off
+  leg_strength:      # [FL, FR, RL, RR] torque-cap scale per leg
+  act_delay_steps:   # executed joint targets lag the commanded ones by this many control steps (20 ms each)
+  tow_force:         # dragged load [N]: horizontal force on the trunk against the heading, saturating at 0.1 m/s
+  slope_deg:         # uphill slope along +x emulated by tilting gravity (flat ground)
 
 # Act with an exported RL policy instead of the planner (privileged expert, see
 # checkpoints/rl/<rl_run>/policies). Leave rl_run blank to use the planner.

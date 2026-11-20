@@ -53,6 +53,7 @@ from isaaclab.utils import math as math_utils
 from simdist.utils import paths, model as model_utils, config
 from simdist.control.mppi_batch import BatchedMppiController
 from simdist.rl.envs import get_sim_env_cfg
+from simdist.rl import conditions
 
 
 class BatchSim:
@@ -211,8 +212,10 @@ class BatchSim:
         if motor_strength != 1.0:
             act_cfg = env_cfg.scene.robot.actuators["base_legs"]
             act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
+        conditions.apply_to_cfg(env_cfg, cfg["sim"])  # design doc 34
 
         self.env = ManagerBasedRLEnv(env_cfg)
+        self.cond = conditions.Conditions(self.env, cfg["sim"])  # design doc 34: leg strength, action delay, tow force
         # design doc 13 P4: switch every robot's torque cap at sim.motor_switch_step to
         # sim.motor_switch_strength x nominal (online tracking of the context estimate)
         self.motor_switch_step = cfg["sim"].get("motor_switch_step")
@@ -436,7 +439,8 @@ class BatchSim:
             scale = np.clip(k / float(self.cmd_ramp_steps), 0.0, 1.0).astype(np.float32)
             self.cmd_term.speed_scale = torch.from_numpy(scale).to(self.env.device)
 
-        self.obs_dict, reward, terminated, truncated = self.env.step(torch.from_numpy(action).to(self.env.device))[0:4]
+        self.obs_dict, reward, terminated, truncated = self.env.step(self.cond.before_step(torch.from_numpy(action).to(self.env.device)))[0:4]
+        self.cond.after_step(terminated | truncated)
         reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
         tm = self.env.termination_manager
         fall = np.zeros(self.N, bool)

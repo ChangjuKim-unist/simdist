@@ -37,6 +37,7 @@ from simdist.utils import paths, model as model_utils, config
 from simdist.control.controller_base import ControllerInput
 from simdist.control.mppi import MppiController
 from simdist.rl.envs import get_sim_env_cfg
+from simdist.rl import conditions
 from simdist.data.episode_logger import HDF5EpisodeLogger
 
 
@@ -123,9 +124,11 @@ class Go2Sim:
         if motor_strength != 1.0:
             act_cfg = env_cfg.scene.robot.actuators["base_legs"]
             act_cfg.effort_limit = act_cfg.effort_limit * motor_strength
+        conditions.apply_to_cfg(env_cfg, cfg["sim"])  # design doc 34
 
         # create the env
         self.env = ManagerBasedRLEnv(env_cfg)
+        self.cond = conditions.Conditions(self.env, cfg["sim"])  # design doc 34: leg strength, action delay, tow force
         self.cmd_manager = self.env.command_manager
         self.obs_dict, _ = self.env.reset()
         proprio_obs, height_scan = self.get_obs(self.obs_dict)
@@ -254,7 +257,8 @@ class Go2Sim:
 
         # step the simulation
         action_torch = self.action_to_torch(action)
-        self.obs_dict, reward, terminated, truncated = self.env.step(action_torch)[0:4]
+        self.obs_dict, reward, terminated, truncated = self.env.step(self.cond.before_step(action_torch))[0:4]
+        self.cond.after_step(terminated | truncated)
         # the environment resets the robot inside step() on a fall (terminated) and
         # on the episode time limit (truncated); both end the controller episode
         reset = terminated | truncated
