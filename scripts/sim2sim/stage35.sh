@@ -7,19 +7,22 @@
 #       nominal continuation (b0c) of the same length
 #   P4  single-style experts: the paper expert fine-tuned at nominal with one posture target (GO1_STYLE_GRAV), zero-shot
 # Levels = design-34 choices without delay: legR50, slope5, tow20, mot50. 18 robots x 5000 steps, flat ground.
-# usage (gpu1): tmux new -d -s s35 'bash scripts/sim2sim/stage35.sh > results/stage35_server.log 2>&1'
+# usage (gpu1): tmux new -d -s s35 'bash scripts/sim2sim/stage35.sh > /mnt/newssd/cjkim/simdist/results/stage35_server.log 2>&1'
 # SMOKE=1: local check (one GPU, tiny RL runs, 150-step evaluations, two heads, one level)
 set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh; P=scripts/sim2sim/run_pipeline.sh
+# Isaac Sim caches grow by about 1.2 GB per GPU and filled gpu1's root disk on 2026-11-21 (RL scenes); keep them on the big disk
+export CACHE_DIR=${CACHE_DIR:-/mnt/newssd/cjkim/isaac-cache}
+MIN_ROOT_KB=${MIN_ROOT_KB:-400000}  # stop taking jobs when the root disk (docker layers, /tmp) has less than this free
 BIG=${BIG:-/mnt/newssd/cjkim/simdist/results/stage35}; S34=${S34:-/mnt/newssd/cjkim/simdist/results/stage34}
 RLD=${RLD:-/mnt/newssd/cjkim/simdist/rl}; mkdir -p $BIG $RLD
 GPU_LIST=${GPU_LIST:-"0 1 2 3"}; SMOKE=${SMOKE:-0}; M=go1_paper
 PAPER_RL=2026-10-01_10-38-36; PAPER_IT=4999
 CONDS="legR50 slope5 tow20 mot50"
 HEADS="go1_paper_broadhead go1_paper_targethead go1_paper_targethead_s2 go1_paper_payloadhead go1_paper_fr_blanket go1_paper_rw_t05 go1_paper_rw_t06 go1_paper_rw_w02 go1_paper_rw_w06 go1_broadwm"
-TOTAL=5000; SEEDS="[11,12,13,14,15,16]"; KI=0.5; RL_IT=1500; RL_ENVS=1024; RL_SAVE=500
+TOTAL=5000; SEEDS="[11,12,13,14,15,16]"; KI=0.5; RL_IT=1500; RL_ENVS=${RL_ENVS:-1024}; RL_SAVE=500
 RLJOBS="b0c $(for c in $CONDS; do echo spec_$c; done) sty_pp sty_pm sty_rp sty_rm"
 # gpu0 joins only after design 34 has finished (its last adaptation runs there)
-WAIT0=${WAIT0:-results/stage34_server.log}
+WAIT0=${WAIT0:-s34}  # tmux session of design 34
 if [ $SMOKE = 1 ]; then
   CONDS="tow20"; HEADS="go1_paper_broadhead go1_broadwm"; TOTAL=150; SEEDS="[11]"; RL_IT=2; RL_ENVS=64; RL_SAVE=1; WAIT0=""
   RLJOBS="b0c spec_tow20 sty_pp"
@@ -54,11 +57,13 @@ rltrain() { local g=$1 job=$2
   local it; it=$(ls $RLD/$run/policies/ | sed -n 's/policy_\([0-9]*\)\.pt/\1/p' | sort -n | tail -1)
   flock $LOCK bash -c "echo '$job $run $it' >> $BIG/rl_runs.txt"
   echo "-- rl $job done: run $run iteration $it $(date +%H:%M)"; }
-dojob() { local g=$1 line=$2; IFS='|' read -r kind name ck c extra <<< "$line"
+dojob() { local g=$1 r=$2 kind name ck c extra  # split without a here-string (needs no temp file)
+  kind=${r%%|*}; r=${r#*|}; name=${r%%|*}; r=${r#*|}; ck=${r%%|*}; r=${r#*|}; c=${r%%|*}; extra=${r#*|}
   if [ "$kind" = rl ]; then rltrain $g $name; else evalrun $g $name $ck $c "$extra"; fi; }
 worker() { local g=$1 Q=$2
-  if [ $g = 0 ] && [ -n "$WAIT0" ]; then until grep -qa "### stage34 done" $WAIT0; do sleep 60; done; echo "== gpu0 joins $(date +%H:%M)"; fi
+  if [ $g = 0 ] && [ -n "$WAIT0" ]; then while tmux has-session -t $WAIT0 2>/dev/null; do sleep 60; done; echo "== gpu0 joins $(date +%H:%M)"; fi
   while true; do
+    [ "$(df --output=avail / | tail -1)" -lt $MIN_ROOT_KB ] && { echo "!! root disk nearly full, gpu$g stops taking jobs $(date +%H:%M)"; break; }
     local job; job=$(flock $LOCK bash -c "head -1 $Q; sed -i 1d $Q"); [ -z "$job" ] && break
     dojob $g "$job"
   done; }
