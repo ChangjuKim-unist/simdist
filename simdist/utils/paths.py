@@ -6,7 +6,8 @@ _THIS_MODULE_PATH = os.path.dirname(os.path.abspath(__file__))
 _SIMDIST_MODULE_PATH = os.path.dirname(_THIS_MODULE_PATH)
 SIMDIST_ROOT_PATH = os.path.dirname(_SIMDIST_MODULE_PATH)
 _PATHS = {
-    "RL_CHECKPOINTS": os.path.join(SIMDIST_ROOT_PATH, "checkpoints", "rl"),
+    # design doc 35: SIMDIST_RL_DIR moves RL runs off a full root disk (training writes and evaluation reads there)
+    "RL_CHECKPOINTS": os.path.abspath(os.environ.get("SIMDIST_RL_DIR") or os.path.join(SIMDIST_ROOT_PATH, "checkpoints", "rl")),
     "CONFIG": os.path.join(SIMDIST_ROOT_PATH, "config"),
     "ALL_DATASETS": os.path.join(SIMDIST_ROOT_PATH, "datasets"),
     "SIM_DATASETS": os.path.join(SIMDIST_ROOT_PATH, "datasets", "sim"),

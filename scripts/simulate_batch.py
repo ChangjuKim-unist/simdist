@@ -239,6 +239,13 @@ class BatchSim:
 
         self.last_action = self.zero_action.copy()
         self.steps_since_reset = np.zeros(self.N, np.int64)
+        # design doc 35: integral term on the model-side command (sim.cmd_ki, blank = off)
+        self.cmd_ki = float(cfg["sim"].get("cmd_ki") or 0.0)
+        self.cmd_i_max = float(cfg["sim"].get("cmd_i_max") or 0.5)
+        self.cmd_I = np.zeros((self.N, 3), np.float32)
+        self.cmd_box_lo = np.array([-0.5, -0.5, -1.0], np.float32); self.cmd_box_hi = np.array([1.5, 0.5, 1.0], np.float32)
+        if self.cmd_ki:
+            print(f"integral command term on: ki {self.cmd_ki}, |I| <= {self.cmd_i_max}", flush=True)
         self.run_reward = np.zeros(self.N)
         self.num_resets = np.zeros(self.N, np.int64)
         self.num_falls = np.zeros(self.N, np.int64)     # base/thigh contact or bad orientation
@@ -274,7 +281,9 @@ class BatchSim:
                                          "joint_vel", "torque", "foot_force",
                                          # design doc 33: who acted (0 planner, 1 policy start, 2 fallback model, 3 fallback policy)
                                          # and the window mean of the one-step error that the switch saw at this step
-                                         "mode", "err_mean")}
+                                         "mode", "err_mean",
+                                         # design doc 35: the command handed to the model (outer-loop command + integral term)
+                                         "cmd_model")}
             self.joint_names = list(robot.joint_names)
             print(f"diagnostics on: feet {self.foot_names}", flush=True)
 
@@ -316,10 +325,15 @@ class BatchSim:
         """Design doc 26: record the state at step t and the model's view of the executed plan and of the policy head's plan."""
         c = self.controller; d = self.diag
         plan_exec = np.where(resetting[:, None, None], 0.0, plan).astype(np.float32)
-        base = np.asarray(c.last_base_actions, np.float32)
-        z, pl, pr, pv = tr  # model.checkpoint's view of the executed plan (computed in step)
-        _, _, br, bv = c.trace(base)
         disc = np.asarray(c.discounts, np.float32); fd = float(c.final_discount)
+        if tr is None:  # design doc 35: the RL expert acted; no model view of the plan
+            base = plan_exec
+            pr = br = np.full((self.N, len(disc)), np.nan, np.float32); pv = bv = np.full((self.N, 1), np.nan, np.float32)
+        else:
+            base = np.asarray(c.last_base_actions, np.float32)
+            z, pl, pr, pv = tr  # model.checkpoint's view of the executed plan (computed in step)
+            _, _, br, bv = c.trace(base)
+        d["cmd_model"].append(np.asarray(getattr(self, "cmd_model", cmd), np.float32).astype(np.float16))
         d["mode"].append(mode.copy()); d["err_mean"].append(err_mean.copy())
         robot = self.env.scene["robot"].data; cs = self.env.scene.sensors["contact_forces"].data
         g = lambda t: t.detach().cpu().numpy()  # noqa: E731
@@ -363,7 +377,13 @@ class BatchSim:
         resetting = self.steps_since_reset < self.reset_steps
         cmd = self.cmd_manager.get_command("base_velocity").cpu().numpy().copy()
         cmd[resetting] = 0.0
-        self.controller.set_fut_cmd(cmd)
+        cmd_model = cmd
+        if self.cmd_ki:
+            self.cmd_I[resetting] = 0.0
+            cmd_model = np.clip(cmd + self.cmd_I, self.cmd_box_lo, self.cmd_box_hi).astype(np.float32)
+            cmd_model[resetting] = 0.0
+        self.cmd_model = cmd_model
+        self.controller.set_fut_cmd(cmd_model)
         proprio, extero = self.get_obs()
         self.controller.update(proprio, extero, self.last_action)
         if self.ctx_csv and self.total % 25 == 0:
@@ -379,6 +399,10 @@ class BatchSim:
         if self.rl_policy is not None and self.expert_use == "act":
             with torch.no_grad():
                 action = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy()
+            if self.diag is not None:  # design doc 35: body state, reward terms and falls of the expert (no model fields)
+                plan = np.repeat(np.asarray(action, np.float32)[:, None, :], self.controller.T, axis=1)
+                self._diag_pre(plan, resetting, cmd, None, np.full(self.N, np.nan, np.float32),
+                               np.zeros(self.N, np.int8), np.full(self.N, np.nan, np.float32))
         elif self.student is not None and self.expert_use == "student_act":
             # the student alone: first step of its action sequence, receding horizon
             action = np.asarray(self.student(self.controller._model_inputs()))[:, 0]
@@ -442,6 +466,13 @@ class BatchSim:
         self.obs_dict, reward, terminated, truncated = self.env.step(self.cond.before_step(torch.from_numpy(action).to(self.env.device)))[0:4]
         self.cond.after_step(terminated | truncated)
         reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
+        if self.cmd_ki:  # design doc 35: integrate the gap between the outer-loop command and the measured motion
+            rd = self.env.scene["robot"].data
+            meas = np.concatenate([rd.root_lin_vel_b[:, :2].cpu().numpy(), rd.root_ang_vel_b[:, 2:3].cpu().numpy()], axis=1)
+            upd = (~resetting) & (~reset)
+            self.cmd_I[upd] += self.cmd_ki * float(self.env.step_dt) * (cmd[upd] - meas[upd])
+            np.clip(self.cmd_I, -self.cmd_i_max, self.cmd_i_max, out=self.cmd_I)
+            self.cmd_I[reset] = 0.0
         tm = self.env.termination_manager
         fall = np.zeros(self.N, bool)
         for t in self.fall_terms:

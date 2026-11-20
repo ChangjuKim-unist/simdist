@@ -37,6 +37,11 @@ sim:
   act_delay_steps:   # executed joint targets lag the commanded ones by this many control steps (20 ms each)
   tow_force:         # dragged load [N]: horizontal force on the trunk against the heading, saturating at 0.1 m/s
   slope_deg:         # uphill slope along +x emulated by tilting gravity (flat ground)
+  # design doc 35: integral term on the command handed to the model (planner / policy head; not the RL expert).
+  # model command = outer-loop command + I, I += cmd_ki * dt * (outer-loop command - measured [vx, vy, yaw rate]),
+  # |I| <= cmd_i_max per axis, sum clipped to the training box; I = 0 after a reset. Blank / 0 = off
+  cmd_ki:
+  cmd_i_max: 0.5
   # design doc 13: feed the true standardized physics into the context slot (oracle, P2)
   context_oracle: false
   # design doc 21 gate 0: fixed fitted context, 3 standardized values [motor, friction, mass] (null = inferred)

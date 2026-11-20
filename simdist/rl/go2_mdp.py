@@ -865,3 +865,12 @@ class WalkStraightCommandCfg(CommandTermCfg):
     # Set the scale of the visualization markers to (0.5, 0.5, 0.5)
     goal_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
     current_vel_visualizer_cfg.markers["arrow"].scale = (0.5, 0.5, 0.5)
+
+
+def flat_orientation_target_l2(
+    env: ManagerBasedRLEnv, target=(0.0, 0.0), asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Design doc 35: squared distance of the projected gravity's horizontal part to a target tilt (0, 0 = flat_orientation_l2)."""
+    asset = env.scene[asset_cfg.name]
+    t = torch.tensor(target, device=env.device, dtype=asset.data.projected_gravity_b.dtype)
+    return torch.sum(torch.square(asset.data.projected_gravity_b[:, :2] - t), dim=1)

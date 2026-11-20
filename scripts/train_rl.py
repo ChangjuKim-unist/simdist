@@ -116,10 +116,19 @@ def main(
     os.makedirs(log_dir, exist_ok=True)
     print(f"[INFO] Logging experiment in directory: {log_dir}")
 
+    # design doc 35: SIMDIST_COND (JSON) trains inside a test condition (simdist/rl/conditions.py)
+    from simdist.rl import conditions
+
+    cond = conditions.from_env()
+    if cond:
+        conditions.apply_train_cfg(env_cfg, cond)
+
     # create isaac environment
     env = gym.make(
         args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
     )
+    if cond:
+        env = conditions.ConditionEnvWrapper(env, cond)
 
     # convert to single-agent instance if required by the RL algorithm
     if isinstance(env.unwrapped, DirectMARLEnv):

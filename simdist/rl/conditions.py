@@ -76,3 +76,46 @@ class Conditions:
             mask = torch.as_tensor(reset, device=self.env.device, dtype=torch.bool)
             for b in self.buf:
                 b[mask] = 0.0
+
+
+# ---- design doc 35: the same conditions inside RL training (specialist experts) ----------------------------------------
+def from_env():
+    """SIMDIST_COND = JSON dict with the sim.* keys above plus motor_strength and friction (blank = no condition)."""
+    import json
+    import os
+
+    v = os.environ.get("SIMDIST_COND")
+    return json.loads(v) if v else {}
+
+
+def apply_train_cfg(env_cfg, cond: dict) -> None:
+    """Before gym.make: uniform torque cap (as sim.motor_strength in the evaluators), fixed foot friction, slope."""
+    ms = float(cond.get("motor_strength") or 1.0)
+    if ms != 1.0:
+        act_cfg = env_cfg.scene.robot.actuators["base_legs"]
+        act_cfg.effort_limit = act_cfg.effort_limit * ms
+        print(f"condition: motor strength {ms}", flush=True)
+    if cond.get("friction") is not None:
+        f = float(cond["friction"])
+        env_cfg.events.physics_material.params["static_friction_range"] = (f, f)
+        env_cfg.events.physics_material.params["dynamic_friction_range"] = (f, f)
+        print(f"condition: foot friction fixed at {f}", flush=True)
+    apply_to_cfg(env_cfg, cond)
+
+
+try:
+    import gymnasium as _gym
+
+    class ConditionEnvWrapper(_gym.Wrapper):
+        """Wraps the Isaac Lab env (before RslRlVecEnvWrapper) so that leg caps, tow force and delay act during training."""
+
+        def __init__(self, env, cond: dict):
+            super().__init__(env)
+            self.cond = Conditions(env.unwrapped, cond)
+
+        def step(self, action):
+            out = self.env.step(self.cond.before_step(action))
+            self.cond.after_step(out[2] | out[3])
+            return out
+except ImportError:  # the closed-loop simulators do not need it
+    pass

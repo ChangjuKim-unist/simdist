@@ -80,6 +80,17 @@ def _apply_go1(cfg: Go2EnvCfg):
         cfg.events.add_base_mass.params["mass_distribution_params"] = (lo, hi)
         print(f"[go1] added-mass DR range from GO1_MASS_DR: ({lo}, {hi})")
 
+    # optional posture style (design doc 35, single-style experts): GO1_STYLE_GRAV="gx,gy" makes the flat-orientation
+    # penalty pull the projected gravity's horizontal part to (gx, gy) instead of (0, 0); same weight
+    sg = os.environ.get("GO1_STYLE_GRAV")
+    if sg:
+        from simdist.rl import go2_mdp
+
+        gx, gy = (float(x) for x in sg.split(","))
+        cfg.rewards.flat_orientation_l2.func = go2_mdp.flat_orientation_target_l2
+        cfg.rewards.flat_orientation_l2.params["target"] = (gx, gy)
+        print(f"[go1] posture style from GO1_STYLE_GRAV: projected gravity target ({gx}, {gy})")
+
     # the Go1 has no head bodies
     cfg.terminations.base_contact.params["sensor_cfg"].body_names = [
         BASE_BODY,
