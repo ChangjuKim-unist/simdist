@@ -1,0 +1,16 @@
+model,condition,speed,seed,step,steps_since_reset
+c1_mot50_ADP_shift,mot50,0.6,12,606,606
+c1_mot50_ADP_shift,mot50,0.6,12,1444,838
+c1_mot50_ADP_shift,mot50,0.6,16,1727,1727
+c1_mot50_ADP_shift,mot50,0.6,12,1748,304
+c1_mot50_ADP_shift,mot50,0.6,12,1828,80
+c1_mot50_ADP_shift,mot50,0.6,13,2199,2199
+c1_mot50_ADP_shift,mot50,0.3,12,2529,2529
+c1_mot50_ADP_shift,mot50,0.9,12,2819,2819
+c1_mot50_ADP_shift,mot50,0.3,14,3173,3173
+c1_mot50_ADP_shift,mot50,0.6,14,3996,3996
+c1_mot50_ADP_shift,mot50,0.6,16,4253,2526
+c1_mot50_ADP_shift,mot50,0.6,16,4580,327
+c1_mot50_ADP_shift,mot50,0.6,16,4775,195
+c1_mot50_ADP_shift,mot50,0.3,14,4863,1690
+c1_mot50_ADP_shift,mot50,0.3,12,4975,2446

@@ -1,0 +1,8 @@
+model,condition,speed,seed,step,steps_since_reset
+c1_tow20_PRE_fwd,tow20,0.9,13,871,871
+c1_tow20_PRE_fwd,tow20,0.9,15,954,954
+c1_tow20_PRE_fwd,tow20,0.9,14,1168,1168
+c1_tow20_PRE_fwd,tow20,0.9,11,2164,2164
+c1_tow20_PRE_fwd,tow20,0.9,11,3008,844
+c1_tow20_PRE_fwd,tow20,0.9,11,3802,794
+c1_tow20_PRE_fwd,tow20,0.9,15,4846,3892

@@ -1,0 +1,13 @@
+model,condition,speed,seed,step,steps_since_reset
+c1_mot50_PRE_shift,mot50,0.6,14,269,269
+c1_mot50_PRE_shift,mot50,0.6,13,522,522
+c1_mot50_PRE_shift,mot50,0.9,16,631,631
+c1_mot50_PRE_shift,mot50,0.9,11,1702,1702
+c1_mot50_PRE_shift,mot50,0.6,16,1959,1959
+c1_mot50_PRE_shift,mot50,0.3,14,2163,2163
+c1_mot50_PRE_shift,mot50,0.9,11,2828,1126
+c1_mot50_PRE_shift,mot50,0.9,14,3770,3770
+c1_mot50_PRE_shift,mot50,0.9,14,4387,617
+c1_mot50_PRE_shift,mot50,0.6,15,4505,4505
+c1_mot50_PRE_shift,mot50,0.9,12,4888,4888
+c1_mot50_PRE_shift,mot50,0.6,13,4906,4384
