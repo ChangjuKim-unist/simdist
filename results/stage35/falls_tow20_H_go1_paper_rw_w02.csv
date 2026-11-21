@@ -1,0 +1,4 @@
+model,condition,speed,seed,step,steps_since_reset
+tow20_H_go1_paper_rw_w02,tow20,0.9,11,283,283
+tow20_H_go1_paper_rw_w02,tow20,0.9,13,383,383
+tow20_H_go1_paper_rw_w02,tow20,0.3,12,977,977

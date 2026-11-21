@@ -1,0 +1,17 @@
+model,condition,speed,seed,step,steps_since_reset
+legR50_H_go1_paper_rw_t06,legR50,0.9,14,291,291
+legR50_H_go1_paper_rw_t06,legR50,0.9,15,1306,1306
+legR50_H_go1_paper_rw_t06,legR50,0.9,13,1376,1376
+legR50_H_go1_paper_rw_t06,legR50,0.9,11,1565,1565
+legR50_H_go1_paper_rw_t06,legR50,0.6,15,1632,1632
+legR50_H_go1_paper_rw_t06,legR50,0.6,14,1635,1635
+legR50_H_go1_paper_rw_t06,legR50,0.9,11,2430,865
+legR50_H_go1_paper_rw_t06,legR50,0.6,14,2528,893
+legR50_H_go1_paper_rw_t06,legR50,0.9,16,2984,2984
+legR50_H_go1_paper_rw_t06,legR50,0.6,12,3683,3683
+legR50_H_go1_paper_rw_t06,legR50,0.6,11,4057,4057
+legR50_H_go1_paper_rw_t06,legR50,0.9,14,4203,3912
+legR50_H_go1_paper_rw_t06,legR50,0.9,16,4497,1513
+legR50_H_go1_paper_rw_t06,legR50,0.9,14,4528,325
+legR50_H_go1_paper_rw_t06,legR50,0.6,13,4558,4558
+legR50_H_go1_paper_rw_t06,legR50,0.6,12,4743,1060

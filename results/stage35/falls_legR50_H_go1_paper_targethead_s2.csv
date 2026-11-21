@@ -1,0 +1,4 @@
+model,condition,speed,seed,step,steps_since_reset
+legR50_H_go1_paper_targethead_s2,legR50,0.9,16,237,237
+legR50_H_go1_paper_targethead_s2,legR50,0.9,14,241,241
+legR50_H_go1_paper_targethead_s2,legR50,0.9,13,242,242

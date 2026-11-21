@@ -1,0 +1,14 @@
+model,condition,speed,seed,step,steps_since_reset
+slope5_H_go1_paper_broadhead,slope5,0.9,15,326,326
+slope5_H_go1_paper_broadhead,slope5,0.9,15,390,64
+slope5_H_go1_paper_broadhead,slope5,0.9,16,446,446
+slope5_H_go1_paper_broadhead,slope5,0.9,11,460,460
+slope5_H_go1_paper_broadhead,slope5,0.9,12,543,543
+slope5_H_go1_paper_broadhead,slope5,0.9,14,581,581
+slope5_H_go1_paper_broadhead,slope5,0.9,16,650,204
+slope5_H_go1_paper_broadhead,slope5,0.9,11,750,290
+slope5_H_go1_paper_broadhead,slope5,0.9,11,809,59
+slope5_H_go1_paper_broadhead,slope5,0.9,12,897,354
+slope5_H_go1_paper_broadhead,slope5,0.9,12,991,94
+slope5_H_go1_paper_broadhead,slope5,0.9,12,1190,199
+slope5_H_go1_paper_broadhead,slope5,0.9,12,1215,25

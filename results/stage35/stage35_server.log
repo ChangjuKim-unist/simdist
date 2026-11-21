@@ -1,0 +1,743 @@
+### stage35 start Sat Nov 21 13:52:24 KST 2026
+== nominal_PREI gpu0 13:52
+== legR50_ADPI gpu1 13:52
+== slope5_ADPI gpu2 13:53
+== tow20_ADPI gpu3 13:53
+[2026-11-21 04:52:52,952][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_PREI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_PREI.csv (0 rows)
+-- nominal_PREI done gpu0 14:44
+== mot50_ADPI gpu0 14:44
+[2026-11-21 04:53:13,648][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_legR50_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_legR50_dyn_b45000_s42/model_config.yaml) to be a directory.
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_ADPI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_ADPI.csv (0 rows)
+-- legR50_ADPI done gpu1 14:44
+== nominal_POLI gpu1 14:44
+[2026-11-21 04:53:33,623][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_slope5_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_slope5_dyn_b45000_s42/model_config.yaml) to be a directory.
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_ADPI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_ADPI.csv (94 rows)
+-- slope5_ADPI done gpu2 14:45
+== legR50_POLI gpu2 14:45
+[2026-11-21 04:53:52,903][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_tow20_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_tow20_dyn_b45000_s42/model_config.yaml) to be a directory.
+condition: tow force 20.0 N on ['trunk']
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_ADPI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_ADPI.csv (6 rows)
+-- tow20_ADPI done gpu3 14:45
+== slope5_POLI gpu3 14:45
+[2026-11-21 05:45:05,429][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_POLI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_POLI.csv (0 rows)
+-- nominal_POLI done gpu1 14:49
+== tow20_POLI gpu1 14:49
+[2026-11-21 05:45:46,521][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_POLI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_POLI.csv (0 rows)
+-- legR50_POLI done gpu2 14:50
+== mot50_POLI gpu2 14:50
+[2026-11-21 05:46:24,886][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_POLI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_POLI.csv (94 rows)
+-- slope5_POLI done gpu3 14:51
+== nominal_H_go1_paper_broadhead gpu3 14:51
+[2026-11-21 05:50:18,856][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+condition: tow force 20.0 N on ['trunk']
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_POLI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_POLI.csv (3 rows)
+-- tow20_POLI done gpu1 14:55
+== nominal_H_go1_paper_targethead gpu1 14:55
+[2026-11-21 05:50:50,094][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_POLI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_POLI.csv (53 rows)
+-- mot50_POLI done gpu2 14:55
+== nominal_H_go1_paper_targethead_s2 gpu2 14:55
+[2026-11-21 05:51:47,623][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 05:51:48,865][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_broadhead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_broadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_broadhead.csv (0 rows)
+-- nominal_H_go1_paper_broadhead done gpu3 15:12
+== nominal_H_go1_paper_payloadhead gpu3 15:12
+[2026-11-21 05:55:38,938][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 05:55:40,121][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_targethead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_targethead.csv (0 rows)
+-- nominal_H_go1_paper_targethead done gpu1 15:16
+== nominal_H_go1_paper_fr_blanket gpu1 15:16
+[2026-11-21 05:56:02,718][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 05:56:03,930][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead_s2
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_targethead_s2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_targethead_s2.csv (0 rows)
+-- nominal_H_go1_paper_targethead_s2 done gpu2 15:17
+== nominal_H_go1_paper_rw_t05 gpu2 15:17
+[2026-11-21 06:12:52,318][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:12:53,522][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_payloadhead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_payloadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_payloadhead.csv (0 rows)
+-- nominal_H_go1_paper_payloadhead done gpu3 15:33
+== nominal_H_go1_paper_rw_t06 gpu3 15:33
+[2026-11-21 05:44:46,659][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_mot50_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_mot50_dyn_b45000_s42/model_config.yaml) to be a directory.
+integral command term on: ki 0.5, |I| <= 0.5
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_ADPI.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_ADPI.csv (24 rows)
+-- mot50_ADPI done gpu0 15:36
+== nominal_H_go1_paper_rw_w02 gpu0 15:36
+[2026-11-21 06:16:32,541][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:16:33,754][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_fr_blanket
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_fr_blanket.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_fr_blanket.csv (0 rows)
+-- nominal_H_go1_paper_fr_blanket done gpu1 15:37
+== nominal_H_go1_paper_rw_w06 gpu1 15:37
+[2026-11-21 06:17:35,634][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:17:36,872][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t05
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_rw_t05.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_rw_t05.csv (25 rows)
+-- nominal_H_go1_paper_rw_t05 done gpu2 15:38
+== nominal_H_go1_broadwm gpu2 15:38
+[2026-11-21 06:33:58,264][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:33:59,412][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_rw_t06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_rw_t06.csv (0 rows)
+-- nominal_H_go1_paper_rw_t06 done gpu3 15:55
+== legR50_H_go1_paper_broadhead gpu3 15:55
+[2026-11-21 06:36:54,986][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:36:56,210][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w02
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_rw_w02.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_rw_w02.csv (24 rows)
+-- nominal_H_go1_paper_rw_w02 done gpu0 15:58
+== legR50_H_go1_paper_targethead gpu0 15:58
+[2026-11-21 06:37:30,457][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:37:31,658][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w06
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_paper_rw_w06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_paper_rw_w06.csv (122 rows)
+-- nominal_H_go1_paper_rw_w06 done gpu1 15:58
+== legR50_H_go1_paper_targethead_s2 gpu1 15:58
+[2026-11-21 06:38:53,450][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:38:54,615][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_H_go1_broadwm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_H_go1_broadwm.csv (0 rows)
+-- nominal_H_go1_broadwm done gpu2 16:00
+== legR50_H_go1_paper_payloadhead gpu2 16:00
+[2026-11-21 06:55:54,215][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:55:55,427][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_broadhead
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_broadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_broadhead.csv (23 rows)
+-- legR50_H_go1_paper_broadhead done gpu3 16:17
+== legR50_H_go1_paper_fr_blanket gpu3 16:17
+[2026-11-21 06:58:34,390][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:58:35,510][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_targethead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_targethead.csv (0 rows)
+-- legR50_H_go1_paper_targethead done gpu0 16:19
+== legR50_H_go1_paper_rw_t05 gpu0 16:19
+[2026-11-21 06:59:13,646][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 06:59:14,838][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead_s2
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_targethead_s2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_targethead_s2.csv (3 rows)
+-- legR50_H_go1_paper_targethead_s2 done gpu1 16:21
+== legR50_H_go1_paper_rw_t06 gpu1 16:21
+[2026-11-21 07:00:29,530][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:00:30,701][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_payloadhead
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_payloadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_payloadhead.csv (16 rows)
+-- legR50_H_go1_paper_payloadhead done gpu2 16:22
+== legR50_H_go1_paper_rw_w02 gpu2 16:22
+[2026-11-21 07:18:11,890][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:18:13,079][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_fr_blanket
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_fr_blanket.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_fr_blanket.csv (87 rows)
+-- legR50_H_go1_paper_fr_blanket done gpu3 16:39
+== legR50_H_go1_paper_rw_w06 gpu3 16:39
+[2026-11-21 07:19:57,549][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:19:58,699][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t05
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_rw_t05.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_rw_t05.csv (17 rows)
+-- legR50_H_go1_paper_rw_t05 done gpu0 16:41
+== legR50_H_go1_broadwm gpu0 16:41
+[2026-11-21 07:21:37,835][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:21:39,035][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_rw_t06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_rw_t06.csv (16 rows)
+-- legR50_H_go1_paper_rw_t06 done gpu1 16:43
+== slope5_H_go1_paper_broadhead gpu1 16:43
+[2026-11-21 07:22:46,717][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:22:47,946][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w02
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_rw_w02.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_rw_w02.csv (33 rows)
+-- legR50_H_go1_paper_rw_w02 done gpu2 16:44
+== slope5_H_go1_paper_targethead gpu2 16:44
+[2026-11-21 07:39:58,808][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:39:59,982][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w06
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_paper_rw_w06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_paper_rw_w06.csv (96 rows)
+-- legR50_H_go1_paper_rw_w06 done gpu3 17:01
+== slope5_H_go1_paper_targethead_s2 gpu3 17:01
+[2026-11-21 07:41:51,766][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:41:52,986][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_H_go1_broadwm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_H_go1_broadwm.csv (0 rows)
+-- legR50_H_go1_broadwm done gpu0 17:03
+== slope5_H_go1_paper_payloadhead gpu0 17:03
+[2026-11-21 07:43:43,365][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:43:44,570][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_broadhead
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_broadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_broadhead.csv (13 rows)
+-- slope5_H_go1_paper_broadhead done gpu1 17:05
+== slope5_H_go1_paper_fr_blanket gpu1 17:05
+[2026-11-21 07:44:33,529][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 07:44:34,749][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_targethead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_targethead.csv (16 rows)
+-- slope5_H_go1_paper_targethead done gpu2 17:06
+== slope5_H_go1_paper_rw_t05 gpu2 17:06
+[2026-11-21 08:01:55,026][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:01:56,218][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead_s2
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_targethead_s2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_targethead_s2.csv (389 rows)
+-- slope5_H_go1_paper_targethead_s2 done gpu3 17:23
+== slope5_H_go1_paper_rw_t06 gpu3 17:23
+[2026-11-21 08:03:40,440][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:03:41,606][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_payloadhead
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_payloadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_payloadhead.csv (299 rows)
+-- slope5_H_go1_paper_payloadhead done gpu0 17:24
+== slope5_H_go1_paper_rw_w02 gpu0 17:24
+[2026-11-21 08:05:54,148][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:05:55,321][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_fr_blanket
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_fr_blanket.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_fr_blanket.csv (117 rows)
+-- slope5_H_go1_paper_fr_blanket done gpu1 17:27
+== slope5_H_go1_paper_rw_w06 gpu1 17:27
+[2026-11-21 08:06:28,870][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:06:30,126][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t05
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_rw_t05.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_rw_t05.csv (54 rows)
+-- slope5_H_go1_paper_rw_t05 done gpu2 17:28
+== slope5_H_go1_broadwm gpu2 17:28
+[2026-11-21 08:23:59,060][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:24:00,219][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_rw_t06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_rw_t06.csv (15 rows)
+-- slope5_H_go1_paper_rw_t06 done gpu3 17:44
+== tow20_H_go1_paper_broadhead gpu3 17:44
+[2026-11-21 08:25:05,667][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:25:06,866][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w02
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_rw_w02.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_rw_w02.csv (25 rows)
+-- slope5_H_go1_paper_rw_w02 done gpu0 17:46
+== tow20_H_go1_paper_targethead gpu0 17:46
+[2026-11-21 08:28:23,486][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:28:24,677][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w06
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_paper_rw_w06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_paper_rw_w06.csv (576 rows)
+-- slope5_H_go1_paper_rw_w06 done gpu1 17:50
+== tow20_H_go1_paper_targethead_s2 gpu1 17:50
+[2026-11-21 08:29:00,765][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:29:01,992][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_H_go1_broadwm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_H_go1_broadwm.csv (0 rows)
+-- slope5_H_go1_broadwm done gpu2 17:50
+== tow20_H_go1_paper_payloadhead gpu2 17:50
+[2026-11-21 08:46:36,380][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:46:37,535][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_targethead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_targethead.csv (113 rows)
+-- tow20_H_go1_paper_targethead done gpu0 18:07
+== tow20_H_go1_paper_fr_blanket gpu0 18:07
+[2026-11-21 08:45:28,971][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:45:30,170][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_broadhead
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_broadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_broadhead.csv (75 rows)
+-- tow20_H_go1_paper_broadhead done gpu3 18:07
+== tow20_H_go1_paper_rw_t05 gpu3 18:07
+[2026-11-21 08:50:34,038][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:50:35,178][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead_s2
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_targethead_s2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_targethead_s2.csv (67 rows)
+-- tow20_H_go1_paper_targethead_s2 done gpu1 18:11
+== tow20_H_go1_paper_rw_t06 gpu1 18:11
+[2026-11-21 08:51:13,913][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 08:51:15,109][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_payloadhead
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_payloadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_payloadhead.csv (74 rows)
+-- tow20_H_go1_paper_payloadhead done gpu2 18:12
+== tow20_H_go1_paper_rw_w02 gpu2 18:12
+[2026-11-21 09:07:50,431][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:07:51,644][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_fr_blanket
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_fr_blanket.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_fr_blanket.csv (92 rows)
+-- tow20_H_go1_paper_fr_blanket done gpu0 18:28
+== tow20_H_go1_paper_rw_w06 gpu0 18:28
+[2026-11-21 09:07:53,921][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:07:55,194][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t05
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_rw_t05.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_rw_t05.csv (1 rows)
+-- tow20_H_go1_paper_rw_t05 done gpu3 18:29
+== tow20_H_go1_broadwm gpu3 18:29
+[2026-11-21 09:12:00,061][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:12:01,248][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_rw_t06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_rw_t06.csv (0 rows)
+-- tow20_H_go1_paper_rw_t06 done gpu1 18:33
+== mot50_H_go1_paper_broadhead gpu1 18:33
+[2026-11-21 09:13:19,722][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:13:20,910][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w02
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_rw_w02.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_rw_w02.csv (3 rows)
+-- tow20_H_go1_paper_rw_w02 done gpu2 18:34
+== mot50_H_go1_paper_targethead gpu2 18:34
+[2026-11-21 09:29:22,095][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:29:23,292][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w06
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_paper_rw_w06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_paper_rw_w06.csv (110 rows)
+-- tow20_H_go1_paper_rw_w06 done gpu0 18:51
+== mot50_H_go1_paper_targethead_s2 gpu0 18:51
+[2026-11-21 09:30:08,103][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:30:09,296][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_H_go1_broadwm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_H_go1_broadwm.csv (9 rows)
+-- tow20_H_go1_broadwm done gpu3 18:51
+== mot50_H_go1_paper_payloadhead gpu3 18:51
+[2026-11-21 09:34:00,746][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:34:01,964][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_broadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_broadhead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_broadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_broadhead.csv (26 rows)
+-- mot50_H_go1_paper_broadhead done gpu1 18:55
+== mot50_H_go1_paper_fr_blanket gpu1 18:55
+[2026-11-21 09:35:02,191][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:35:03,406][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_targethead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_targethead.csv (46 rows)
+-- mot50_H_go1_paper_targethead done gpu2 18:56
+== mot50_H_go1_paper_rw_t05 gpu2 18:56
+[2026-11-21 09:51:32,377][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:51:33,595][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead_s2/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead_s2
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_targethead_s2.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_targethead_s2.csv (3 rows)
+-- mot50_H_go1_paper_targethead_s2 done gpu0 19:12
+== mot50_H_go1_paper_rw_t06 gpu0 19:12
+[2026-11-21 09:52:01,689][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:52:02,849][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_payloadhead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_payloadhead
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_payloadhead.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_payloadhead.csv (108 rows)
+-- mot50_H_go1_paper_payloadhead done gpu3 19:13
+== mot50_H_go1_paper_rw_w02 gpu3 19:13
+[2026-11-21 09:55:37,764][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:55:38,977][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_fr_blanket/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_fr_blanket
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_fr_blanket.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_fr_blanket.csv (425 rows)
+-- mot50_H_go1_paper_fr_blanket done gpu1 19:17
+== mot50_H_go1_paper_rw_w06 gpu1 19:17
+[2026-11-21 09:56:54,130][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 09:56:55,355][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t05/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t05
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_rw_t05.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_rw_t05.csv (80 rows)
+-- mot50_H_go1_paper_rw_t05 done gpu2 19:18
+== mot50_H_go1_broadwm gpu2 19:18
+[2026-11-21 10:13:25,338][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 10:13:26,539][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_rw_t06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_rw_t06.csv (66 rows)
+-- mot50_H_go1_paper_rw_t06 done gpu0 19:34
+[2026-11-21 10:14:05,276][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 10:14:06,474][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w02/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w02
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_rw_w02.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_rw_w02.csv (67 rows)
+-- mot50_H_go1_paper_rw_w02 done gpu3 19:34
+[2026-11-21 10:17:39,939][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 10:17:41,152][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_w06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_w06
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_paper_rw_w06.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_paper_rw_w06.csv (163 rows)
+-- mot50_H_go1_paper_rw_w06 done gpu1 19:39
+[2026-11-21 10:19:09,563][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+[2026-11-21 10:19:10,785][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_H_go1_broadwm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_H_go1_broadwm.csv (0 rows)
+-- mot50_H_go1_broadwm done gpu2 19:40
+== stage 1 done 19:40
+== expert b0c arrived (run 2026-11-21_04-52-33) 19:40
+== expert spec_legR50 arrived (run 2026-11-21_05-37-59) 19:40
+== expert spec_slope5 arrived (run 2026-11-21_06-22-57) 19:40
+== expert spec_tow20 arrived (run 2026-11-21_07-08-56) 19:40
+== expert spec_mot50 arrived (run 2026-11-21_07-55-27) 19:40
+== expert sty_pp arrived (run 2026-11-21_08-40-23) 19:40
+== expert sty_pm arrived (run 2026-11-21_09-25-40) 19:40
+best legR50: go1_paper_targethead
+best slope5: go1_paper_rw_t06
+best tow20: go1_paper_rw_t06
+best mot50: go1_broadwm
+== nominal_X_paper gpu0 19:40
+== legR50_X_paper gpu1 19:40
+== slope5_X_paper gpu2 19:41
+== tow20_X_paper gpu3 19:41
+[2026-11-21 10:41:04,835][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-10-01_10-38-36 iteration 4999
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_paper.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_paper.csv (0 rows)
+-- nominal_X_paper done gpu0 19:44
+== mot50_X_paper gpu0 19:44
+[2026-11-21 10:41:24,069][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-10-01_10-38-36 iteration 4999
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_paper.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_paper.csv (0 rows)
+-- legR50_X_paper done gpu1 19:44
+== nominal_X_b0c gpu1 19:44
+[2026-11-21 10:41:45,084][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-10-01_10-38-36 iteration 4999
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_paper.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_paper.csv (0 rows)
+-- slope5_X_paper done gpu2 19:45
+== legR50_X_b0c gpu2 19:45
+[2026-11-21 10:42:05,402][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-10-01_10-38-36 iteration 4999
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_paper.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_paper.csv (0 rows)
+-- tow20_X_paper done gpu3 19:45
+== slope5_X_b0c gpu3 19:45
+[2026-11-21 10:44:52,836][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-10-01_10-38-36 iteration 4999
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_paper.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_paper.csv (0 rows)
+-- mot50_X_paper done gpu0 19:48
+== tow20_X_b0c gpu0 19:48
+[2026-11-21 10:45:07,477][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_04-52-33 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_b0c.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_b0c.csv (0 rows)
+-- nominal_X_b0c done gpu1 19:48
+== mot50_X_b0c gpu1 19:48
+[2026-11-21 10:45:28,280][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_04-52-33 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_b0c.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_b0c.csv (0 rows)
+-- legR50_X_b0c done gpu2 19:48
+== nominal_X_spec_legR50 gpu2 19:48
+[2026-11-21 10:45:58,482][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_04-52-33 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_b0c.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_b0c.csv (0 rows)
+-- slope5_X_b0c done gpu3 19:49
+== legR50_X_spec_legR50 gpu3 19:49
+[2026-11-21 10:48:42,987][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_04-52-33 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_b0c.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_b0c.csv (0 rows)
+-- tow20_X_b0c done gpu0 19:52
+== nominal_X_spec_slope5 gpu0 19:52
+[2026-11-21 10:48:58,334][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_04-52-33 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_b0c.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_b0c.csv (0 rows)
+-- mot50_X_b0c done gpu1 19:52
+== slope5_X_spec_slope5 gpu1 19:52
+[2026-11-21 10:49:14,207][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_05-37-59 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_spec_legR50.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_spec_legR50.csv (0 rows)
+-- nominal_X_spec_legR50 done gpu2 19:52
+== nominal_X_spec_tow20 gpu2 19:52
+[2026-11-21 10:49:46,205][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_05-37-59 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_spec_legR50.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_spec_legR50.csv (0 rows)
+-- legR50_X_spec_legR50 done gpu3 19:53
+== tow20_X_spec_tow20 gpu3 19:53
+[2026-11-21 10:52:36,487][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_06-22-57 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_spec_slope5.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_spec_slope5.csv (0 rows)
+-- nominal_X_spec_slope5 done gpu0 19:55
+== nominal_X_spec_mot50 gpu0 19:55
+[2026-11-21 10:52:51,658][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_06-22-57 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_spec_slope5.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_spec_slope5.csv (0 rows)
+-- slope5_X_spec_slope5 done gpu1 19:56
+== mot50_X_spec_mot50 gpu1 19:56
+[2026-11-21 10:53:03,449][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_07-08-56 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_spec_tow20.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_spec_tow20.csv (0 rows)
+-- nominal_X_spec_tow20 done gpu2 19:56
+== nominal_X_sty_pp gpu2 19:56
+[2026-11-21 10:53:37,103][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_07-08-56 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_spec_tow20.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_spec_tow20.csv (0 rows)
+-- tow20_X_spec_tow20 done gpu3 19:57
+== legR50_X_sty_pp gpu3 19:57
+== expert sty_rp arrived (run 2026-11-21_10-13-09) 19:59
+[2026-11-21 10:56:20,716][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_07-55-27 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_spec_mot50.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_spec_mot50.csv (0 rows)
+-- nominal_X_spec_mot50 done gpu0 19:59
+== slope5_X_sty_pp gpu0 19:59
+[2026-11-21 10:56:39,676][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_07-55-27 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_spec_mot50.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_spec_mot50.csv (0 rows)
+-- mot50_X_spec_mot50 done gpu1 20:00
+== tow20_X_sty_pp gpu1 20:00
+[2026-11-21 10:56:51,638][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_08-40-23 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_sty_pp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_sty_pp.csv (0 rows)
+-- nominal_X_sty_pp done gpu2 20:00
+== mot50_X_sty_pp gpu2 20:00
+[2026-11-21 10:57:30,869][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_08-40-23 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_sty_pp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_sty_pp.csv (0 rows)
+-- legR50_X_sty_pp done gpu3 20:00
+== nominal_X_sty_pm gpu3 20:00
+[2026-11-21 11:00:08,869][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_08-40-23 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_sty_pp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_sty_pp.csv (0 rows)
+-- slope5_X_sty_pp done gpu0 20:03
+== legR50_X_sty_pm gpu0 20:03
+[2026-11-21 11:00:29,875][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_08-40-23 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_sty_pp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_sty_pp.csv (0 rows)
+-- tow20_X_sty_pp done gpu1 20:04
+== slope5_X_sty_pm gpu1 20:04
+[2026-11-21 11:00:43,101][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_08-40-23 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_sty_pp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_sty_pp.csv (0 rows)
+-- mot50_X_sty_pp done gpu2 20:04
+== tow20_X_sty_pm gpu2 20:04
+[2026-11-21 11:01:19,979][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_09-25-40 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_sty_pm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_sty_pm.csv (0 rows)
+-- nominal_X_sty_pm done gpu3 20:04
+== mot50_X_sty_pm gpu3 20:04
+[2026-11-21 11:04:32,795][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_09-25-40 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_sty_pm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_sty_pm.csv (0 rows)
+-- slope5_X_sty_pm done gpu1 20:07
+== legR50_ADPH gpu1 20:07
+[2026-11-21 11:04:03,349][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_09-25-40 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_sty_pm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_sty_pm.csv (0 rows)
+-- legR50_X_sty_pm done gpu0 20:07
+== slope5_ADPH gpu0 20:07
+[2026-11-21 11:04:35,097][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_09-25-40 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_sty_pm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_sty_pm.csv (0 rows)
+-- tow20_X_sty_pm done gpu2 20:08
+== tow20_ADPH gpu2 20:08
+[2026-11-21 11:05:05,573][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_09-25-40 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_sty_pm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_sty_pm.csv (0 rows)
+-- mot50_X_sty_pm done gpu3 20:08
+== mot50_ADPH gpu3 20:08
+== expert sty_rm arrived (run 2026-11-21_10-59-33) 20:45
+== all RL jobs accounted for 20:45
+[2026-11-21 11:08:21,885][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_legR50_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_legR50_dyn_b45000_s42/model_config.yaml) to be a directory.
+[2026-11-21 11:08:23,058][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_targethead/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_targethead
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_ADPH.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_ADPH.csv (0 rows)
+-- legR50_ADPH done gpu1 21:14
+== nominal_X_sty_rp gpu1 21:14
+[2026-11-21 11:08:22,124][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_slope5_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_slope5_dyn_b45000_s42/model_config.yaml) to be a directory.
+[2026-11-21 11:08:23,297][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_ADPH.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_ADPH.csv (23 rows)
+-- slope5_ADPH done gpu0 21:16
+== legR50_X_sty_rp gpu0 21:16
+[2026-11-21 11:08:32,781][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_tow20_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_tow20_dyn_b45000_s42/model_config.yaml) to be a directory.
+[2026-11-21 11:08:34,046][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_rw_t06/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_paper_rw_t06
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_ADPH.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_ADPH.csv (0 rows)
+-- tow20_ADPH done gpu2 21:16
+== slope5_X_sty_rp gpu2 21:16
+[2026-11-21 11:08:54,886][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper_mot50_dyn_b45000_s42/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper_mot50_dyn_b45000_s42/model_config.yaml) to be a directory.
+[2026-11-21 11:08:56,124][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_broadwm/model_config.yaml) to be a directory.
+Prior samples from the policy head of go1_broadwm
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_ADPH.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_ADPH.csv (48 rows)
+-- mot50_ADPH done gpu3 21:17
+== tow20_X_sty_rp gpu3 21:17
+[2026-11-21 12:15:24,001][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-13-09 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_sty_rp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_sty_rp.csv (0 rows)
+-- nominal_X_sty_rp done gpu1 21:18
+== mot50_X_sty_rp gpu1 21:18
+[2026-11-21 12:16:33,847][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-13-09 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_sty_rp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_sty_rp.csv (0 rows)
+-- legR50_X_sty_rp done gpu0 21:19
+== nominal_X_sty_rm gpu0 21:19
+[2026-11-21 12:16:46,536][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-13-09 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_sty_rp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_sty_rp.csv (0 rows)
+-- slope5_X_sty_rp done gpu2 21:20
+== legR50_X_sty_rm gpu2 21:20
+[2026-11-21 12:17:32,473][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-13-09 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_sty_rp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_sty_rp.csv (0 rows)
+-- tow20_X_sty_rp done gpu3 21:21
+== slope5_X_sty_rm gpu3 21:21
+[2026-11-21 12:19:13,442][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-13-09 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_sty_rp.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_sty_rp.csv (0 rows)
+-- mot50_X_sty_rp done gpu1 21:22
+== tow20_X_sty_rm gpu1 21:22
+[2026-11-21 12:20:26,295][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-59-33 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_nominal_X_sty_rm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_nominal_X_sty_rm.csv (0 rows)
+-- nominal_X_sty_rm done gpu0 21:23
+== mot50_X_sty_rm gpu0 21:23
+[2026-11-21 12:20:37,486][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-59-33 iteration 6498
+condition: leg torque caps scaled by {'FL': 1.0, 'FR': 1.0, 'RL': 0.5, 'RR': 1.0} -> [23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453, 23.700000762939453, 23.700000762939453, 11.850000381469727, 23.700000762939453]
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_legR50_X_sty_rm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_legR50_X_sty_rm.csv (0 rows)
+-- legR50_X_sty_rm done gpu2 21:23
+[2026-11-21 12:21:38,911][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-59-33 iteration 6498
+condition: slope 5.0 deg uphill along +x (gravity (-0.8549978363545266, 0.0, -9.772669988280024))
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_slope5_X_sty_rm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_slope5_X_sty_rm.csv (0 rows)
+-- slope5_X_sty_rm done gpu3 21:25
+[2026-11-21 12:23:04,396][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-59-33 iteration 6498
+condition: tow force 20.0 N on ['trunk']
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_tow20_X_sty_rm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_tow20_X_sty_rm.csv (0 rows)
+-- tow20_X_sty_rm done gpu1 21:26
+[2026-11-21 12:24:16,140][absl][WARNING] - Path /workspace/simdist/checkpoints/models/go1_paper/model_config.yaml could not be identified as a finalized checkpoint path using <class 'orbax.checkpoint._src.path.atomicity.AtomicRenameTemporaryPath'>. Got error: Expected AtomicRenameTemporaryPath (/workspace/simdist/checkpoints/models/go1_paper/model_config.yaml) to be a directory.
+Acting with RL policy 2026-11-21_10-59-33 iteration 6498
+diagnostics written to /mnt/newssd/cjkim/simdist/results/stage35/diag_mot50_X_sty_rm.npz: 5000 steps
+falls written to /mnt/newssd/cjkim/simdist/results/stage35/falls_mot50_X_sty_rm.csv (0 rows)
+-- mot50_X_sty_rm done gpu0 21:27
+### stage35 done Sat Nov 21 21:27:41 KST 2026

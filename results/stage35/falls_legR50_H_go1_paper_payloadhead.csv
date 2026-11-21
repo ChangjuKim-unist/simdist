@@ -1,0 +1,17 @@
+model,condition,speed,seed,step,steps_since_reset
+legR50_H_go1_paper_payloadhead,legR50,0.9,12,291,291
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,509,509
+legR50_H_go1_paper_payloadhead,legR50,0.9,12,518,227
+legR50_H_go1_paper_payloadhead,legR50,0.9,15,575,575
+legR50_H_go1_paper_payloadhead,legR50,0.9,13,704,704
+legR50_H_go1_paper_payloadhead,legR50,0.9,11,1184,1184
+legR50_H_go1_paper_payloadhead,legR50,0.9,15,1192,617
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,1580,1071
+legR50_H_go1_paper_payloadhead,legR50,0.9,12,1970,1452
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,2242,662
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,2703,461
+legR50_H_go1_paper_payloadhead,legR50,0.9,12,3132,1162
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,3483,780
+legR50_H_go1_paper_payloadhead,legR50,0.9,14,3789,306
+legR50_H_go1_paper_payloadhead,legR50,0.9,16,3844,3844
+legR50_H_go1_paper_payloadhead,legR50,0.9,11,4368,3184
