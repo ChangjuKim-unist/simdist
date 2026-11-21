@@ -27,10 +27,11 @@ C3_POINTS=${C3_POINTS:-96}
 c3run() { local g=$1 name=$2 ck=$3 c=$4
   [ -f $BIG/${name}_branch.done ] && { echo "== $name exists"; return; }
   echo "== $name gpu$g $(date +%H:%M)"; local an=$BIG/${name}_anchor.npz sm=""
-  [ $SMOKE = 1 ] && sm="branch.m_counts=[2,1,2,1,0]"
+  # smoke: snapshots need warmup + 125 branch steps inside the run, so the smoke anchor runs 300 steps with warmup 50
+  local wu=300 tot=$TOTAL; [ $SMOKE = 1 ] && { sm="branch.m_counts=[2,1,2,1,0]"; wu=50; tot=300; }
   [ -f $an ] || GPUS="\"device=$g\"" $RUN python scripts/sim2sim/branch_eval.py mode=anchor model.checkpoint=$ck control.prior_only=false \
-    branch.drive=planner branch.m_record=true branch.every=50 branch.warmup=300 $sm $(phys $c) sim.terrain=plane sim.episode_length_s=100 \
-    sim.total_steps=$TOTAL "batch.speeds=[0.3,0.6,0.9]" "batch.seeds=$SEEDS" output.condition=$c branch.out=$an --headless 2>&1 \
+    branch.drive=planner branch.m_record=true branch.every=50 branch.warmup=$wu $sm $(phys $c) sim.terrain=plane sim.episode_length_s=100 \
+    sim.total_steps=$tot "batch.speeds=[0.3,0.6,0.9]" "batch.seeds=$SEEDS" output.condition=$c branch.out=$an --headless 2>&1 \
     | grep -aE "Traceback|rror:|RESULT|snapshot|Killed|OOM" | grep -v cuStreamGetGreenCtx | tail -4
   [ -f $an ] || { echo "!! $name anchor failed"; return; }
   local np=$C3_POINTS; [ $SMOKE = 1 ] && np=2
