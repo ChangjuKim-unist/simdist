@@ -8,6 +8,7 @@
 #   P4  single-style experts: the paper expert fine-tuned at nominal with one posture target (GO1_STYLE_GRAV), zero-shot
 # Levels = design-34 choices without delay: legR50, slope5, tow20, mot50. 18 robots x 5000 steps, flat ground.
 # usage (gpu1): tmux new -d -s s35 'bash scripts/sim2sim/stage35.sh > /mnt/newssd/cjkim/simdist/results/stage35_server.log 2>&1'
+#   with the RL fine-tunes done locally: RL_REMOTE=1 bash scripts/sim2sim/stage35.sh ...
 # SMOKE=1: local check (one GPU, tiny RL runs, 150-step evaluations, two heads, one level)
 set -u; cd ~/simdist; RUN=~/simdist-docker/run.sh; P=scripts/sim2sim/run_pipeline.sh
 # Isaac Sim caches grow by about 1.2 GB per GPU and filled gpu1's root disk on 2026-11-21 (RL scenes); keep them on the big disk
@@ -22,7 +23,11 @@ HEADS="go1_paper_broadhead go1_paper_targethead go1_paper_targethead_s2 go1_pape
 TOTAL=5000; SEEDS="[11,12,13,14,15,16]"; KI=0.5; RL_IT=1500; RL_ENVS=${RL_ENVS:-1024}; RL_SAVE=500
 RLJOBS="b0c $(for c in $CONDS; do echo spec_$c; done) sty_pp sty_pm sty_rp sty_rm"
 # gpu0 joins only after design 34 has finished (its last adaptation runs there)
-WAIT0=${WAIT0:-s34}  # tmux session of design 34
+WAIT0=${WAIT0:-}  # tmux session to wait for before gpu0 joins (design 34 used s34; finished)
+# RL_REMOTE=1: RL fine-tunes run elsewhere (scripts/sim2sim/stage35_rl_local.sh on the local RTX 3060, because this
+# machine's RTX 2080 Ti fails at the ray-caster init with a Warp out-of-memory error); stage 2 picks each run up from
+# rl_runs.txt as it arrives (failed jobs are listed in rl_failed.txt)
+RL_REMOTE=${RL_REMOTE:-0}
 if [ $SMOKE = 1 ]; then
   CONDS="tow20"; HEADS="go1_paper_broadhead go1_broadwm"; TOTAL=150; SEEDS="[11]"; RL_IT=2; RL_ENVS=64; RL_SAVE=1; WAIT0=""
   RLJOBS="b0c spec_tow20 sty_pp"
@@ -64,7 +69,8 @@ worker() { local g=$1 Q=$2
   if [ $g = 0 ] && [ -n "$WAIT0" ]; then while tmux has-session -t $WAIT0 2>/dev/null; do sleep 60; done; echo "== gpu0 joins $(date +%H:%M)"; fi
   while true; do
     [ "$(df --output=avail / | tail -1)" -lt $MIN_ROOT_KB ] && { echo "!! root disk nearly full, gpu$g stops taking jobs $(date +%H:%M)"; break; }
-    local job; job=$(flock $LOCK bash -c "head -1 $Q; sed -i 1d $Q"); [ -z "$job" ] && break
+    local job; job=$(flock $LOCK bash -c "head -1 $Q; sed -i 1d $Q")
+    if [ -z "$job" ]; then [ -f $Q.open ] && { sleep 60; continue; }; break; fi
     dojob $g "$job"
   done; }
 runqueue() { for g in $GPU_LIST; do worker $g $1 & sleep 20; done; wait; }
@@ -80,7 +86,7 @@ for h in $HEADS; do [ -d checkpoints/models/$h ] || { echo "!! head $h missing";
 
 # ---- stage 1: RL fine-tunes (longest first), P1, P2 heads alone (queue line: kind|name|checkpoint|condition|extra) -----
 Q=$BIG/queue1.txt; : > $Q
-for j in $RLJOBS; do echo "rl|$j|||" >> $Q; done
+[ $RL_REMOTE = 1 ] || for j in $RLJOBS; do echo "rl|$j|||" >> $Q; done
 echo "ev|nominal_PREI|$M|nominal|control.prior_only=false sim.cmd_ki=$KI" >> $Q
 for c in $CONDS; do echo "ev|${c}_ADPI|${M}_${c}_dyn_b45000_s42|$c|control.prior_only=false sim.cmd_ki=$KI" >> $Q; done
 for c in nominal $CONDS; do echo "ev|${c}_POLI|$M|$c|control.prior_only=true sim.cmd_ki=$KI" >> $Q; done
@@ -91,11 +97,28 @@ echo "== stage 1 done $(date +%H:%M)"
 
 # ---- stage 2: expert evaluations (P3, P4) and the best head per level inside the planner (P2) -------------------------
 Q=$BIG/queue2.txt; : > $Q
-echo "paper $PAPER_RL $PAPER_IT" > $BIG/experts.txt; cat $BIG/rl_runs.txt >> $BIG/experts.txt 2>/dev/null
-while read -r job run it; do
+expert_evals() { local job=$1 run=$2 it=$3 ev c
   case $job in spec_*) ev="nominal ${job#spec_}";; *) ev="nominal $CONDS";; esac
-  for c in $ev; do echo "ev|${c}_X_${job}|$M|$c|policy.rl_run=$run policy.iteration=$it" >> $Q; done
-done < $BIG/experts.txt
+  for c in $ev; do echo "ev|${c}_X_${job}|$M|$c|policy.rl_run=$run policy.iteration=$it"; done; }
+echo "paper $PAPER_RL $PAPER_IT" > $BIG/experts.txt
+expert_evals paper $PAPER_RL $PAPER_IT >> $Q
+if [ $RL_REMOTE = 1 ]; then
+  touch $Q.open  # workers wait for more lines while this exists
+  ( n_all=$(echo $RLJOBS | wc -w)
+    while true; do
+      while read -r job run it; do
+        grep -q "^$job " $BIG/experts.txt && continue
+        echo "$job $run $it" >> $BIG/experts.txt; flock $LOCK bash -c "$(declare -f expert_evals); M=$M; CONDS='$CONDS'; expert_evals $job $run $it >> $Q"
+        echo "== expert $job arrived (run $run) $(date +%H:%M)"
+      done < <(cat $BIG/rl_runs.txt 2>/dev/null)
+      n=$(( $(cat $BIG/rl_runs.txt 2>/dev/null | wc -l) + $(cat $BIG/rl_failed.txt 2>/dev/null | wc -l) ))
+      [ $n -ge $n_all ] && { rm -f $Q.open; echo "== all RL jobs accounted for $(date +%H:%M)"; break; }
+      sleep 60
+    done ) &
+else
+  cat $BIG/rl_runs.txt >> $BIG/experts.txt 2>/dev/null
+  while read -r job run it; do expert_evals $job $run $it >> $Q; done < <(cat $BIG/rl_runs.txt 2>/dev/null)
+fi
 GPUS="\"device=$(echo $GPU_LIST | cut -d' ' -f1)\"" $RUN python scripts/sim2sim/stage35_score.py --d $BIG --d34 $S34 --conds "$CONDS" \
   --heads "$HEADS" --pick_heads 2>&1 | grep -aE "^best|rror|Traceback"
 if [ -s $BIG/best_heads.txt ]; then

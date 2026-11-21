@@ -33,6 +33,8 @@ RL 학습은 원래 학습 장면 그대로다(거친 지형 curriculum, 무작�
 
 실행: scripts/sim2sim/stage35.sh (gpu1, 네 GPU; gpu0은 설계 34가 끝난 뒤 합류), 점수 scripts/sim2sim/stage35_score.py. 코드: sim.cmd_ki (scripts/simulate_batch.py), RL 학습의 조건 연결 (simdist/rl/conditions.py `ConditionEnvWrapper`, `SIMDIST_COND`), 자세 목표 (simdist/rl/go2_mdp.py `flat_orientation_target_l2`, `GO1_STYLE_GRAV`), RL 체크포인트 위치 (`SIMDIST_RL_DIR`, gpu1 루트 디스크가 차 있음), expert 실행의 단계별 진단 기록.
 
+실행 메모 (결과를 보기 전, 2026-11-21 05시): gpu1의 첫 실행은 결과 없이 멈췄다. 루트 디스크가 Isaac 캐시로 0바이트가 됐고, gpu1의 RTX 2080 Ti에서는 RL 학습이 지면 높이 센서 준비 단계에서 Warp 메모리 부족으로 실패했다(1024·768·512 환경 모두, Warp 메모리 풀을 꺼도 같음). 지금까지의 RL 학습은 모두 로컬 RTX 3060에서 했다. 그래서 RL 학습 9개만 로컬에서 같은 설정(1024 환경, 시드 1, 1500회)으로 돌리고(scripts/sim2sim/stage35_rl_local.sh), 끝난 것부터 gpu1로 옮겨 평가한다(stage35.sh `RL_REMOTE=1`). 확인 내용, 점수, 기준은 바꾸지 않았다.
+
 ## 4. 점수와 기준 (실행 전 고정)
 
 **과제 점수 S** (스텝마다, 걷는 중 = 리셋 뒤 300스텝 이후, 리셋 중 제외):
