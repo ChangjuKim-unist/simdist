@@ -14,6 +14,23 @@ mode=branch   W branch points x (candidates x J clones) robots.  Each round rest
         sim.episode_length_s=100 branch.out=/x/anchor.npz --headless
     python scripts/sim2sim/branch_eval.py mode=branch model.checkpoint=go1_paper control.prior_only=true <same physics> \
         branch.anchor=/x/anchor.npz branch.csv=/x/branch.csv --headless
+
+Design doc 36 C3 (ranking of the planner's own candidates): anchor with drive=planner and branch.m_record=true stores, at every
+snapshot, K_M = 64 of the candidates the planner scored at THAT control step (state before its action is executed; the
+snapshot decision is taken before planning and controller.record_next is set for that call) with their model scores, plus
+the executed plan (mean) and the policy head's chunk; branch mode group M runs each one open loop for 25 steps, then the
+policy head to 125 steps (mean / head: branch.m_clones_mean_head clones, others one). Extra csv columns with M: ret_chunk
+(return of the first 25 steps), m_score, m_kind, m_iter, m_rank, m_src, m_gauss. Analysis: scripts/sim2sim/stage36_rank.py.
+    COND=$(source <(sed -n '/^condition_overrides()/,/^}/p' scripts/sim2sim/run_pipeline.sh); condition_overrides tow20)
+    python scripts/sim2sim/branch_eval.py mode=anchor model.checkpoint=go1_paper_tow20_dyn_b45000_s42 control.prior_only=false \
+        branch.drive=planner branch.m_record=true branch.every=50 branch.warmup=300 $COND sim.terrain=plane \
+        sim.episode_length_s=100 sim.total_steps=5000 "batch.speeds=[0.3,0.6,0.9]" "batch.seeds=[11,12,13,14,15,16]" \
+        output.condition=tow20 branch.out=/x/c3_tow20_anchor.npz --headless
+    python scripts/sim2sim/branch_eval.py mode=branch model.checkpoint=go1_paper_tow20_dyn_b45000_s42 control.prior_only=true \
+        $COND sim.terrain=plane sim.episode_length_s=100 "branch.groups=[M]" branch.W=8 branch.chunk=25 branch.horizon=125 \
+        branch.m_clones_mean_head=3 output.condition=tow20 branch.anchor=/x/c3_tow20_anchor.npz branch.csv=/x/c3_tow20_branch.csv --headless
+    (W = 8: 8 x (62 + 2 x 3) = 544 robots per round.)  Smoke (a few minutes): anchor with branch.m_counts=[2,1,2,1,0]
+    sim.total_steps=500 "batch.speeds=[0.6]" "batch.seeds=[11]" (2 points, 8 candidates), branch with branch.W=2 branch.max_points=2.
 """
 
 import os
@@ -42,6 +59,13 @@ CALF = np.array([2, 5, 8, 11])  # calf joints in the action order (FR, FL, RR, R
 NONCALF = np.array([j for j in range(12) if j not in CALF])
 N_GEN = 8
 PERTURB = {"joint_pos": 0.002, "joint_vel": 0.02, "lin_vel": 0.005, "ang_vel": 0.005}
+# design doc 36 C3: kinds / iterations of the recorded planner candidates (group M); codes stored in the anchor npz
+M_KINDS = ("gauss", "policy", "top", "mean", "head")
+M_ITERS = {0: "first", 1: "last", -1: ""}
+
+
+def m_label(kind, it):
+    return M_KINDS[int(kind)] + (f"_{M_ITERS[int(it)]}" if int(it) >= 0 else "")
 
 
 def gen_decode(g, p_hist, a_hist, cmds, u):
@@ -143,6 +167,17 @@ class AnchorSim(sb.BatchSim):
         self.fall_log = np.zeros((self.total_steps, self.N), bool)
         self.reset_log = np.zeros((self.total_steps, self.N), bool)
         self.snaps = []
+        # design doc 36 C3: record the planner's own candidates (and their scores) at every snapshot, K_M per robot
+        self.m_counts = [int(v) for v in b["m_counts"]] if b.get("m_record", False) else None
+        self.m_pl = self.controller if self.drive == "planner" else self.shadow  # the planner whose candidates are recorded
+        if self.m_counts is not None:
+            assert len(self.m_counts) == 5, "branch.m_counts = [gauss first, policy first, gauss last, policy last, top last]"
+            assert self.m_pl is not None and self.gen_base is None, "m_record needs a planner (drive=planner, or drive=policy with shadow)"
+            cc = self.m_pl.ctrl_cfg
+            assert not any((cc.get(k) or {}).get("enabled", False) for k in ("gen", "calib", "robust")), \
+                "m_record: the recorded score must be the model's own return (no gen / calib / robust)"
+            assert self.m_counts[1] <= self.m_pl.B and self.m_counts[3] <= self.m_pl.B, "more policy candidates than policy samples B"
+            print(f"design 36 C3: recording {sum(self.m_counts) + 2} planner candidates per snapshot {self.m_counts} + mean + head", flush=True)
 
     def _hooked_reset(self, env_ids, *a):
         self._ctrl_reset(env_ids, *a)
@@ -161,23 +196,76 @@ class AnchorSim(sb.BatchSim):
         return out
 
     def _hooked_run_control(self):
+        # design doc 36: the snapshot decision is taken BEFORE planning (the env state is the same; planning does not touch it),
+        # so that the planner can record the candidates of this very control step; the snapshot (state before this step's
+        # action is executed) is written after planning, as before
+        ep = self.env.episode_length_buf.cpu().numpy()
+        room = (ep + self.horizon < self.max_ep) & (self.total + self.horizon <= self.total_steps)
+        due = []  # (robot ids, is_event, slip mean)
+        if self.trigger == "every":
+            if self.total % self.every == 0:
+                ok = (self.steps_since_reset >= self.warmup) & room
+                if ok.any():
+                    due.append((np.where(ok)[0], -1, None))
+        else:
+            due = self._slip_trigger(room)
+        rec = self.m_counts is not None and len(due) > 0
+        if rec:
+            self.m_pl.record_next = True
         plan = self.gen_base.plan() if self.gen_base is not None else self._run_control()
         if self.drive == "planner":
             F = plan  # the acting planner's own plan
         else:
             F = self.shadow.run_control() if self.shadow is not None else np.zeros_like(plan)  # every step: keeps the shift warm start alive
-        ep = self.env.episode_length_buf.cpu().numpy()
-        room = (ep + self.horizon < self.max_ep) & (self.total + self.horizon <= self.total_steps)
-        if self.trigger == "every":
-            if self.total % self.every == 0:
-                ok = (self.steps_since_reset >= self.warmup) & room
-                if ok.any():
-                    self._snapshot(np.where(ok)[0], F)
-        else:
-            self._slip_trigger(F, room)
+        M = self._m_select(F, np.concatenate([d[0] for d in due])) if rec else None
+        for ids, ev, ma in due:
+            self._snapshot(ids, F, is_event=ev, ma=ma, M=M)
         return plan
 
-    def _slip_trigger(self, F, room):
+    def _m_select(self, F, ids):
+        """Design doc 36 C3: K_M candidates per snapshotted robot from this step's recorded MPPI candidates (deterministic):
+        first iteration m_counts[0] Gaussian samples stratified by score rank (rank 0 = best of S) + the first m_counts[1]
+        policy-mixture samples; last iteration the same with m_counts[2] / m_counts[3] + the m_counts[4] best-scored of all
+        S + B not already taken; then the executed plan F (= state.mean) and the policy head's chunk, scored as the planner
+        scores (sum discounts * rewards + values[-1] * final_discount on the same inputs). Returns {robot: arrays}."""
+        import jax.numpy as jnp
+        pl = self.m_pl; md = pl.last_mppi_diag; S, B = pl.S, pl.B
+        I = int(np.asarray(md["ess"]).shape[0]); j = jnp.asarray(np.asarray(ids))
+        acts = np.asarray(md["acts"][jnp.asarray([0, I - 1])][:, j], np.float32)    # (2, n, S+B, T, A)
+        rets = np.asarray(md["returns"][jnp.asarray([0, I - 1])][:, j], np.float64)  # (2, n, S+B)
+        ess, pol = np.asarray(md["ess"], np.float32), np.asarray(md["pol"], np.float32)  # (I, N)
+        pl.last_mppi_diag = {"ess": md["ess"], "pol": md["pol"]}  # free the recorded candidates on the device
+        disc = np.asarray(pl.discounts, np.float64); fd = float(pl.final_discount)
+        head = np.asarray(pl.last_base_actions, np.float32); F = np.asarray(F, np.float32)
+
+        def score(a):
+            _, _, r, v = pl.trace(a)
+            return (r * disc).sum(-1) + v[:, -1] * fd
+        s_exec, s_head = score(F), score(head)
+        cg0, cp0, cg1, cp1, ctop = self.m_counts
+        out = {}
+        for n, i in enumerate(ids):
+            sel = []  # (iteration row, sample index in S+B, kind, iteration code, rank)
+            for it, cg, cp in ((0, cg0, cp0), (1, cg1, cp1)):
+                og = np.argsort(-rets[it, n, :S], kind="stable")
+                sel += [(it, int(og[k]), 0, it, int(k)) for k in np.round(np.linspace(0, S - 1, cg)).astype(int)]
+                sel += [(it, S + k, 1, it, k) for k in range(cp)]
+            taken = {s_[1] for s_ in sel if s_[0] == 1}
+            oa = np.argsort(-rets[1, n], kind="stable")
+            sel += [(1, int(q), 2, 1, rk) for rk, q in enumerate(oa) if int(q) not in taken][:ctop]
+            K = len(sel) + 2; T, A = acts.shape[-2:]
+            m = {"m_acts": np.zeros((K, T, A), np.float32), "m_score": np.zeros(K, np.float32), "m_kind": np.zeros(K, np.int8),
+                 "m_iter": np.full(K, -1, np.int8), "m_rank": np.full(K, -1, np.int16), "m_src": np.full(K, -1, np.int16)}
+            for k, (it, q, kind, itc, rk) in enumerate(sel):
+                m["m_acts"][k] = acts[it, n, q]; m["m_score"][k] = rets[it, n, q]
+                m["m_kind"][k] = kind; m["m_iter"][k] = itc; m["m_rank"][k] = rk; m["m_src"][k] = q
+            m["m_acts"][-2] = F[i]; m["m_score"][-2] = s_exec[i]; m["m_kind"][-2] = 3
+            m["m_acts"][-1] = head[i]; m["m_score"][-1] = s_head[i]; m["m_kind"][-1] = 4
+            m["m_ess"] = ess[:, i].copy(); m["m_pol"] = pol[:, i].copy()
+            out[int(i)] = m
+        return out
+
+    def _slip_trigger(self, room):
         released = self.steps_since_reset >= self.reset_steps
         slip, _ = contact_slip(self.env, self.feet, self.feet_cs)
         self.slip_n[~released] = 0; self.over[~released] = 0; self.quiet[~released] = 0
@@ -188,14 +276,16 @@ class AnchorSim(sb.BatchSim):
         hi = released & (ma > self.theta)
         self.over = np.where(hi, self.over + 1, 0); self.quiet = np.where(released & ~hi, self.quiet + 1, 0)
         ev = hi & (self.over == 5) & (self.steps_since_reset - 4 >= self.min_since) & room
+        due = []
         if ev.any():
-            self._snapshot(np.where(ev)[0], F, is_event=1, ma=ma); self.n_events += int(ev.sum())
+            due.append((np.where(ev)[0], 1, ma)); self.n_events += int(ev.sum())
         if self.total % self.ctrl_every == 0:
             ct = released & (self.quiet >= self.ctrl_quiet) & (self.steps_since_reset >= self.min_since) & room & ~ev
             if ct.any():
-                self._snapshot(np.where(ct)[0], F, is_event=0, ma=ma); self.n_ctrl += int(ct.sum())
+                due.append((np.where(ct)[0], 0, ma)); self.n_ctrl += int(ct.sum())
+        return due
 
-    def _snapshot(self, ids, F, is_event=-1, ma=None):
+    def _snapshot(self, ids, F, is_event=-1, ma=None, M=None):
         st = self.env.scene.get_state(is_relative=True)["articulation"]["robot"]
         term = self.cmd_manager.get_term("base_velocity"); am = self.env.action_manager; jt = am.get_term("joint_pos")
         cs = self.env.scene.sensors["contact_forces"]; _ = cs.data  # refresh
@@ -217,7 +307,11 @@ class AnchorSim(sb.BatchSim):
                 "hist_p": self.controller.proprio_hist[i].copy(), "hist_a": self.controller.acts_hist[i].copy(), "fut_cmds": self.controller.fut_cmds[i].copy(),
                 "F": np.asarray(F[i], np.float32),
                 "is_event": int(is_event), "slip_ma": float(ma[i]) if ma is not None else np.nan,
+                # design doc 34/36: the action-delay line of simdist/rl/conditions.py (delay, 12), empty without a delay
+                "cond_buf": np.stack([g(x[i]) for x in self.cond.buf]) if self.cond.delay else np.zeros((0, 12), np.float32),
             })
+            if M is not None:
+                self.snaps[-1].update(M[int(i)])
 
     def report(self):
         super().report()
@@ -234,6 +328,8 @@ class AnchorSim(sb.BatchSim):
         out.update(anchor_ret=ret, anchor_fell=fell, anchor_len=length,
                    model=np.array((self.cfg.get("output", {}) or {}).get("model_name") or self.cfg["model"]["checkpoint"]),
                    condition=np.array((self.cfg.get("output", {}) or {}).get("condition") or ""), horizon=np.array(self.horizon))
+        if self.m_counts is not None:  # design doc 36 C3
+            out.update(m_S=np.array(self.m_pl.S), m_B=np.array(self.m_pl.B), m_counts=np.array(self.m_counts), m_kind_names=np.array(M_KINDS))
         os.makedirs(os.path.dirname(os.path.abspath(self.b["out"])), exist_ok=True)
         np.savez(self.b["out"], **out)
         print(f"{n} branch points written to {self.b['out']} (anchor return mean {ret.mean():.3f}, fell {fell.mean():.3f})", flush=True)
@@ -265,6 +361,9 @@ class BranchSim(sb.BatchSim):
             idx = np.sort(np.concatenate([ev, ct]))
             if b.get("only_events"):  # design doc 27 stage 2 K: the same capped events, no control points
                 idx = np.sort(ev)
+        if b.get("sample_points") and len(idx) > int(b["sample_points"]):
+            # design doc 36: seeded random subset of all branch points (spread over robots and time; same subset on a restart)
+            idx = np.sort(np.random.default_rng(int(b["seed"]) + 36).choice(idx, int(b["sample_points"]), replace=False))
         if b.get("max_points"):
             idx = idx[: int(b["max_points"])]
         done = set()
@@ -293,16 +392,24 @@ class BranchSim(sb.BatchSim):
                 self.cands.append(("Fcl", 0, "Fcl"))
             elif gname == "Ccl":  # section 8.2: generator mean (u = 0) re-decoded every step (closed loop)
                 self.cands.append(("Ccl", 0, "Ccl"))
+            elif gname == "M":  # design doc 36 C3: the planner's own recorded candidates (anchor branch.m_record=true), open loop
+                assert "m_acts" in self.A, "group M needs an anchor recorded with branch.m_record=true"
+                self.cands += [("M", k, m_label(kd, it)) for k, (kd, it) in enumerate(zip(self.A["m_kind"][0], self.A["m_iter"][0]))]
             elif gname in ("Ncl", "Nrep", "Pcalfpol", "Ponlycalf"):
                 # design doc 27: Ncl = policy head + AR(1) noise matched to the planner's deviation (branch.noise_json);
                 # Pcalfpol = planner with the four calf joints from the policy head; Ponlycalf = policy head with the calves from the planner
                 self.cands.append((gname, 0, gname))
             else:
                 raise ValueError(gname)
-        self.K = len(self.cands); self.N_env = self.W * self.K * self.J
-        self.e_slot = np.repeat(np.arange(self.W), self.K * self.J)
-        self.e_cand = np.tile(np.repeat(np.arange(self.K), self.J), self.W)
-        self.e_clone = np.tile(np.arange(self.J), self.W * self.K)
+        # clones per candidate: J for every group; design doc 36: group M has branch.m_clones_mean_head clones for the executed
+        # plan and the policy head's chunk and one for the sampled candidates (env order: slot, candidate, clone as before)
+        self.K = len(self.cands); mh = int(b.get("m_clones_mean_head", 3))
+        self.nclone = np.array([(mh if lab in ("mean", "head") else 1) if g == "M" else self.J for g, _, lab in self.cands], np.int64)
+        self.per_slot = int(self.nclone.sum()); self.N_env = self.W * self.per_slot
+        self.e_slot = np.repeat(np.arange(self.W), self.per_slot)
+        self.e_cand = np.tile(np.repeat(np.arange(self.K), self.nclone), self.W)
+        self.e_clone = np.tile(np.concatenate([np.arange(n) for n in self.nclone]), self.W)
+        self.has_M = "M" in groups
         cfg["batch"]["speeds"] = [0.0]; cfg["batch"]["seeds"] = list(range(self.N_env))
         super().__init__(cfg)
         assert self.N == self.N_env
@@ -310,7 +417,11 @@ class BranchSim(sb.BatchSim):
         if (~ok).any():
             print(f"dropping {int((~ok).sum())} branch points whose episode would time out within the horizon", flush=True); self.idx = self.idx[ok]
         if self.chunk != 25:
-            assert not ({"A1", "B", "C", "F"} & set(groups)), "open-loop chunk candidates are 25 steps long: branch.chunk must be 25 with them"
+            assert not ({"A1", "B", "C", "F", "M"} & set(groups)), "open-loop chunk candidates are 25 steps long: branch.chunk must be 25 with them"
+        if self.has_M:
+            assert self.A["m_acts"].shape[2] >= self.chunk
+            print(f"design 36 C3: {int((np.array([c[0] for c in self.cands]) == 'M').sum())} M candidates, {self.per_slot} robots per branch point, "
+                  f"{self.N_env} robots per round", flush=True)
         self.experts = []
         for r in self.experts_cfg:
             from simdist.utils.torch import get_actor_critic_from_iteration
@@ -405,6 +516,11 @@ class BranchSim(sb.BatchSim):
         cs = self.env.scene.sensors["contact_forces"]; _ = cs.data
         cs._data.current_air_time[:] = T("air_cur"); cs._data.last_air_time[:] = T("air_last")
         cs._data.current_contact_time[:] = T("con_cur"); cs._data.last_contact_time[:] = T("con_last"); cs._data.net_forces_w_history[:] = T("forces_hist")
+        if self.cond.delay:  # design doc 34/36: the action-delay line as in the anchor run
+            assert "cond_buf" in A and A["cond_buf"].shape[1] == self.cond.delay, "anchor has no matching action-delay line"
+            cb = T("cond_buf")
+            for k, x in enumerate(self.cond.buf):
+                x[:] = cb[:, k]
         self.obs_dict = self.env.observation_manager.compute()
         # controller history: rolled back by one so that the first update() re-appends the current measurement
         self.controller.proprio_hist[:] = np.roll(A["hist_p"][bp], 1, axis=1); self.controller.acts_hist[:] = np.roll(A["hist_a"][bp], 1, axis=1)
@@ -423,13 +539,13 @@ class BranchSim(sb.BatchSim):
 
     # ---- one round -------------------------------------------------------------------------------------------
     def run_round(self, pts):
-        bp = self.restore(pts); A = self.A; n_valid = len(pts) * self.K * self.J
+        bp = self.restore(pts); A = self.A; n_valid = len(pts) * self.per_slot
         valid = np.arange(self.N) < n_valid
         grp = np.array([self.cands[k][0] for k in self.e_cand]); cid = np.array([self.cands[k][1] for k in self.e_cand])
-        openloop = np.isin(grp, ["A1", "B", "C", "F"]); is_D = grp == "D"; is_E = grp == "E"
+        openloop = np.isin(grp, ["A1", "B", "C", "F", "M"]); is_D = grp == "D"; is_E = grp == "E"
         is_G = grp == "G"; is_Ccl = grp == "Ccl"; gen_cl = np.where(is_G | is_Ccl)[0]
         chunks = np.zeros((self.N, self.chunk, 12), np.float32); u_cl = np.zeros((self.N, self.gen["du"] if self.gen else 1), np.float32)
-        ret = np.zeros(self.N); alive = np.ones(self.N, bool); fell = np.zeros(self.N, bool); fall_step = np.full(self.N, -1)
+        ret = np.zeros(self.N); ret_chunk = np.zeros(self.N); alive = np.ones(self.N, bool); fell = np.zeros(self.N, bool); fall_step = np.full(self.N, -1)
         nt = len(self.term_names); term_sum = np.zeros((self.N, nt)); term_chunk = np.zeros((self.N, nt))
         # design doc 27 candidates
         ncl = np.where(grp == "Ncl")[0]; pcp = np.where(grp == "Pcalfpol")[0]; poc = np.where(grp == "Ponlycalf")[0]
@@ -480,6 +596,7 @@ class BranchSim(sb.BatchSim):
                         elif g == "C": chunks[e] = gen[k]
                         elif g == "G": u_cl[e] = u[k]       # same latent as C_k, re-decoded every step
                         elif g == "F": chunks[e] = A["F"][q]
+                        elif g == "M": chunks[e] = A["m_acts"][q, k, :self.chunk]
             action = np.asarray(plan[:, 0], np.float32).copy()
             if t < self.chunk:
                 action[openloop] = chunks[openloop, t]
@@ -523,12 +640,16 @@ class BranchSim(sb.BatchSim):
                 rec["lin_vel"][t] = gg(rd.root_lin_vel_b); rec["ang_vel"][t] = gg(rd.root_ang_vel_b); rec["height"][t] = gg(rd.root_pos_w[:, 2])
                 rec["act"][t] = action; rec["act_pol"][t] = np.asarray(plan[:, 0], np.float32); rec["cmdvx"][t] = cmd[:, 0]
                 rec["tau2"][t] = (tau ** 2).sum(-1); rec["power"][t] = np.abs(tau * qd).sum(-1); rec["alive"][t] = alive
-            self.obs_dict, reward, terminated, truncated = self.env.step(torch.from_numpy(action).to(self.env.device))[0:4]
+            # design doc 34/36: the condition (tow force, action delay) acts in the branches as in the anchor run (no-op without one)
+            self.obs_dict, reward, terminated, truncated = self.env.step(self.cond.before_step(torch.from_numpy(action).to(self.env.device)))[0:4]
+            self.cond.after_step(terminated | truncated)
             reward = reward.cpu().numpy(); reset = (terminated | truncated).cpu().numpy()
             tm = self.env.termination_manager; fall = np.zeros(self.N, bool)
             for tn in self.fall_terms:
                 fall |= tm.get_term(tn).cpu().numpy()
             ret[alive] += reward[alive]
+            if t < self.chunk:
+                ret_chunk[alive] += reward[alive]
             if self.log_terms:
                 tr = self.env.reward_manager._step_reward.cpu().numpy() * float(self.env.step_dt)
                 term_sum[alive] += tr[alive]
@@ -545,6 +666,13 @@ class BranchSim(sb.BatchSim):
                          "ret": float(ret[e]), "fell": int(fell[e]), "fall_step": int(fall_step[e]), "alive_steps": int(self.horizon if fall_step[e] < 0 else fall_step[e] + 1),
                          "anchor_ret": float(A["anchor_ret"][q]), "anchor_fell": int(A["anchor_fell"][q]), "anchor_len": int(A["anchor_len"][q]),
                          "is_event": int(A["is_event"][q]) if "is_event" in A else -1})
+            if self.has_M:  # design doc 36 C3: the model's score of the candidate and the realised return of its own 25 steps
+                isM = grp[e] == "M"; k = int(cid[e])
+                kd = int(A["m_kind"][q, k]) if isM else -1; src = int(A["m_src"][q, k]) if isM else -1
+                rows[-1].update({"ret_chunk": float(ret_chunk[e]), "m_score": float(A["m_score"][q, k]) if isM else np.nan,
+                                 "m_kind": M_KINDS[kd] if isM else "", "m_iter": M_ITERS[int(A["m_iter"][q, k])] if isM else "",
+                                 "m_rank": int(A["m_rank"][q, k]) if isM else -1, "m_src": src,
+                                 "m_gauss": int(isM and (kd == 0 or (kd == 2 and src < int(A["m_S"]))))})
             if self.log_terms:
                 rows[-1].update({f"t_{n}": f"{term_sum[e, k]:.4g}" for k, n in enumerate(self.term_names)})
                 rows[-1].update({f"c_{n}": f"{term_chunk[e, k]:.4g}" for k, n in enumerate(self.term_names)})

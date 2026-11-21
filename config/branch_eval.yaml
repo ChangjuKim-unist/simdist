@@ -29,6 +29,7 @@ branch:
   speeds:         # optional filter of anchors (list), e.g. [0.6]
   seeds:          # optional filter of anchors (list), e.g. [11, 12]
   max_points:     # optional cap on the number of branch points (smoke tests)
+  sample_points:  # design doc 36: seeded random subset of this many branch points (before max_points)
   seed: 0         # rng seed for Gaussian / generator candidates and perturbations
   # design doc 27
   drive: policy   # anchor mode: policy (control.prior_only=true, shadow planner) | planner (control.prior_only=false, F = its own plan)
@@ -44,3 +45,8 @@ branch:
   max_events:     # branch mode: seeded random subset of at most N slip-event points (anchors with is_event)
   max_ctrl:       # branch mode: ... and of at most N quiet control points
   only_events: false  # branch mode: keep only the (capped) slip events
+  # design doc 36 C3: ranking of the planner's own candidates (group M)
+  m_record: false     # anchor mode: record the planner's candidates of every snapshot step (drive=planner, or drive=policy with shadow)
+  m_counts: [24, 4, 24, 2, 8]  # anchor mode: kept per snapshot = gauss first (score-rank strata), policy first, gauss last, policy last,
+                               # top last (best of S+B not taken); + executed plan (mean) + policy head chunk = 64. Smoke: [2, 1, 2, 1, 0] (8)
+  m_clones_mean_head: 3  # branch mode, group M: clones of the mean / head candidates (the sampled candidates get one each)
