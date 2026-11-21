@@ -63,6 +63,9 @@ policy:
   rl_run:
   iteration:
   use_as: act  # act | init | student_act (expert action initializes the MPPI mean; set control.init_mode=external)
+  mask_terms: []   # design doc 38: expert 'policy' obs terms replaced by their nominal reference (needs mask_ref)
+  mask_ref:        # npz written by a run with mask_record
+  mask_record:     # write the mid-walk mean of the expert's inputs per commanded speed to this npz
 
 wandb:
   log: false

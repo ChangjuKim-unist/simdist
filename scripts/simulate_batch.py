@@ -229,6 +229,7 @@ class BatchSim:
         self.cmd_ramp_steps = cfg["sim"].get("cmd_ramp_steps")
         self.cmd_term = self.cmd_manager.get_term("base_velocity")
         self.obs_dict, _ = self.env.reset()
+        self._init_obs_mask(pol_cfg)
 
         self.zero_action = np.zeros((self.N, 12), np.float32)
         proprio, extero = self.get_obs()
@@ -358,8 +359,59 @@ class BatchSim:
             v = np.full(self.N, np.nan, np.float32) if (md is None or tr is None) else np.asarray(md[src][i], np.float32)
             d[k].append(np.where(resetting, np.nan, v).astype(np.float16))
 
+    def _init_obs_mask(self, pol_cfg):
+        """Design doc 38: hide privileged observation terms of the RL expert.  policy.mask_terms = names of terms in the
+        'policy' observation group; each is replaced by its nominal reference (mid-walk mean per commanded speed, from a run
+        with policy.mask_record=<npz>, loaded with policy.mask_ref=<npz>).  History entries of a term are replaced too."""
+        self.mask_terms = list(pol_cfg.get("mask_terms") or [])
+        self.mask_record = pol_cfg.get("mask_record")
+        self.mask_idx = None
+        if self.rl_policy is None or not (self.mask_terms or self.mask_record):
+            return
+        om = self.env.observation_manager
+        names = list(om.active_terms["policy"])
+        dims = [int(np.prod(d)) for d in om.group_obs_term_dim["policy"]]
+        off = np.concatenate([[0], np.cumsum(dims)]).astype(int)
+        self.obs_slices = {n: (int(off[i]), int(off[i + 1])) for i, n in enumerate(names)}
+        D = int(off[-1]); assert self.obs_dict["policy"].shape[-1] == D, (self.obs_dict["policy"].shape, D)
+        print("design 38 expert obs terms (dim):", {n: b - a for n, (a, b) in self.obs_slices.items()}, flush=True)
+        unknown = [t for t in self.mask_terms if t not in self.obs_slices]
+        assert not unknown, f"unknown policy obs terms {unknown}; available {names}"
+        if self.mask_record:
+            self.mask_sum = np.zeros((self.N, D)); self.mask_cnt = np.zeros(self.N)
+        if self.mask_terms:
+            z = np.load(str(pol_cfg["mask_ref"]))
+            assert list(z["names"]) == names, "mask reference was recorded with a different observation layout"
+            ref_sp, ref_mean = z["speeds"].astype(np.float64), z["mean"].astype(np.float32)
+            rows = [int(np.argmin(np.abs(ref_sp - v))) for v, _ in self.pairs]
+            assert all(abs(ref_sp[r] - v) < 1e-6 for r, (v, _) in zip(rows, self.pairs)), "speed missing in the mask reference"
+            idx = np.concatenate([np.arange(*self.obs_slices[t]) for t in self.mask_terms])
+            self.mask_idx = torch.tensor(idx, device="cuda:0")
+            self.mask_val = torch.tensor(ref_mean[rows][:, idx], device="cuda:0")
+            print(f"design 38: masking {self.mask_terms} ({len(idx)} of {D} expert inputs) with the nominal reference", flush=True)
+
+    def _expert_obs(self, resetting):
+        obs = self.obs_dict["policy"].to("cuda:0")
+        if self.mask_record:
+            mid = (self.steps_since_reset >= 300) & ~resetting  # same mid-walk definition as the task score S
+            if mid.any():
+                o = obs.cpu().numpy().astype(np.float64)
+                self.mask_sum[mid] += o[mid]; self.mask_cnt[mid] += 1
+        if self.mask_idx is not None:
+            obs = obs.clone(); obs[:, self.mask_idx] = self.mask_val
+        return obs
+
+    def _save_mask_record(self):
+        sp = np.array([v for v, _ in self.pairs], np.float64); us = np.unique(sp)
+        mean = np.stack([self.mask_sum[sp == u].sum(0) / max(1.0, self.mask_cnt[sp == u].sum()) for u in us])
+        names = list(self.obs_slices)
+        os.makedirs(os.path.dirname(os.path.abspath(str(self.mask_record))), exist_ok=True)
+        np.savez(str(self.mask_record), speeds=us, mean=mean, names=np.array(names),
+                 slices=np.array([self.obs_slices[n] for n in names]), counts=np.array([self.mask_cnt[sp == u].sum() for u in us]))
+        print(f"design 38 mask reference written to {self.mask_record}: speeds {us.tolist()}, steps {[int(self.mask_cnt[sp == u].sum()) for u in us]}", flush=True)
+
     def get_obs(self):
-        proprio = np.concatenate([self.obs_dict["obs"][n].cpu().numpy() for n in self.proprio_obs_names], axis=-1)
+        proprio =np.concatenate([self.obs_dict["obs"][n].cpu().numpy() for n in self.proprio_obs_names], axis=-1)
         extero = self.obs_dict["obs"]["height_scan"].cpu().numpy()
         return proprio.astype(np.float32), extero.astype(np.float32)
 
@@ -404,7 +456,7 @@ class BatchSim:
                     })
         if self.rl_policy is not None and self.expert_use == "act":
             with torch.no_grad():
-                action = self.rl_policy(self.obs_dict["policy"].to("cuda:0")).cpu().numpy()
+                action = self.rl_policy(self._expert_obs(resetting)).cpu().numpy()
             if self.diag is not None:  # design doc 35: body state, reward terms and falls of the expert (no model fields)
                 plan = np.repeat(np.asarray(action, np.float32)[:, None, :], self.controller.T, axis=1)
                 self._diag_pre(plan, resetting, cmd, None, np.full(self.N, np.nan, np.float32),
@@ -553,6 +605,8 @@ class BatchSim:
             os.makedirs(os.path.dirname(os.path.abspath(self.trace_path)), exist_ok=True)
             np.savez(self.trace_path, **arrs)
             print(f"trace written to {self.trace_path}: {n} steps, pred_latents {arrs['pred_latents'].shape}")
+        if getattr(self, "mask_record", None):
+            self._save_mask_record()
         if self.diag is not None and self.diag["act"]:
             n = min(len(v) for v in self.diag.values())
             arrs = {k: np.stack(v[:n]) for k, v in self.diag.items()}
