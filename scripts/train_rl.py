@@ -123,6 +123,16 @@ def main(
     if cond:
         conditions.apply_train_cfg(env_cfg, cond)
 
+    # WARP_NO_MEMPOOL=1: gpu1 (RTX 2080 Ti, driver 530) fails with "Warp CUDA error 2: out of memory" in alloc_device_async
+    # at the ray-caster init even with 512 envs and 4.5 GB in use; plain allocations avoid the stream-ordered pool
+    if os.environ.get("WARP_NO_MEMPOOL"):
+        import warp as wp
+
+        wp.init()
+        for d in wp.get_cuda_devices():
+            wp.set_mempool_enabled(d, False)
+        print("[INFO] warp mempool disabled")
+
     # create isaac environment
     env = gym.make(
         args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
