@@ -51,12 +51,15 @@ class BatchedMppiController:
         self.S = int(controller_cfg["num_samples"])
         self.B = int(controller_cfg["num_samples"] * controller_cfg["mixture_coef"])  # may be 0 (no prior samples)
         # how the sampling mean is initialized every step (design doc 3, section 3):
-        #   shift    - previous plan shifted by `delay` (SimDist default, warm start)
+        #   shift    - previous plan shifted by `delay` (SimDist default, warm start). NOTE (design doc 36): the code rolls by
+        #              +delay and zeroes steps delay..T-1, so only step 0 keeps a value (the old plan's LAST step) - in effect
+        #              no warm start; kept as the default for comparability
+        #   shift_fwd - design doc 36: the intended warm start, old plan advanced by `delay` steps, tail zeroed
         #   zero     - zeros (no warm start)
         #   prior    - the base policy's action sequence
         #   external - whatever state.mean holds (set by the caller, e.g. expert action)
         self.init_mode = str(controller_cfg.get("init_mode", "shift"))
-        assert self.init_mode in ("shift", "zero", "prior", "external")
+        assert self.init_mode in ("shift", "shift_fwd", "zero", "prior", "external")
         self.shift = int(controller_cfg["delay"])
         self.discounts = controller_cfg["discount"] ** jnp.arange(self.T)
         self.final_discount = controller_cfg["discount"] ** (self.T + 1) * float(controller_cfg.get("value_weight", 1.0))  # design doc 23: terminal value weight w
@@ -215,7 +218,9 @@ class BatchedMppiController:
             # execute the prior's own plan (policy head or external prior), no planning
             self.state = BatchedMppiState(base_actions.astype(jnp.float32), self.state.std, self.state.key_data)
         else:
-            self.state = self._mppi_step(self.state, base_actions, x, jnp.asarray(self.robust_gamma, jnp.float32))
+            rec = bool(getattr(self, "record_next", False))  # design doc 36: set by branch_eval at snapshot steps
+            self.state, ys = self._mppi_step(self.state, base_actions, x, jnp.asarray(self.robust_gamma, jnp.float32), record=rec)
+            self.last_mppi_diag = ys; self.record_next = False
         actions = self.state.mean
         if self.gate_cfg.get("enabled", False):
             z_now = self._encode_now(x)
@@ -264,8 +269,11 @@ class BatchedMppiController:
     def _base_policy_actions(self, x):
         return self.model.inference(x)["actions"]  # (N, T, A)
 
-    @functools.partial(nnx.jit, static_argnames=["self"])
-    def _mppi_step(self, state: BatchedMppiState, base_actions, x, gamma=None) -> BatchedMppiState:
+    @functools.partial(nnx.jit, static_argnames=["self", "record"])
+    def _mppi_step(self, state: BatchedMppiState, base_actions, x, gamma=None, record=False):
+        """Returns (new state, per-iteration diagnostics). Design doc 36: diagnostics = elite ESS fraction (1 / sum w^2 / k)
+        and the weight share of policy-mixture samples per iteration, (I, N) each; record=True also returns every
+        iteration's candidates (I, N, S+B, T, A) and their scores (I, N, S+B) (separate compile, used at snapshots only)."""
         N, S, B, T, A = self.N, self.S, self.B, self.T, self.act_dim
         keys = jax.random.wrap_key_data(state.key_data)  # (N,)
 
@@ -280,6 +288,9 @@ class BatchedMppiController:
         if self.init_mode == "shift":
             mean = jnp.roll(state.mean, shift=self.shift, axis=1)
             mean = mean.at[:, self.shift :].set(0.0)
+        elif self.init_mode == "shift_fwd":
+            mean = jnp.roll(state.mean, shift=-self.shift, axis=1)
+            mean = mean.at[:, T - self.shift :].set(0.0)
         elif self.init_mode == "zero":
             mean = jnp.zeros_like(state.mean)
         elif self.init_mode == "prior":
@@ -360,7 +371,8 @@ class BatchedMppiController:
             (mu_u, sig_u, keys), _ = jax.lax.scan(fg, (jnp.zeros((N, du)), jnp.ones((N, du)), keys), jnp.arange(I))
             keys, k_d = split(keys)
             plan = decode(mu_u[:, None], k_d[0])[:, 0]                                                            # (N, T, A)
-            return BatchedMppiState(plan.astype(jnp.float32), state.std, jax.random.key_data(keys))
+            nan = jnp.full((I, N), jnp.nan)
+            return BatchedMppiState(plan.astype(jnp.float32), state.std, jax.random.key_data(keys)), {"ess": nan, "pol": nan}
 
         def f(carry, i):
             mean, std, keys = carry
@@ -402,7 +414,10 @@ class BatchedMppiController:
             new_std = jnp.sqrt(jnp.sum(w[:, :, None, None] * (elite_acts - new_mean[:, None]) ** 2, axis=1))
             mean = self.ctrl_cfg["momentum"] * mean + (1 - self.ctrl_cfg["momentum"]) * new_mean
             std = jnp.clip(new_std, min=self.ctrl_cfg["min_std"])
-            return (mean, std, keys), None
+            ys = {"ess": 1.0 / jnp.sum(w ** 2, axis=1) / w.shape[1], "pol": jnp.sum(w * (elite_idxs >= S), axis=1)}
+            if record:
+                ys["acts"] = acts; ys["returns"] = returns
+            return (mean, std, keys), ys
 
-        (mean, std, keys), _ = jax.lax.scan(f, (mean, std, keys), jnp.arange(I))
-        return BatchedMppiState(mean.astype(jnp.float32), std.astype(jnp.float32), jax.random.key_data(keys))
+        (mean, std, keys), ys = jax.lax.scan(f, (mean, std, keys), jnp.arange(I))
+        return BatchedMppiState(mean.astype(jnp.float32), std.astype(jnp.float32), jax.random.key_data(keys)), ys

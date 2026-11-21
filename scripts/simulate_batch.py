@@ -276,6 +276,8 @@ class BatchSim:
             self.foot_names = list(names_r); self.foot_ids = list(ids_r); self.foot_ids_cs = [ids_c[k] for k in order]
             self.diag = {k: [] for k in ("since", "resetting", "cmd", "lin_vel", "ang_vel", "grav", "height", "foot_speed", "contact",
                                          "act", "act_pol", "R_exec", "V_exec", "R_pol", "V_pol", "r0_exec", "lat_err",
+                                         # design doc 36: elite ESS fraction and policy-sample weight share (first / last iteration)
+                                         "ess_first", "ess_last", "pol_first", "pol_last",
                                          "reward", "fall", "reset", "terms",
                                          # design doc 27: joint velocity, applied torque (articulation joint order), foot force
                                          "joint_vel", "torque", "foot_force",
@@ -351,6 +353,10 @@ class BatchSim:
         d["R_exec"].append((pr @ disc).astype(np.float32)); d["V_exec"].append((pv[:, -1] * fd).astype(np.float32))
         d["R_pol"].append((br @ disc).astype(np.float32)); d["V_pol"].append((bv[:, -1] * fd).astype(np.float32))
         d["r0_exec"].append(pr[:, 0].astype(np.float32)); d["lat_err"].append(lat_err)
+        md = getattr(c, "last_mppi_diag", None)  # design doc 36 (None when the planner did not run: prior_only / RL expert)
+        for k, src, i in (("ess_first", "ess", 0), ("ess_last", "ess", -1), ("pol_first", "pol", 0), ("pol_last", "pol", -1)):
+            v = np.full(self.N, np.nan, np.float32) if (md is None or tr is None) else np.asarray(md[src][i], np.float32)
+            d[k].append(np.where(resetting, np.nan, v).astype(np.float16))
 
     def get_obs(self):
         proprio = np.concatenate([self.obs_dict["obs"][n].cpu().numpy() for n in self.proprio_obs_names], axis=-1)
