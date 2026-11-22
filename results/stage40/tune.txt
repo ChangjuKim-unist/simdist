@@ -1,0 +1,12 @@
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+M-free tuning (sigma_q, lam, J, falls):
+   (0.2, 0.1, 0.43056281097233295, 4)
+pick: None
+M-clock tuning (w, J, falls, match):
+   (1.0, 0.34531103912740946, 6, 0.5462905322255294)
+   (3.0, 0.397122610360384, 4, 0.5950519419184641)
+   (10.0, 0.2797891334630549, 7, 0.7062279401775824)
+   (30.0, 0.14776098495349288, 8, 0.8060086199796545)
+pick: None
+w_clock = NONE
