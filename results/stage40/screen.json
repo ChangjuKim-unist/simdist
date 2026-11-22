@@ -1,0 +1,18 @@
+{
+ "motor": [
+  "mot30",
+  "rule 2"
+ ],
+ "leg": [
+  "legR20",
+  "rule 2"
+ ],
+ "delay": [
+  "delay2",
+  "rule 1"
+ ],
+ "tow": [
+  "tow40",
+  "rule 1"
+ ]
+}
