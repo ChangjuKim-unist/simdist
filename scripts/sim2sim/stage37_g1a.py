@@ -53,7 +53,7 @@ def load(d, c3, c):
 def train(arm, pts, noise_sd, fd, init):
     import jax, jax.numpy as jnp, optax
     Z = np.concatenate([q["z"] for q in pts] + ([q["cl_z"] for q in pts] if arm == "A3" else []))
-    mu, sd = Z.mean(0), Z.std(0) + 1e-6
+    mu, sd = jnp.asarray(Z.mean(0)), jnp.asarray(Z.std(0) + 1e-6)
     k = jax.random.PRNGKey(init); k1, k2, k3, kd = jax.random.split(k, 4); D = Z.shape[1]
     he = lambda kk, i, o: jax.random.normal(kk, (i, o)) * np.sqrt(2.0 / i)  # noqa: E731
     params = {"w1": he(k1, D, HID), "b1": jnp.zeros(HID), "w2": he(k2, HID, HID), "b2": jnp.zeros(HID), "w3": he(k3, HID, 1) * 0.01, "b3": jnp.zeros(1)}
@@ -65,7 +65,7 @@ def train(arm, pts, noise_sd, fd, init):
     if arm == "A3":
         V = np.concatenate([q["V"] for q in pts] + [q["cl_V"] for q in pts])
         tgt = np.concatenate([(q["ret"] - q["chunk"]) / fd for q in pts] + [q["cl_cont"] / fd for q in pts]) - V  # Delta target
-        t_sd = tgt.std() + 1e-6
+        t_sd = float(tgt.std() + 1e-6); Z, tgt = jnp.asarray(Z), jnp.asarray(tgt)
         def loss(p, idx):
             return jnp.mean((f(p, Z[idx]) - tgt[idx]) ** 2) / t_sd ** 2
         draw = lambda: rng.integers(0, len(Z), MB)  # noqa: E731
@@ -73,7 +73,8 @@ def train(arm, pts, noise_sd, fd, init):
         I, Jx = [], []; off = 0
         for q in pts:
             r = q["ret"]; a, b = np.nonzero(r[:, None] - r[None, :] > noise_sd); I.append(a + off); Jx.append(b + off); off += len(r)
-        I, Jx = np.concatenate(I), np.concatenate(Jx); rec = np.concatenate([q["rec"] for q in pts]); s_sd = rec.std() + 1e-6
+        I, Jx = np.concatenate(I), np.concatenate(Jx); rec = np.concatenate([q["rec"] for q in pts]); s_sd = float(rec.std() + 1e-6)
+        Z, rec, I, Jx = jnp.asarray(Z), jnp.asarray(rec), jnp.asarray(I), jnp.asarray(Jx)
         def loss(p, idx):
             si = rec[I[idx]] + fd * f(p, Z[I[idx]]); sj = rec[Jx[idx]] + fd * f(p, Z[Jx[idx]])
             return jnp.mean(jax.nn.softplus(-(si - sj) / s_sd))
