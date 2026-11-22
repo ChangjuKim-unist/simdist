@@ -28,7 +28,7 @@ def load_policy(env, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--params", required=True)
-    ap.add_argument("--cond", default="nominal", choices=C.CONDITIONS)
+    ap.add_argument("--cond", default="nominal", choices=C.CONDITIONS + C.SCREEN)
     ap.add_argument("--episodes", type=int, default=16)
     ap.add_argument("--seed0", type=int, default=0)
     ap.add_argument("--T", type=int, default=500)
@@ -38,6 +38,7 @@ def main():
     env = C.load_env()
     F = C.Feat(env)
     env._mjx_model = C.condition_model(env, a.cond)      # true condition dynamics
+    delay, tow = C.condition_extra(a.cond)
     pi = load_policy(env, a.params)
 
     def set_cmd(st, t):
@@ -50,18 +51,23 @@ def main():
         st = env.reset(jax.random.PRNGKey(seed))
         st = set_cmd(st, 0.0)
         key = jax.random.PRNGKey(2000 + seed)
+        buf = jnp.zeros((delay + 1, env.action_size))       # executed action = policy action `delay` steps ago
 
         def body(carry, step):
-            st, key = carry
+            st, key, buf = carry
             key, k = jax.random.split(key)
             act, _ = pi(st.obs, k)
-            st = env.step(st, act)
+            buf = jnp.concatenate([buf[1:], act[None]], 0)
+            exe = buf[0] if delay > 0 else act
+            if tow > 0:
+                st = st.replace(data=st.data.replace(xfrc_applied=C.tow_xfrc(F, st.data, tow)))
+            st = env.step(st, exe)
             st = set_cmd(st, (step + 1) * env.dt)
             rec = C.step_log(F, st.data)
-            rec["ctrl"] = F.default_q + act * env._config.action_scale   # joint targets, comparable to MPPI
-            return (st, key), rec
+            rec["ctrl"] = F.default_q + exe * env._config.action_scale   # joint targets, comparable to MPPI
+            return (st, key, buf), rec
 
-        _, recs = jax.lax.scan(body, (st, key), jnp.arange(a.T))
+        _, recs = jax.lax.scan(body, (st, key, buf), jnp.arange(a.T))
         return recs
 
     t = time.time()

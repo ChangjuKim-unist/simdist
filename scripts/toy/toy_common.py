@@ -10,7 +10,9 @@ from mujoco_playground import registry
 
 ENV = "Go1JoystickFlatTerrain"
 LEG = {"FR": 0, "FL": 1, "RR": 2, "RL": 3}
-CONDITIONS = ("nominal", "legR50", "mot50", "kneeRR0", "kneeFR0")
+CONDITIONS = ("nominal", "legR50", "mot50", "kneeRR0", "kneeFR0")   # E0 set
+SCREEN = ("mot40", "mot30", "mot25", "legR30", "legR20", "legR10",
+          "delay1", "delay2", "delay3", "tow20", "tow30", "tow40")   # design 40 §9 level screen
 V_CMD = 0.6          # forward command (m/s), as designs 34-38
 RAMP_S = 1.0         # cautious start: command ramps 0 -> V_CMD over 1 s
 EVAL_FROM = 100      # score steps 100..T-1 (after 2 s)
@@ -25,13 +27,15 @@ def load_env():
 
 
 def condition_forcerange(env, cond):
+    """Torque-limit part of a condition. Names: nominal, mot{P}, legR{P} (rear-left leg),
+    kneeRR0, kneeFR0, delay{K}, tow{N} (the last two leave torque limits unchanged)."""
     fr = np.array(env.mj_model.actuator_forcerange, dtype=np.float32).copy()
-    if cond == "nominal":
+    if cond == "nominal" or cond.startswith("delay") or cond.startswith("tow"):
         pass
-    elif cond == "mot50":
-        fr *= 0.5
-    elif cond == "legR50":          # rear-left leg, three joints, 50 % torque limit
-        fr[3 * LEG["RL"]:3 * LEG["RL"] + 3] *= 0.5
+    elif cond.startswith("mot"):
+        fr *= int(cond[3:]) / 100.0
+    elif cond.startswith("legR"):   # rear-left leg, three joints, P % torque limit
+        fr[3 * LEG["RL"]:3 * LEG["RL"] + 3] *= int(cond[4:]) / 100.0
     elif cond == "kneeRR0":         # rear-right knee (calf) motor gives no torque
         fr[3 * LEG["RR"] + 2] = 0.0
     elif cond == "kneeFR0":         # front-right knee motor gives no torque
@@ -39,6 +43,23 @@ def condition_forcerange(env, cond):
     else:
         raise ValueError(cond)
     return fr
+
+
+def condition_extra(cond):
+    """(action delay in control steps, tow force in N) as in design 34: delayed joint targets;
+    horizontal force against the heading on the torso, saturating at 0.1 m/s forward speed."""
+    delay = int(cond[5:]) if cond.startswith("delay") else 0
+    tow = float(cond[3:]) if cond.startswith("tow") else 0.0
+    return delay, tow
+
+
+def tow_xfrc(F, d, tow):
+    """xfrc_applied with the tow force on the torso (zero when standing or moving backwards)."""
+    v = F.local_linvel(d)
+    yaw = F.yaw(d)
+    mag = tow * jnp.clip(v[0] / 0.1, 0.0, 1.0)
+    f = -mag * jnp.array([jnp.cos(yaw), jnp.sin(yaw), 0.0])
+    return d.xfrc_applied.at[F.torso, :3].set(f)
 
 
 def condition_model(env, cond):
