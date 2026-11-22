@@ -3,7 +3,7 @@
 set -u
 cd ~/simdist
 D=results/stage40/e12; W=/mnt/newssd/cjkim/toy/e12; mkdir -p $D $W
-run() { GPUS="\"device=$1\"" ~/simdist-docker/run.sh bash -c "cd /workspace/simdist && XLA_PYTHON_CLIENT_PREALLOCATE=false PYTHONPATH=/mnt/newssd/cjkim/toy_pylibs:scripts/toy $2"; }
+run() { GPUS="\"device=$1\"" ~/simdist-docker/run.sh bash -c "cd /workspace/simdist && export XLA_PYTHON_CLIENT_PREALLOCATE=false PYTHONPATH=/mnt/newssd/cjkim/toy_pylibs:scripts/toy && $2"; }
 T="python scripts/toy/toy_wm.py"
 SRC="P PN R ME MC"
 data_of() { case $1 in P) echo "$W/d_P.npz";; PN) echo "$W/d_PN.npz";; R) echo "$W/d_R.npz";; ME|MC) echo $W/d_M_s{1,2,3,4}.npz;; esac; }
