@@ -137,6 +137,7 @@ def gen_mpc_data(a):
     """True-model MPPI under DR; records executed transitions and K re-simulated candidates per step."""
     env = C.load_env()
     F = C.Feat(env)
+    tow = C.condition_extra(a.cond)[1] if a.cond != "dr" else 0.0
     if a.cond == "dr":
         mv, in_axes = dr_models(env, a.n_ep, a.seed)
     else:                                   # fixed true condition, no DR (test anchors)
@@ -170,6 +171,8 @@ def gen_mpc_data(a):
         yaw0 = F.yaw(d)
 
         def substeps(d, u):
+            if tow > 0:                     # true model includes the tow force
+                d = d.replace(xfrc_applied=C.tow_xfrc(F, d, tow))
             for k in range(n_sub):
                 d = mjx_env.step(mx, d, u[k], 1)
             return d
