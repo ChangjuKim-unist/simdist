@@ -1,0 +1,116 @@
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 1000 x 8 = 8000 transitions
+  + replay windows 1000
+step 0 loss 4.3762 5s
+step 2000 loss 0.1005 15s
+step 4000 loss 0.0584 25s
+step 6000 loss 0.1055 36s
+step 8000 loss 0.0350 47s
+step 10000 loss 0.0339 58s
+step 12000 loss 0.0247 70s
+step 14000 loss 0.0228 81s
+step 16000 loss 0.0201 93s
+step 18000 loss 0.0189 104s
+step 20000 loss 0.0182 116s
+step 22000 loss 0.0152 127s
+step 24000 loss 0.0148 139s
+step 26000 loss 0.0369 151s
+step 28000 loss 0.0221 162s
+step 29999 loss 0.0120 174s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_M0_kneeFR0_A1.pkl kneeFR0: J=0.034 fell=1.00 vx=nan wall=288s
+/workspace/simdist/scripts/toy/toy_wm.py:554: RuntimeWarning: Mean of empty slice
+  f"vx={np.nanmean(summ['vx_mean']):.3f} wall={time.time() - t:.0f}s", flush=True)
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_M0_kneeFR0_A1.pkl nominal: J=0.315 fell=0.69 vx=0.339 wall=288s
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 6250 x 8 = 50000 transitions
+  + replay windows 6250
+step 0 loss 4.2432 5s
+step 2000 loss 0.3271 15s
+step 4000 loss 0.2399 26s
+step 6000 loss 0.1909 37s
+step 8000 loss 0.1626 49s
+step 10000 loss 0.1744 61s
+step 12000 loss 0.1162 73s
+step 14000 loss 0.1169 84s
+step 16000 loss 0.1031 96s
+step 18000 loss 0.1190 108s
+step 20000 loss 0.0886 120s
+step 22000 loss 0.1166 132s
+step 24000 loss 0.0901 143s
+step 26000 loss 0.0900 155s
+step 28000 loss 0.0888 167s
+step 29999 loss 0.1374 179s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+/workspace/simdist/scripts/toy/toy_wm.py:554: RuntimeWarning: Mean of empty slice
+  f"vx={np.nanmean(summ['vx_mean']):.3f} wall={time.time() - t:.0f}s", flush=True)
+wm-mppi wm_M0_kneeFR0_A2.pkl kneeFR0: J=0.098 fell=1.00 vx=nan wall=288s
+Failed to import mujoco_warp: No module named 'warp.context'
+wm-mppi wm_M0_kneeFR0_A2.pkl nominal: J=0.599 fell=0.19 vx=0.393 wall=288s
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 6250 x 8 = 50000 transitions
+  + replay windows 6250
+step 0 loss 3.0140 5s
+step 2000 loss 0.5169 15s
+step 4000 loss 0.4064 26s
+step 6000 loss 0.3387 37s
+step 8000 loss 0.2731 49s
+step 10000 loss 0.2746 60s
+step 12000 loss 0.2213 72s
+step 14000 loss 0.2142 84s
+step 16000 loss 0.1724 96s
+step 18000 loss 0.2514 107s
+step 20000 loss 0.1873 119s
+step 22000 loss 0.1516 131s
+step 24000 loss 0.1408 143s
+step 26000 loss 0.1330 155s
+step 28000 loss 0.1440 166s
+step 29999 loss 0.1275 178s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_M0_kneeFR0_A3.pkl kneeFR0: J=0.107 fell=0.94 vx=0.186 wall=285s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_M0_kneeFR0_A3.pkl nominal: J=0.450 fell=0.38 vx=0.366 wall=285s
