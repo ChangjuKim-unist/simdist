@@ -142,9 +142,16 @@ def gen_policy_data(a):
 
 
 def gen_mpc_data(a):
-    """True-model MPPI under DR; records executed transitions and K re-simulated candidates per step."""
+    """True-model MPPI under DR; records executed transitions and K re-simulated candidates per step.
+    Design 41: --drive ppo|ppo_noise executes the PPO action (MPPI only shadows and records its candidates)."""
     env = C.load_env()
     F = C.Feat(env)
+    drive = a.drive
+    if drive != "mpc":
+        assert a.cond == "dr", "policy-driven shadow data only under DR"
+        from toy_ppo_eval import load_policy
+        pi = load_policy(env, a.params)
+        act_scale = env._config.action_scale
     tow = C.condition_extra(a.cond)[1] if a.cond != "dr" else 0.0
     if a.cond == "dr":
         mv, in_axes = dr_models(env, a.n_ep, a.seed)
@@ -172,11 +179,22 @@ def gen_mpc_data(a):
         qd = TM.D_q @ thq + TM.D_v @ thv
         return (jnp.clip(q, lo, hi) + kd_kp * qd).reshape(J, n_sub, 12)
 
+    def setc(st, t, vcmd):
+        info = dict(st.info)
+        info["command"] = jnp.array([vcmd * jnp.clip(t / C.RAMP_S, 0, 1), 0.0, 0.0])
+        info["steps_until_next_cmd"] = jnp.array(10 ** 6, jnp.int32)
+        return st.replace(info=info)
+
     def episode(mx, seed):
+        return with_model(env, mx, episode_inner, mx, seed)
+
+    def episode_inner(mx, seed):
         key = jax.random.PRNGKey(seed)
         key, k1, k3 = jax.random.split(key, 3)
         vcmd = jax.random.uniform(k1, minval=0.2, maxval=0.9)
-        d = with_model(env, mx, lambda: env.reset(k3).data)
+        sig = jax.random.uniform(jax.random.fold_in(key, 7), minval=0.0, maxval=a.noise)
+        st0 = setc(env.reset(k3), 0.0, vcmd)
+        d = st0.data
         yaw0 = F.yaw(d)
 
         def substeps(d, u):
@@ -214,7 +232,8 @@ def gen_mpc_data(a):
             return r
 
         def plan_step(carry, step):
-            d, thq, thv, key = carry
+            st, thq, thv, key = carry
+            d = st.data
             key, kp, kc = jax.random.split(key, 3)
             t0 = step * DT
             vd = vcmd * jnp.clip((t0 + TM.CTRL_T) / C.RAMP_S, 0, 1)
@@ -243,25 +262,33 @@ def gen_mpc_data(a):
             # K candidates of the last iteration (uniform without the nominal), re-simulated with records
             idx = jax.random.choice(kc, jnp.arange(1, N), (a.cand,), replace=False)
             cand = jax.vmap(lambda q, v: rollout_rec(d, traj(q, v)))(Ql[idx], Vl[idx])
-            u = traj(bq, bv)[0]
             x, h, p = features(F, d)
-            d1 = substeps(d, u)
+            if drive == "mpc":
+                u = traj(bq, bv)[0]
+                d1 = substeps(d, u)
+                st1, u0 = st.replace(data=d1), u[0]
+            else:                           # PPO (+ per-episode noise) acts; the planner only shadows
+                act, _ = pi(st.obs, jax.random.fold_in(kc, 1))
+                if drive == "ppo_noise":
+                    act = act + sig * jax.random.normal(jax.random.fold_in(kc, 2), (12,))
+                st1 = setc(env.step(st, act), (step + 1) * DT, vcmd)
+                d1, u0 = st1.data, F.default_q + act * act_scale
             x1, h1, p1 = features(F, d1)
             h1 = h1.at[20:23].set(pose_delta_heads(p, p1))
-            exe = dict(x=x, u=u[0], x1=x1, h1=h1, fell=F.fallen(d1))
+            exe = dict(x=x, u=u0, x1=x1, h1=h1, fell=F.fallen(d1))
             thq_w = TM.S_q @ bq + TM.S_v @ bv
             thv_w = TM.SD_q @ bq + TM.SD_v @ bv
-            return (d1, thq_w, thv_w, key), (exe, cand)
+            return (st1, thq_w, thv_w, key), (exe, cand)
 
         thq = jnp.tile(d.qpos[7:][None], (K, 1))
-        _, (exe, cand) = jax.lax.scan(plan_step, (d, thq, jnp.zeros((K, 12)), key), jnp.arange(a.T))
+        _, (exe, cand) = jax.lax.scan(plan_step, (st0, thq, jnp.zeros((K, 12)), key), jnp.arange(a.T))
         return exe, cand
 
     t = time.time()
     exe, cand = jax.jit(jax.vmap(episode, in_axes=(in_axes, 0)))(mv, jnp.arange(a.n_ep) + a.seed * 100000)
     exe = jax.tree_util.tree_map(np.asarray, exe)
     cand = jax.tree_util.tree_map(lambda z: np.asarray(z).astype(np.float16) if z.dtype != bool else np.asarray(z), cand)
-    np.savez_compressed(a.out, src="mpc", **{f"exe_{k}": v for k, v in exe.items()},
+    np.savez_compressed(a.out, src=drive, **{f"exe_{k}": v for k, v in exe.items()},
                         **{f"cand_{k}": v for k, v in cand.items()})
     print(f"genmpc: {a.n_ep}x{a.T} exec fell-frac {exe['fell'][:, -1].mean():.2f} "
           f"vx {exe['x'][:, 100:, 16].mean():.2f} {time.time() - t:.0f}s", flush=True)
@@ -279,8 +306,9 @@ class WM(nn.Module):
         return nn.Dense(XD + HD)(h)
 
 
-def load_windows(paths, L, max_trans, which, seed=0):
-    """Returns windows dict x (B, L+1, XD), u (B, L, 12), h (B, L, HD) from episode / candidate arrays."""
+def load_windows(paths, L, max_trans, which, seed=0, trunc_fall=False):
+    """Returns windows dict x (B, L+1, XD), u (B, L, 12), h (B, L, HD) from episode / candidate arrays.
+    trunc_fall (design 41): keep only windows that end at or before the first fallen transition of each episode."""
     rng = np.random.default_rng(seed)
     X, U, H = [], [], []
     for p in paths:
@@ -298,11 +326,16 @@ def load_windows(paths, L, max_trans, which, seed=0):
             x = x.reshape(-1, *x.shape[-2:])          # (E', T, XD) ; candidates: (E*T*K, J, XD)
             u, x1, h1 = (v.reshape(-1, *v.shape[-2:]) for v in (u, x1, h1))
             T = x.shape[1]
+            keep_upto = np.full(len(x), T)            # windows must end at or before this many steps
+            if trunc_fall and (pre + "fell") in z:
+                fl = z[pre + "fell"].astype(bool).reshape(len(x), T)
+                keep_upto = np.where(fl.any(1), fl.argmax(1) + 1, T)
             starts = np.arange(0, T - L + 1, L)       # non-overlapping windows
             for s0 in starts:
-                X.append(np.concatenate([x[:, s0:s0 + 1], x1[:, s0:s0 + L]], 1))
-                U.append(u[:, s0:s0 + L])
-                H.append(h1[:, s0:s0 + L])
+                m = s0 + L <= keep_upto
+                X.append(np.concatenate([x[m, s0:s0 + 1], x1[m, s0:s0 + L]], 1))
+                U.append(u[m, s0:s0 + L])
+                H.append(h1[m, s0:s0 + L])
     X, U, H = np.concatenate(X), np.concatenate(U), np.concatenate(H)
     ok = np.isfinite(X).all((1, 2)) & np.isfinite(H).all((1, 2))
     X, U, H = X[ok], U[ok], H[ok]
@@ -312,7 +345,7 @@ def load_windows(paths, L, max_trans, which, seed=0):
 
 
 def train(a):
-    X, U, H = load_windows(a.data, a.L, a.max_trans, a.which, a.seed)
+    X, U, H = load_windows(a.data, a.L, a.max_trans, a.which, a.seed, trunc_fall=a.trunc_fall)
     print(f"train windows {len(X)} x {a.L} = {len(X) * a.L} transitions", flush=True)
     if a.replay:                            # fine-tuning: mix new windows with replayed pretraining windows
         n_rep = int(len(X) * a.replay_frac / (1 - a.replay_frac))
@@ -389,9 +422,10 @@ def eval_closed_loop(a):
     mx = C.condition_model(env, a.cond)
     delay, tow = C.condition_extra(a.cond)
     f0 = F.mass * 9.81 / 4.0
-    with open(a.wm, "rb") as f:
-        wm = pickle.load(f)
-    step = wm_step_fn(wm)
+    if not a.oracle:
+        with open(a.wm, "rb") as f:
+            wm = pickle.load(f)
+        step = wm_step_fn(wm)
     J, K, n_sub = TM.J, TM.K, TM.NS
     I, N = a.iters, a.samples
     ii = jnp.arange(I, 0, -1)
@@ -429,10 +463,31 @@ def eval_closed_loop(a):
         (xT, pT, acc), _ = jax.lax.scan(body, (x0, pose0, 0.0), ctrl)
         return acc + TM.W["H"] * jnp.sum(jnp.abs(pT[:2] - p_target))
 
+    def true_rollout(d0, ctrl, yaw0, p_target):          # design 41 oracle: true condition model + physical cost
+        def body(carry, u):
+            d, acc = carry
+            if tow > 0:
+                d = d.replace(xfrc_applied=C.tow_xfrc(F, d, tow))
+            for k in range(n_sub):
+                d = mjx_env.step(mx, d, u[k], 1)
+            con = F.contact(d)
+            c = TM.W["h"] * jnp.abs(d.qpos[2] - Z_DES)
+            c += TM.W["orient"] * TM.quat_angle2(d.qpos[3:7], yaw0)
+            c += a.wq * jnp.sum((d.qpos[7:] - F.default_q) ** 2)
+            c += TM.W["cvel"] * jnp.sum(jnp.abs(F.feet_vel(d)) * con[:, None])
+            c += TM.W["cforce"] * jnp.sum(jnp.abs(F.feet_fn(d) - f0))
+            return (d, acc + a.run_scale * c), None
+        (dT, acc), _ = jax.lax.scan(body, (d0, 0.0), ctrl)
+        return acc + TM.W["H"] * jnp.sum(jnp.abs(dT.qpos[:2] - p_target))
+
     def plan(d, thq, thv, key, t0, yaw0):
         x0, _, pose0 = features(F, d)
         vd = C.v_des(t0 + TM.CTRL_T)
         p_target = pose0[:2] + jnp.sum(vd) * DT * jnp.array([jnp.cos(yaw0), jnp.sin(yaw0)])
+        if a.oracle:
+            score = lambda q, v: true_rollout(d, traj(q, v), yaw0, p_target)
+        else:
+            score = lambda q, v: rollout(x0, pose0, traj(q, v), yaw0, p_target)
 
         def it(c, xs):
             thq, thv, bq, bv, bs = c
@@ -442,7 +497,7 @@ def eval_closed_loop(a):
             ev = jax.random.normal(k2, (N, K, 12)) * (a.sigma_v * sd)[None, :, None]
             eq, ev = eq.at[0].set(0.0), ev.at[0].set(0.0)
             Q, V = jax.vmap(clamp)(thq[None] + eq, thv[None] + ev)
-            S = jax.vmap(lambda q, v: rollout(x0, pose0, traj(q, v), yaw0, p_target))(Q, V)
+            S = jax.vmap(score)(Q, V)
             S = jnp.where(jnp.isfinite(S), S, 1e9)
             w = jax.nn.softmax(-((S - S.min()) / (S.max() - S.min() + 1e-9)) / a.lam)
             b = jnp.argmin(S)
@@ -489,12 +544,13 @@ def eval_closed_loop(a):
     recs = jax.tree_util.tree_map(np.asarray, jax.jit(jax.vmap(episode))(jnp.arange(a.seed0, a.seed0 + a.episodes)))
     summ = C.summarise(recs, recs["ctrl"])
     tr = {k[3:]: recs.pop(k) for k in ("tr_x", "tr_u", "tr_x1", "tr_h1")}
+    tr["fell"] = np.asarray(recs["fallen"]).astype(bool)
     np.savez_compressed(a.out + ".npz", **recs)
     np.savez_compressed(a.out + "_trans.npz", src="wm-mppi", **tr)     # adaptation data (same layout as gen)
     js = {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in summ.items()}
     js.update(cond=a.cond, wm=a.wm, wall_s=time.time() - t, args=vars(a))
     json.dump(js, open(a.out + ".json", "w"), indent=1)
-    print(f"wm-mppi {os.path.basename(a.wm)} {a.cond}: J={np.mean(summ['J']):.3f} fell={np.mean(summ['fell']):.2f} "
+    print(f"wm-mppi {'ORACLE' if a.oracle else os.path.basename(a.wm)} {a.cond}: J={np.mean(summ['J']):.3f} fell={np.mean(summ['fell']):.2f} "
           f"vx={np.nanmean(summ['vx_mean']):.3f} wall={time.time() - t:.0f}s", flush=True)
 
 
@@ -594,6 +650,9 @@ def main():
     ap.add_argument("--cond", default="nominal", help="evalcl: condition; genmpc: dr (default use) or a condition")
     ap.add_argument("--episodes", type=int, default=16)
     ap.add_argument("--seed0", type=int, default=0)
+    ap.add_argument("--drive", default="mpc", choices=("mpc", "ppo", "ppo_noise"), help="design 41 genmpc: who acts")
+    ap.add_argument("--trunc_fall", action="store_true", help="design 41 train: drop windows after the first fall")
+    ap.add_argument("--oracle", action="store_true", help="design 41 evalcl: plan with the true condition model")
     ap.add_argument("--box_hip", type=float, default=0.0, help="v2 joint box (rad) around default pose; 0 = off")
     ap.add_argument("--box_thigh", type=float, default=0.0)
     ap.add_argument("--box_knee", type=float, default=0.0)
