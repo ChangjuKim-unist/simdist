@@ -505,6 +505,19 @@ def eval_closed_loop(a):
             return (jnp.einsum("n,nkj->kj", w, Q), jnp.einsum("n,nkj->kj", w, V),
                     jnp.where(better, Q[b], bq), jnp.where(better, V[b], bv), jnp.minimum(S[b], bs)), None
 
+        if a.record_cand > 0:                             # design 43: also return the last-iteration samples
+            def it2(c, xs):
+                (thq, thv, bq, bv, bs), _ = it(c[:5], xs)
+                sd, k = xs
+                k1, k2 = jax.random.split(k)
+                eq = jax.random.normal(k1, (N, K, 12)) * (a.sigma_q * sd)[None, :, None]
+                ev = jax.random.normal(k2, (N, K, 12)) * (a.sigma_v * sd)[None, :, None]
+                eq, ev = eq.at[0].set(0.0), ev.at[0].set(0.0)
+                Q, V = jax.vmap(clamp)(c[0][None] + eq, c[1][None] + ev)   # same samples as it() drew
+                return (thq, thv, bq, bv, bs, Q, V), None
+            init = (thq, thv, thq, thv, jnp.inf, jnp.zeros((N, K, 12)), jnp.zeros((N, K, 12)))
+            (_, _, bq, bv, bs, Ql, Vl), _ = jax.lax.scan(it2, init, (std, jax.random.split(key, I)))
+            return bq, bv, bs, Ql, Vl
         (_, _, bq, bv, bs), _ = jax.lax.scan(it, (thq, thv, thq, thv, jnp.inf), (std, jax.random.split(key, I)))
         return bq, bv, bs
 
@@ -517,10 +530,26 @@ def eval_closed_loop(a):
         d = env.reset(jax.random.PRNGKey(seed)).data
         yaw0 = F.yaw(d)
 
+        def true_rec(d0, ctrl):                           # design 43: true condition model, recorded like genmpc candidates
+            def body(d, u):
+                x, h, p = features(F, d)
+                if tow > 0:
+                    d = d.replace(xfrc_applied=C.tow_xfrc(F, d, tow))
+                d = substeps(d, u)
+                x1, h1, p1 = features(F, d)
+                h1 = h1.at[20:23].set(pose_delta_heads(p, p1))
+                return d, dict(x=x, u=u[0], x1=x1, h1=h1)
+            return jax.lax.scan(body, d0, ctrl)[1]
+
         def es(c, stp):
             d, thq, thv, key, buf = c
             key, kp = jax.random.split(key)
-            bq, bv, bs = plan(d, thq, thv, kp, stp * DT, yaw0)
+            if a.record_cand > 0:
+                bq, bv, bs, Ql, Vl = plan(d, thq, thv, kp, stp * DT, yaw0)
+                idx = jax.random.choice(jax.random.fold_in(kp, 77), jnp.arange(1, N), (a.record_cand,), replace=False)
+                cand = jax.vmap(lambda q, v: true_rec(d, traj(q, v)))(Ql[idx], Vl[idx])
+            else:
+                bq, bv, bs = plan(d, thq, thv, kp, stp * DT, yaw0)
             u = traj(bq, bv)[0]
             buf = jnp.concatenate([buf[1:], u[None]], 0)
             ue = buf[0]                                   # executed target (delayed by `delay` steps)
@@ -533,6 +562,8 @@ def eval_closed_loop(a):
             rec = C.step_log(F, d)
             rec["ctrl"] = ue[0]
             rec.update(tr_x=x, tr_u=ue[0], tr_x1=x1, tr_h1=h1)
+            if a.record_cand > 0:
+                rec.update({"cd_" + k: v for k, v in cand.items()})
             return (d, TM.S_q @ bq + TM.S_v @ bv, TM.SD_q @ bq + TM.SD_v @ bv, key, buf), rec
 
         thq = jnp.tile(d.qpos[7:][None], (K, 1))
@@ -545,6 +576,14 @@ def eval_closed_loop(a):
     summ = C.summarise(recs, recs["ctrl"])
     tr = {k[3:]: recs.pop(k) for k in ("tr_x", "tr_u", "tr_x1", "tr_h1")}
     tr["fell"] = np.asarray(recs["fallen"]).astype(bool)
+    if a.record_cand > 0:                                 # keep candidates from states up to the first fall
+        cd = {k[3:]: recs.pop(k) for k in [k for k in recs if k.startswith("cd_")]}
+        fl = tr["fell"]
+        ff = np.where(fl.any(1), fl.argmax(1), fl.shape[1] - 1)
+        keep = np.arange(fl.shape[1])[None, :] <= ff[:, None]
+        np.savez_compressed(a.out + "_cand.npz", src="wm-mppi-true-cand",
+                            **{"cand_" + k: v[keep].astype(np.float16) for k, v in cd.items()})
+        print(f"recorded true candidates at {int(keep.sum())} pre-fall states", flush=True)
     np.savez_compressed(a.out + ".npz", **recs)
     np.savez_compressed(a.out + "_trans.npz", src="wm-mppi", **tr)     # adaptation data (same layout as gen)
     js = {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in summ.items()}
@@ -653,6 +692,7 @@ def main():
     ap.add_argument("--drive", default="mpc", choices=("mpc", "ppo", "ppo_noise"), help="design 41 genmpc: who acts")
     ap.add_argument("--trunc_fall", action="store_true", help="design 41 train: drop windows after the first fall")
     ap.add_argument("--oracle", action="store_true", help="design 41 evalcl: plan with the true condition model")
+    ap.add_argument("--record_cand", type=int, default=0, help="design 43 evalcl: re-simulate K last-iteration samples per step in the true model")
     ap.add_argument("--box_hip", type=float, default=0.0, help="v2 joint box (rad) around default pose; 0 = off")
     ap.add_argument("--box_thigh", type=float, default=0.0)
     ap.add_argument("--box_knee", type=float, default=0.0)
