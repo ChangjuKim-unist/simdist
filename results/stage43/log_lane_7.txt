@@ -1,0 +1,100 @@
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 9375 x 8 = 75000 transitions
+step 0 loss 2.9280 5s
+step 2000 loss 0.5177 16s
+step 4000 loss 0.3372 26s
+step 6000 loss 0.2607 36s
+step 8000 loss 0.2378 47s
+step 10000 loss 0.2131 57s
+step 12000 loss 0.1606 68s
+step 14000 loss 0.1582 79s
+step 16000 loss 0.1367 90s
+step 18000 loss 0.1424 101s
+step 20000 loss 0.1411 112s
+step 22000 loss 0.1083 123s
+step 24000 loss 0.1418 135s
+step 26000 loss 0.1246 147s
+step 28000 loss 0.1088 158s
+step 29999 loss 0.0941 169s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_CT_kneeRR0_s1_r1.pkl kneeRR0: J=0.294 fell=0.62 vx=0.359 wall=292s
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 12500 x 8 = 100000 transitions
+step 0 loss 2.8955 5s
+step 2000 loss 0.5149 10s
+step 4000 loss 0.4348 15s
+step 6000 loss 0.3201 21s
+step 8000 loss 0.2534 26s
+step 10000 loss 0.2585 31s
+step 12000 loss 0.2299 37s
+step 14000 loss 0.1931 43s
+step 16000 loss 0.1955 48s
+step 18000 loss 0.1679 54s
+step 20000 loss 0.1636 59s
+step 22000 loss 0.1534 65s
+step 24000 loss 0.1249 71s
+step 26000 loss 0.1445 76s
+step 28000 loss 0.1081 82s
+step 29999 loss 0.1121 87s
+Failed to import mujoco_warp: No module named 'warp.context'
+/mnt/newssd/cjkim/toy_pylibs/numpy/lib/_nanfunctions_impl.py:2019: RuntimeWarning: Degrees of freedom <= 0 for slice.
+  var = nanvar(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+/workspace/simdist/scripts/toy/toy_common.py:165: RuntimeWarning: Mean of empty slice
+  "tau2": np.nanmean(np.where(alive[:, sl, None], log["tau"][:, sl] ** 2, np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:166: RuntimeWarning: Mean of empty slice
+  "slip": np.nanmean(np.where(alive[:, sl, None], log["slip"][:, sl], np.nan), (1, 2)),
+/workspace/simdist/scripts/toy/toy_common.py:167: RuntimeWarning: Mean of empty slice
+  "duty": np.nanmean(np.where(alive[:, sl, None], log["contact"][:, sl], np.nan), 1),  # (E, 4)
+wm-mppi wm_CT_kneeRR0_s1_r2.pkl kneeRR0: J=0.432 fell=0.44 vx=0.328 wall=256s
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 15625 x 8 = 125000 transitions
+step 0 loss 2.9871 9s
+step 2000 loss 0.4815 20s
+step 4000 loss 0.4307 32s
+step 6000 loss 0.3314 44s
+step 8000 loss 0.2785 55s
+step 10000 loss 0.2715 67s
+step 12000 loss 0.2386 79s
+step 14000 loss 0.2199 90s
+step 16000 loss 0.2169 102s
+step 18000 loss 0.1947 113s
+step 20000 loss 0.1880 125s
+step 22000 loss 0.1678 137s
+step 24000 loss 0.1601 147s
+step 26000 loss 0.1478 153s
+step 28000 loss 0.1504 158s
+step 29999 loss 0.1388 164s
+Failed to import mujoco_warp: No module named 'warp.context'
+wm-mppi wm_CT_kneeRR0_s1_r3.pkl kneeRR0: J=0.572 fell=0.25 vx=0.414 wall=272s
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 18750 x 8 = 150000 transitions
+step 0 loss 2.9216 5s
+step 2000 loss 0.4887 10s
+step 4000 loss 0.4039 15s
+step 6000 loss 0.3860 21s
+step 8000 loss 0.3000 26s
+step 10000 loss 0.2801 31s
+step 12000 loss 0.2611 37s
+step 14000 loss 0.2590 42s
+step 16000 loss 0.2483 48s
+step 18000 loss 0.2220 53s
+step 20000 loss 0.2124 59s
+step 22000 loss 0.1883 64s
+step 24000 loss 0.1650 70s
+step 26000 loss 0.1663 76s
+step 28000 loss 0.1709 81s
+step 29999 loss 0.1545 87s
+Failed to import mujoco_warp: No module named 'warp.context'
+wm-mppi wm_CT_kneeRR0_s1_r4.pkl kneeRR0: J=0.372 fell=0.62 vx=0.277 wall=242s
