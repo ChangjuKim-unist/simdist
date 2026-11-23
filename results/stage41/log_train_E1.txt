@@ -1,0 +1,19 @@
+WARNING: Your kernel does not support swap limit capabilities or the cgroup is not mounted. Memory limited without swap.
+Failed to import mujoco_warp: No module named 'warp.context'
+train windows 6250 x 8 = 50000 transitions
+step 0 loss 2.9332 5s
+step 2000 loss 0.4809 10s
+step 4000 loss 0.3260 15s
+step 6000 loss 0.2444 25s
+step 8000 loss 0.1923 36s
+step 10000 loss 0.1540 46s
+step 12000 loss 0.1378 57s
+step 14000 loss 0.1400 68s
+step 16000 loss 0.1038 79s
+step 18000 loss 0.0956 91s
+step 20000 loss 0.1504 102s
+step 22000 loss 0.1255 114s
+step 24000 loss 0.0868 126s
+step 26000 loss 0.0807 137s
+step 28000 loss 0.0774 149s
+step 29999 loss 0.1075 161s
