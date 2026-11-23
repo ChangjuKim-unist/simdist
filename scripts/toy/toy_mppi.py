@@ -75,9 +75,13 @@ def make_planner(F, mx, n_sub, args):
     var = jnp.exp(-(I - ii)[:, None] / (args.beta1 * I) - (K - kk)[None, :] / (args.beta2 * K))
     std = jnp.sqrt(var)                                         # (I, K)
 
+    box = jnp.tile(jnp.array([args.box_hip, args.box_thigh, args.box_knee]), 4)
+    blo = jnp.maximum(lo, F.default_q - box) if args.box_hip > 0 else lo     # design 40 v2 joint box (off by default)
+    bhi = jnp.minimum(hi, F.default_q + box) if args.box_hip > 0 else hi
+
     def clamp(thq, thv):
-        thq = jnp.clip(thq, lo, hi)
-        lim = jnp.minimum(hi - thq, thq - lo) / (DTN / 2)
+        thq = jnp.clip(thq, blo, bhi)
+        lim = jnp.minimum(bhi - thq, thq - blo) / (DTN / 2)
         return thq, jnp.clip(thv, -lim, lim)
 
     def traj(thq, thv):
@@ -226,6 +230,9 @@ def main():
     ap.add_argument("--wq", type=float, default=0.3)
     ap.add_argument("--run_scale", type=float, default=5.0,
                     help="running cost x this (paper sums over fine sim steps; 10 = 2 ms steps)")
+    ap.add_argument("--box_hip", type=float, default=0.0, help="v2 joint box (rad) around default pose; 0 = off")
+    ap.add_argument("--box_thigh", type=float, default=0.0)
+    ap.add_argument("--box_knee", type=float, default=0.0)
     ap.add_argument("--out", required=True)
     run(ap.parse_args())
 

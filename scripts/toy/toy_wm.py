@@ -79,6 +79,14 @@ def with_model(env, mx, fn, *a):
 
 
 # --------------------------------------------------------------------------- data generation
+def box_limits(F, a, lo, hi):
+    """Design 40 v2: optional joint box around the default pose for spline nodes (off when box_hip <= 0)."""
+    if a.box_hip <= 0:
+        return lo, hi
+    box = jnp.tile(jnp.array([a.box_hip, a.box_thigh, a.box_knee]), 4)
+    return jnp.maximum(lo, F.default_q - box), jnp.minimum(hi, F.default_q + box)
+
+
 def gen_policy_data(a):
     from toy_ppo_eval import load_policy
     env = C.load_env()
@@ -150,12 +158,13 @@ def gen_mpc_data(a):
     var = jnp.exp(-(I - ii)[:, None] / I - (K - jnp.arange(K))[None, :] / K)
     std = jnp.sqrt(var)
     lo, hi = F.q_lo, F.q_hi
+    blo, bhi = box_limits(F, a, lo, hi)
     kd_kp = F.kd / F.kp
     f0 = F.mass * 9.81 / 4.0
 
     def clamp(thq, thv):
-        thq = jnp.clip(thq, lo, hi)
-        lim = jnp.minimum(hi - thq, thq - lo) / (TM.DTN / 2)
+        thq = jnp.clip(thq, blo, bhi)
+        lim = jnp.minimum(bhi - thq, thq - blo) / (TM.DTN / 2)
         return thq, jnp.clip(thv, -lim, lim)
 
     def traj(thq, thv):
@@ -388,11 +397,12 @@ def eval_closed_loop(a):
     ii = jnp.arange(I, 0, -1)
     std = jnp.sqrt(jnp.exp(-(I - ii)[:, None] / I - (K - jnp.arange(K))[None, :] / K))
     lo, hi = F.q_lo, F.q_hi
+    blo, bhi = box_limits(F, a, lo, hi)
     kd_kp = F.kd / F.kp
 
     def clamp(thq, thv):
-        thq = jnp.clip(thq, lo, hi)
-        lim = jnp.minimum(hi - thq, thq - lo) / (TM.DTN / 2)
+        thq = jnp.clip(thq, blo, bhi)
+        lim = jnp.minimum(bhi - thq, thq - blo) / (TM.DTN / 2)
         return thq, jnp.clip(thv, -lim, lim)
 
     def traj(thq, thv):
@@ -584,6 +594,9 @@ def main():
     ap.add_argument("--cond", default="nominal", help="evalcl: condition; genmpc: dr (default use) or a condition")
     ap.add_argument("--episodes", type=int, default=16)
     ap.add_argument("--seed0", type=int, default=0)
+    ap.add_argument("--box_hip", type=float, default=0.0, help="v2 joint box (rad) around default pose; 0 = off")
+    ap.add_argument("--box_thigh", type=float, default=0.0)
+    ap.add_argument("--box_knee", type=float, default=0.0)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     if a.mode == "genmpc" and a.cond == "nominal":
