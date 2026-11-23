@@ -1,0 +1,12 @@
+{
+ "wm": "/mnt/newssd/cjkim/toy/e12v2/wm_P.pkl",
+ "anchors": "/mnt/newssd/cjkim/toy/e12v2/anchor_tow40.npz",
+ "n_anchor": 160,
+ "K": 16,
+ "rho_mean": -0.011746323529411764,
+ "rho_median": 0.0058823529411764705,
+ "top1_hit": 0.05625,
+ "regret": 1598.075927734375,
+ "regret_rel": 0.34585097432136536,
+ "open_loop_mse": 2.1698877811431885
+}
