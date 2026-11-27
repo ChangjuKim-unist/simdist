@@ -1,0 +1,11 @@
+defaults:
+  - simulate_batch
+  - _self_
+
+# scripts/sim2sim/oracle_plan.py: the planner with every candidate rolled out in the simulator (exact dynamics)
+oracle:
+  arm: exact        # model | exact | consensus
+  restore: true     # model arm only: restore every robot to its own snapshot before the executed step (artefact check)
+  speeds: [0.6]     # forward speed of each robot [m/s]
+  seeds: [11]       # robots = speeds x seeds; each gets (num_samples + policy-mixture samples) simulator copies
+  out:              # output prefix (<out>.npz, <out>.json)
